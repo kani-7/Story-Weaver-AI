@@ -10,6 +10,8 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: storyboard
+    description: DreamFrame AI storyboard operations
 paths:
   /healthz:
     get:
@@ -24,6 +26,36 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /storyboard/analyze:
+    post:
+      operationId: analyzeStory
+      tags: [storyboard]
+      summary: Analyze a story and generate storyboard scenes
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StoryInput"
+      responses:
+        "200":
+          description: Storyboard with scenes and characters
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Storyboard"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
 components:
   schemas:
     HealthStatus:
@@ -33,4 +65,66 @@ components:
           type: string
       required:
         - status
-
+    StoryInput:
+      type: object
+      properties:
+        story:
+          type: string
+          minLength: 10
+      required:
+        - story
+    Character:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+      required:
+        - name
+        - description
+    Scene:
+      type: object
+      properties:
+        sceneNumber:
+          type: integer
+        title:
+          type: string
+        description:
+          type: string
+        characters:
+          type: array
+          items:
+            type: string
+        visualPrompt:
+          type: string
+      required:
+        - sceneNumber
+        - title
+        - description
+        - characters
+        - visualPrompt
+    Storyboard:
+      type: object
+      properties:
+        title:
+          type: string
+        characters:
+          type: array
+          items:
+            $ref: "#/components/schemas/Character"
+        scenes:
+          type: array
+          items:
+            $ref: "#/components/schemas/Scene"
+      required:
+        - title
+        - characters
+        - scenes
+    ApiError:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
