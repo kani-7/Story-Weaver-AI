@@ -40,7 +40,8 @@ export const AnalyzeStoryResponse = zod.object({
   "appearance": zod.string(),
   "clothing": zod.string().optional(),
   "personality": zod.string(),
-  "distinctiveFeatures": zod.string()
+  "distinctiveFeatures": zod.string(),
+  "voiceStyle": zod.string().optional()
 })),
   "scenes": zod.array(zod.object({
   "sceneNumber": zod.number(),
@@ -58,6 +59,10 @@ export const AnalyzeStoryResponse = zod.object({
   "character": zod.string(),
   "thought": zod.string()
 })).default([]),
+  "internalMonologue": zod.array(zod.object({
+  "character": zod.string(),
+  "monologue": zod.string()
+})).default([]),
   "actions": zod.array(zod.object({
   "character": zod.string(),
   "action": zod.string()
@@ -72,10 +77,23 @@ export const AnalyzeStoryResponse = zod.object({
   "backgroundMusic": zod.string(),
   "soundEffects": zod.array(zod.string())
 }).optional(),
+  "continuityCheck": zod.object({
+  "status": zod.enum(['Pass', 'Warning', 'Fail']),
+  "issues": zod.array(zod.string())
+}).optional(),
+  "flashbackVisualStyle": zod.string().optional(),
+  "flashbackAudioStyle": zod.string().optional(),
+  "dreamVisualStyle": zod.string().optional(),
+  "dreamAudioStyle": zod.string().optional(),
   "flashbackIndicator": zod.string().optional(),
   "transitionInstructions": zod.string().optional(),
   "returnToPresentInstructions": zod.string().optional()
-}))
+})),
+  "productionReadinessScore": zod.number().min(0).max(100).optional(),
+  "movieReadinessReport": zod.object({
+  "strengths": zod.array(zod.string()),
+  "weaknesses": zod.array(zod.string()),
+  "missingElements": zod.array(zod.string()),
+  "productionNotes": zod.string()
+}).optional()
 })
-
-

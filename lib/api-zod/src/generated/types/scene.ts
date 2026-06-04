@@ -25,10 +25,27 @@ export interface CharacterEmotion {
   confidence: number;
 }
 
+export interface InternalMonologueLine {
+  character: string;
+  monologue: string;
+}
+
 export interface SceneAudio {
   backgroundAmbience: string[];
   backgroundMusic: string;
   soundEffects: string[];
+}
+
+export interface SceneContinuityCheck {
+  status: 'Pass' | 'Warning' | 'Fail';
+  issues: string[];
+}
+
+export interface MovieReadinessReport {
+  strengths: string[];
+  weaknesses: string[];
+  missingElements: string[];
+  productionNotes: string;
 }
 
 export interface Scene {
@@ -41,9 +58,15 @@ export interface Scene {
   narration: string[];
   dialogue: DialogueLine[];
   thoughts: InternalThought[];
+  internalMonologue: InternalMonologueLine[];
   actions: CharacterAction[];
   emotions: CharacterEmotion[];
   audio?: SceneAudio;
+  continuityCheck?: SceneContinuityCheck;
+  flashbackVisualStyle?: string;
+  flashbackAudioStyle?: string;
+  dreamVisualStyle?: string;
+  dreamAudioStyle?: string;
   flashbackIndicator?: string;
   transitionInstructions?: string;
   returnToPresentInstructions?: string;

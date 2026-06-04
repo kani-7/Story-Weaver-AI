@@ -11,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { motion, AnimatePresence } from "framer-motion";
-import { Film, Sparkles, User, Clapperboard, RotateCcw, Video, Brain, Settings2, ChevronDown, Eye, Zap, Fingerprint, Clock, Moon, Lightbulb, ArrowLeftRight, BookOpen, MessageSquare, Swords, Heart, Music, Volume2, Waves } from "lucide-react";
+import { Film, Sparkles, User, Clapperboard, RotateCcw, Video, Brain, Settings2, ChevronDown, Eye, Zap, Fingerprint, Clock, Moon, Lightbulb, ArrowLeftRight, BookOpen, MessageSquare, Swords, Heart, Music, Volume2, Waves, Mic2, Palette, CheckCircle2, AlertTriangle, XCircle, Trophy, ScrollText, Radio } from "lucide-react";
 
 const queryClient = new QueryClient();
 
@@ -79,6 +79,25 @@ const translations: Record<UILang, Record<string, string>> = {
     emotionLabel: "Emotion",
     confidenceLabel: "Confidence",
     narratorLabel: "Narrator",
+    internalMonologue: "Internal Monologue",
+    monologueLabel: "Monologue",
+    voiceStyle: "Voice Style",
+    flashbackVisualStyle: "Flashback Visual Style",
+    flashbackAudioStyle: "Flashback Audio Style",
+    dreamVisualStyle: "Dream Visual Style",
+    dreamAudioStyle: "Dream Audio Style",
+    continuityCheck: "Continuity Check",
+    continuityPass: "Pass",
+    continuityWarning: "Warning",
+    continuityFail: "Fail",
+    continuityIssues: "Issues",
+    productionScore: "Production Readiness Score",
+    movieReport: "Movie Readiness Report",
+    reportStrengths: "Strengths",
+    reportWeaknesses: "Weaknesses",
+    reportMissing: "Missing Elements",
+    reportNotes: "Production Notes",
+    outOf100: "/ 100",
   },
   si: {
     subtitle: "අධ්‍යක්ෂකගේ පුටුවට ඇතුළු වන්න. ඔබේ කතාව ඇතුළු කර ක්ෂණිකව ස්ටෝරිබෝර්ඩ් එකක් ලබා ගන්න.",
@@ -130,6 +149,25 @@ const translations: Record<UILang, Record<string, string>> = {
     emotionLabel: "හැඟීම",
     confidenceLabel: "විශ්වාසය",
     narratorLabel: "කථකයා",
+    internalMonologue: "අභ්‍යන්තර indiscernment",
+    monologueLabel: "ඒකාලාපය",
+    voiceStyle: "කටහඬ ශෛලිය",
+    flashbackVisualStyle: "ෆ්ලෑෂ්බෑක් දෘශ්‍ය ශෛලිය",
+    flashbackAudioStyle: "ෆ්ලෑෂ්බෑක් ශ්‍රව්‍ය ශෛලිය",
+    dreamVisualStyle: "සිහිනය දෘශ්‍ය ශෛලිය",
+    dreamAudioStyle: "සිහිනය ශ්‍රව්‍ය ශෛලිය",
+    continuityCheck: "අඛණ්ඩතා පරීක්ෂාව",
+    continuityPass: "සාර්ථකයි",
+    continuityWarning: "අවවාදය",
+    continuityFail: "අසාර්ථකයි",
+    continuityIssues: "ගැටළු",
+    productionScore: "නිෂ්පාදන සූදානම් ලකුණ",
+    movieReport: "චිත්‍රපට සූදානම් වාර්තාව",
+    reportStrengths: "ශක්තීන්",
+    reportWeaknesses: "දුර්වලතා",
+    reportMissing: "අස්ථාන අංග",
+    reportNotes: "නිෂ්පාදන සටහන්",
+    outOf100: "/ 100",
   },
   ta: {
     subtitle: "இயக்குனரின் இருக்கையில் அமருங்கள். உங்கள் கதையை ஒட்டவும், நொடியில் திரைக்கதை உருவாகும்.",
@@ -181,6 +219,25 @@ const translations: Record<UILang, Record<string, string>> = {
     emotionLabel: "உணர்வு",
     confidenceLabel: "நம்பகத்தன்மை",
     narratorLabel: "கதைசொல்லி",
+    internalMonologue: "உள் மனவோட்டம்",
+    monologueLabel: "மனவோட்டம்",
+    voiceStyle: "குரல் நடை",
+    flashbackVisualStyle: "ஃபிளாஷ்பேக் காட்சி நடை",
+    flashbackAudioStyle: "ஃபிளாஷ்பேக் ஒலி நடை",
+    dreamVisualStyle: "கனவு காட்சி நடை",
+    dreamAudioStyle: "கனவு ஒலி நடை",
+    continuityCheck: "தொடர்ச்சி சோதனை",
+    continuityPass: "தேர்ச்சி",
+    continuityWarning: "எச்சரிக்கை",
+    continuityFail: "தோல்வி",
+    continuityIssues: "சிக்கல்கள்",
+    productionScore: "தயாரிப்பு தயார்நிலை மதிப்பெண்",
+    movieReport: "திரைப்பட தயார்நிலை அறிக்கை",
+    reportStrengths: "வலிமைகள்",
+    reportWeaknesses: "பலவீனங்கள்",
+    reportMissing: "விடுபட்ட கூறுகள்",
+    reportNotes: "தயாரிப்பு குறிப்புகள்",
+    outOf100: "/ 100",
   },
 };
 
@@ -485,6 +542,15 @@ function Home() {
                           <p className="text-sm text-foreground/85 leading-relaxed px-3 py-3">{char.distinctiveFeatures}</p>
                         </div>
                       )}
+                      {char.voiceStyle && (
+                        <div className="rounded-lg overflow-hidden border border-cyan-400/20 bg-cyan-950/15 mt-2">
+                          <div className="flex items-center gap-1.5 px-3 py-2 border-b border-cyan-400/15 bg-cyan-950/20">
+                            <Mic2 className="w-3.5 h-3.5 text-cyan-400/80" />
+                            <div className="text-[10px] font-bold uppercase tracking-widest text-cyan-400/80">{t.voiceStyle}</div>
+                          </div>
+                          <p className="text-sm text-foreground/75 leading-relaxed px-3 py-3 italic">{char.voiceStyle}</p>
+                        </div>
+                      )}
                     </CardContent>
                   </Card>
                 ))}
@@ -577,11 +643,60 @@ function Home() {
                         </div>
                       )}
 
+                      {/* Flashback Visual + Audio Style */}
+                      {sceneType === "Flashback" && (scene.flashbackVisualStyle || scene.flashbackAudioStyle) && (
+                        <div className={`px-6 py-4 border-b ${cardBorder} bg-amber-950/10 space-y-3`}>
+                          {scene.flashbackVisualStyle && (
+                            <div className="space-y-1.5">
+                              <div className="flex items-center gap-1.5">
+                                <Palette className="w-3 h-3 text-amber-400/70" />
+                                <span className="text-[10px] font-bold uppercase tracking-widest text-amber-400/70">{t.flashbackVisualStyle}</span>
+                              </div>
+                              <p className="text-xs text-amber-100/55 leading-relaxed pl-4 border-l border-amber-400/15 italic">{scene.flashbackVisualStyle}</p>
+                            </div>
+                          )}
+                          {scene.flashbackAudioStyle && (
+                            <div className="space-y-1.5">
+                              <div className="flex items-center gap-1.5">
+                                <Radio className="w-3 h-3 text-amber-400/70" />
+                                <span className="text-[10px] font-bold uppercase tracking-widest text-amber-400/70">{t.flashbackAudioStyle}</span>
+                              </div>
+                              <p className="text-xs text-amber-100/55 leading-relaxed pl-4 border-l border-amber-400/15 italic">{scene.flashbackAudioStyle}</p>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Dream Visual + Audio Style */}
+                      {sceneType === "Dream" && (scene.dreamVisualStyle || scene.dreamAudioStyle) && (
+                        <div className={`px-6 py-4 border-b ${cardBorder} bg-violet-950/10 space-y-3`}>
+                          {scene.dreamVisualStyle && (
+                            <div className="space-y-1.5">
+                              <div className="flex items-center gap-1.5">
+                                <Palette className="w-3 h-3 text-violet-400/70" />
+                                <span className="text-[10px] font-bold uppercase tracking-widest text-violet-400/70">{t.dreamVisualStyle}</span>
+                              </div>
+                              <p className="text-xs text-violet-100/55 leading-relaxed pl-4 border-l border-violet-400/15 italic">{scene.dreamVisualStyle}</p>
+                            </div>
+                          )}
+                          {scene.dreamAudioStyle && (
+                            <div className="space-y-1.5">
+                              <div className="flex items-center gap-1.5">
+                                <Radio className="w-3 h-3 text-violet-400/70" />
+                                <span className="text-[10px] font-bold uppercase tracking-widest text-violet-400/70">{t.dreamAudioStyle}</span>
+                              </div>
+                              <p className="text-xs text-violet-100/55 leading-relaxed pl-4 border-l border-violet-400/15 italic">{scene.dreamAudioStyle}</p>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
                       {/* Story Intelligence Layers */}
                       {(() => {
                         const hasNarration = scene.narration && scene.narration.length > 0;
                         const hasDialogue = scene.dialogue && scene.dialogue.length > 0;
                         const hasThoughts = scene.thoughts && scene.thoughts.length > 0;
+                        const hasMonologue = scene.internalMonologue && scene.internalMonologue.length > 0;
                         const hasActions = scene.actions && scene.actions.length > 0;
                         const hasEmotions = scene.emotions && scene.emotions.length > 0;
                         const hasAudio = scene.audio && (
@@ -589,7 +704,7 @@ function Home() {
                           scene.audio.backgroundMusic ||
                           (scene.audio.soundEffects && scene.audio.soundEffects.length > 0)
                         );
-                        if (!hasNarration && !hasDialogue && !hasThoughts && !hasActions && !hasEmotions && !hasAudio) return null;
+                        if (!hasNarration && !hasDialogue && !hasThoughts && !hasMonologue && !hasActions && !hasEmotions && !hasAudio) return null;
                         return (
                           <div className="border-t border-white/5 divide-y divide-white/5">
 
@@ -652,6 +767,30 @@ function Home() {
                                       <div className="flex items-start gap-2">
                                         <span className="text-[9px] font-bold uppercase tracking-widest text-amber-500/70 pt-0.5 shrink-0">{t.thoughtLabel}:</span>
                                         <span className="text-sm text-amber-100/75 italic leading-relaxed">"{th.thought}"</span>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Internal Monologue */}
+                            {hasMonologue && (
+                              <div className="px-6 py-4">
+                                <div className="flex items-center gap-2 mb-3">
+                                  <ScrollText className="w-3.5 h-3.5 text-purple-400" />
+                                  <span className="text-[10px] font-bold uppercase tracking-widest text-purple-400">{t.internalMonologue}</span>
+                                </div>
+                                <div className="space-y-2">
+                                  {scene.internalMonologue.map((ml: any, mi: number) => (
+                                    <div key={mi} className="p-3 rounded-lg bg-purple-950/25 border border-purple-400/10 space-y-1">
+                                      <div className="flex items-center gap-2">
+                                        <span className="text-[9px] font-bold uppercase tracking-widest text-purple-500/70">{t.character}:</span>
+                                        <span className="text-xs font-semibold text-purple-400/90">{ml.character}</span>
+                                      </div>
+                                      <div className="flex items-start gap-2">
+                                        <span className="text-[9px] font-bold uppercase tracking-widest text-purple-500/70 pt-0.5 shrink-0">{t.monologueLabel}:</span>
+                                        <span className="text-sm text-purple-100/75 italic leading-relaxed">{ml.monologue}</span>
                                       </div>
                                     </div>
                                   ))}
@@ -778,6 +917,36 @@ function Home() {
                         );
                       })()}
 
+                      {/* Continuity Check */}
+                      {scene.continuityCheck && (
+                        <div className="px-6 py-4 border-t border-white/5">
+                          {(() => {
+                            const cc = scene.continuityCheck;
+                            const statusMeta: Record<string, { icon: React.ReactNode; color: string; bg: string; border: string; label: string }> = {
+                              Pass: { icon: <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />, color: "text-emerald-400", bg: "bg-emerald-950/20", border: "border-emerald-400/15", label: t.continuityPass },
+                              Warning: { icon: <AlertTriangle className="w-3.5 h-3.5 text-yellow-400" />, color: "text-yellow-400", bg: "bg-yellow-950/20", border: "border-yellow-400/15", label: t.continuityWarning },
+                              Fail: { icon: <XCircle className="w-3.5 h-3.5 text-red-400" />, color: "text-red-400", bg: "bg-red-950/20", border: "border-red-400/15", label: t.continuityFail },
+                            };
+                            const sm = statusMeta[cc.status] ?? statusMeta.Warning;
+                            return (
+                              <div className={`rounded-lg border ${sm.border} ${sm.bg} p-3 space-y-2`}>
+                                <div className="flex items-center gap-2">
+                                  {sm.icon}
+                                  <span className={`text-[10px] font-bold uppercase tracking-widest ${sm.color}`}>{t.continuityCheck} — {sm.label}</span>
+                                </div>
+                                {cc.issues && cc.issues.length > 0 && (
+                                  <ul className="space-y-1 pl-5">
+                                    {cc.issues.map((issue: string, ii: number) => (
+                                      <li key={ii} className={`text-xs ${sm.color} opacity-75 list-disc leading-relaxed`}>{issue}</li>
+                                    ))}
+                                  </ul>
+                                )}
+                              </div>
+                            );
+                          })()}
+                        </div>
+                      )}
+
                       {/* Director's Note */}
                       <div className="p-6 bg-black/40 relative">
                         <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-primary/50 to-transparent" />
@@ -795,6 +964,104 @@ function Home() {
                 })}
               </div>
             </motion.div>
+
+            {/* Production Readiness Score + Movie Readiness Report */}
+            {(storyboard.productionReadinessScore !== undefined || storyboard.movieReadinessReport) && (
+              <motion.div variants={itemVariants} className="space-y-6">
+                <div className="flex items-center gap-3">
+                  <Trophy className="w-6 h-6 text-yellow-400" />
+                  <h3 className="text-2xl font-semibold">{t.movieReport}</h3>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                  {/* Score card */}
+                  {storyboard.productionReadinessScore !== undefined && (
+                    <Card className="bg-card/60 backdrop-blur-md border-yellow-400/15 overflow-hidden flex flex-col items-center justify-center p-8 text-center">
+                      <div className="mb-3">
+                        <Trophy className="w-8 h-8 text-yellow-400 mx-auto mb-2" />
+                        <div className="text-[10px] font-bold uppercase tracking-widest text-yellow-400/70">{t.productionScore}</div>
+                      </div>
+                      <div className="flex items-end gap-1">
+                        <span className="text-7xl font-black text-yellow-300 tabular-nums leading-none">{storyboard.productionReadinessScore}</span>
+                        <span className="text-2xl font-bold text-yellow-400/50 mb-2">{t.outOf100}</span>
+                      </div>
+                      <div className="w-full mt-4 h-2 rounded-full bg-yellow-950/40 overflow-hidden">
+                        <div
+                          className="h-full rounded-full bg-gradient-to-r from-yellow-500 to-yellow-300"
+                          style={{ width: `${storyboard.productionReadinessScore}%` }}
+                        />
+                      </div>
+                      <div className="mt-3 text-xs text-yellow-400/50">
+                        {storyboard.productionReadinessScore >= 90 ? "Festival Ready" :
+                          storyboard.productionReadinessScore >= 70 ? "Solid Draft" :
+                          storyboard.productionReadinessScore >= 50 ? "Promising" : "Needs Development"}
+                      </div>
+                    </Card>
+                  )}
+
+                  {/* Report detail */}
+                  {storyboard.movieReadinessReport && (
+                    <div className={`${storyboard.productionReadinessScore !== undefined ? "lg:col-span-2" : "lg:col-span-3"} space-y-4`}>
+                      <Card className="bg-card/60 backdrop-blur-md border-white/5 overflow-hidden">
+                        <CardContent className="p-5 space-y-5">
+                          {storyboard.movieReadinessReport.strengths && storyboard.movieReadinessReport.strengths.length > 0 && (
+                            <div className="space-y-2">
+                              <div className="flex items-center gap-2">
+                                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                                <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-400">{t.reportStrengths}</span>
+                              </div>
+                              <ul className="space-y-1 pl-5">
+                                {storyboard.movieReadinessReport.strengths.map((s: string, si: number) => (
+                                  <li key={si} className="text-sm text-emerald-200/65 list-disc leading-relaxed">{s}</li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                          {storyboard.movieReadinessReport.weaknesses && storyboard.movieReadinessReport.weaknesses.length > 0 && (
+                            <div className="space-y-2">
+                              <div className="flex items-center gap-2">
+                                <AlertTriangle className="w-3.5 h-3.5 text-yellow-400" />
+                                <span className="text-[10px] font-bold uppercase tracking-widest text-yellow-400">{t.reportWeaknesses}</span>
+                              </div>
+                              <ul className="space-y-1 pl-5">
+                                {storyboard.movieReadinessReport.weaknesses.map((w: string, wi: number) => (
+                                  <li key={wi} className="text-sm text-yellow-200/65 list-disc leading-relaxed">{w}</li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                          {storyboard.movieReadinessReport.missingElements && storyboard.movieReadinessReport.missingElements.length > 0 && (
+                            <div className="space-y-2">
+                              <div className="flex items-center gap-2">
+                                <XCircle className="w-3.5 h-3.5 text-red-400" />
+                                <span className="text-[10px] font-bold uppercase tracking-widest text-red-400">{t.reportMissing}</span>
+                              </div>
+                              <ul className="space-y-1 pl-5">
+                                {storyboard.movieReadinessReport.missingElements.map((m: string, mi: number) => (
+                                  <li key={mi} className="text-sm text-red-200/65 list-disc leading-relaxed">{m}</li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                          {storyboard.movieReadinessReport.productionNotes && (
+                            <div className="space-y-2">
+                              <div className="flex items-center gap-2">
+                                <ScrollText className="w-3.5 h-3.5 text-sky-400" />
+                                <span className="text-[10px] font-bold uppercase tracking-widest text-sky-400">{t.reportNotes}</span>
+                              </div>
+                              <p className="text-sm text-sky-200/65 leading-relaxed pl-4 border-l border-sky-400/15 italic">
+                                {storyboard.movieReadinessReport.productionNotes}
+                              </p>
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+                    </div>
+                  )}
+                </div>
+              </motion.div>
+            )}
+
           </motion.div>
         )}
       </main>

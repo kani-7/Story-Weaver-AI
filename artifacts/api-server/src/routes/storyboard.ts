@@ -38,11 +38,12 @@ LAYER 2 — PRODUCTION PIPELINE (fixed English, internal)
 - The "visualPrompt" field MUST always be written in English. This is fixed and cannot change.
 - Write visual prompts as professional English production notes for a 3D animation studio.
 - Visual prompts must reference the character's distinctiveFeatures and appearance for every character present in the scene to ensure cross-scene visual consistency.
+- All fields marked ENGLISH ONLY must never contain any other language regardless of the output language setting.
 
 ═══════════════════════════════════════════════
 LAYER 3 — OUTPUT LANGUAGE (user-selected: ${outputLanguageName})
 ═══════════════════════════════════════════════
-- ALL human-readable output fields — title, species, appearance, clothing, personality, distinctiveFeatures, scene titles, scene descriptions, narration, dialogue, thoughts, actions, emotions — MUST be written in ${outputLanguageName}.
+- ALL human-readable output fields — title, species, appearance, clothing, personality, distinctiveFeatures, scene titles, scene descriptions, narration, dialogue, thoughts, internalMonologue, actions, emotions — MUST be written in ${outputLanguageName}.
 - This is independent of the story's original language. Translate or adapt as needed.
 - Character names: transliterate or adapt to ${outputLanguageName} conventions. Use the same spelling consistently across every scene.
 - For Sinhala output: preserve all Sinhala Unicode characters (U+0D80–U+0DFF) exactly.
@@ -58,101 +59,126 @@ CHARACTER CONSISTENCY PROFILE RULES
 ═══════════════════════════════════════════════
 Before generating any scenes, build a complete Character Consistency Profile for EVERY named or meaningfully described character. These profiles are the canonical reference; scenes must never contradict them.
 
-Field-by-field requirements (ALL fields mandatory, ALL in ${outputLanguageName} except characterId):
+Field-by-field requirements (ALL fields mandatory):
 
-• characterId — English lowercase hyphenated slug, 1-3 words, unique across all characters (e.g. "silver-fox", "old-keeper", "twin-sisters"). Never reuse; used by the system to track cross-scene consistency.
+• characterId — English lowercase hyphenated slug, 1-3 words, unique across all characters (e.g. "silver-fox", "old-keeper"). Never reuse.
 
-• name — The character's name exactly as adapted to ${outputLanguageName}. Use this identical spelling in every scene's "characters" array without variation.
+• name — The character's name adapted to ${outputLanguageName}. Use this identical spelling in every scene's "characters" array.
 
-• species — The character's species or archetype in ${outputLanguageName} (e.g. "Red Fox", "Human", "Ancient Dragon", "Sentient Robot"). One noun phrase only.
+• species — The character's species or archetype in ${outputLanguageName}. One noun phrase only.
 
-• appearance — Write 3-4 sentences covering ALL of:
-  (a) Height, build, and overall body shape
-  (b) Face: shape, eye color, brow, jaw, notable facial features
-  (c) Skin / fur / scales / hair: exact color, texture, any gradient or pattern
-  (d) One immediately striking physical trait a viewer notices first
-  Be precise enough that an artist can draw this character cold, without asking follow-up questions.
+• appearance — 3-4 sentences covering height/build, face/eyes, coloring/texture, and one striking first impression. Precise enough that an artist can draw this character without follow-up questions. In ${outputLanguageName}.
 
-• clothing — Describe garments, accessories, footwear, and any carried items that are mentioned or clearly implied by context. Include colors and condition (worn, pristine, etc.). Write "—" ONLY if the character genuinely has no clothing and none is implied.
+• clothing — Garments, accessories, footwear, and carried items with colors and condition. Write "—" ONLY if the character genuinely has no clothing. In ${outputLanguageName}.
 
-• personality — Write 2-3 sentences covering:
-  (a) Core motivation: what fundamentally drives this character
-  (b) Emotional baseline: how they present to the world and relate to others
-  (c) A behavioral tell or quirk that surfaces under pressure or strong emotion
-  This must read as a character study, not a list of adjectives.
+• personality — 2-3 sentences: core motivation, emotional baseline, behavioral tell under pressure. In ${outputLanguageName}.
 
-• distinctiveFeatures — List exactly 2-4 specific, artist-reproducible visual markers as short precise phrases. Each marker must be concrete and unique enough to identify this character in a crowd. Examples of correct phrasing: "a diagonal scar bisecting the left eyebrow", "iridescent blue-tipped tail feathers that shimmer when moving", "always carries a cracked leather satchel over the right shoulder", "one amber eye and one pale grey eye". These EXACT markers must appear verbatim in every visualPrompt where this character appears.
+• distinctiveFeatures — Exactly 2-4 specific, artist-reproducible visual markers as short precise phrases. These EXACT markers must appear verbatim in every visualPrompt where this character appears. In ${outputLanguageName}.
+
+• voiceStyle — ENGLISH ONLY. One vivid sentence describing how this character sounds: pitch (deep/mid/high), tempo (slow/rapid/deliberate), texture (gravelly/smooth/breathy/nasal), any implied accent or regional quality, and emotional delivery style (measured/volatile/sardonic/earnest/detached). A voice actor must be able to use this directly.
 
 ═══════════════════════════════════════════════
 SCENE TYPE DETECTION RULES
 ═══════════════════════════════════════════════
-Every scene MUST be assigned exactly one sceneType from: "Present", "Flashback", "Dream", "Imagination".
+Every scene MUST be assigned exactly one sceneType: "Present", "Flashback", "Dream", or "Imagination".
 
-Detection guidance:
-- "Present": The scene takes place in the current narrative timeline. Default when no temporal shift is detected.
-- "Flashback": The scene depicts a past event, memory, or recollection. Detect via: past-tense narration stepping back in time, phrases like "remembered", "recalled", "years ago", "when he/she was young", "in those days", character mentally revisiting a prior event, or any explicit statement that time has jumped backward.
-- "Dream": The scene occurs within a character's dream or sleep state. Detect via: a character sleeping then experiencing events, surreal or impossible imagery within a sleep context, waking up from the events depicted, or narration explicitly naming it a dream/nightmare.
-- "Imagination": The scene occurs in a character's active imagination, fantasy, or hypothetical mental projection while awake. Detect via: phrases like "imagined", "pictured", "fantasized", "what if", "envisioned", or a character consciously constructing a scenario in their mind.
+- "Present": Current narrative timeline. Default when no shift detected.
+- "Flashback": Past event, memory, or recollection. Detect via past-tense step-back, "remembered", "recalled", "years ago", "when he/she was young", etc.
+- "Dream": Occurs within a character's dream or sleep state. Detect via: character sleeping then experiencing events, surreal imagery in sleep context, waking up from depicted events.
+- "Imagination": Active imagination or hypothetical mental projection while awake. Detect via: "imagined", "pictured", "fantasized", "what if", "envisioned".
 
-FLASHBACK / DREAM / IMAGINATION SCENE EXTRA FIELDS (required when sceneType ≠ "Present"):
-- flashbackIndicator (English): A concise on-screen text card or narrator cue that marks the temporal/mental shift for the audience. Examples: "Five Years Earlier", "In Her Memory", "A Dream", "His Imagination". Keep it under 6 words, evocative, and precise.
-- transitionInstructions (English): Specific cinematic technique instructions for ENTERING this non-present scene. Describe the exact visual/audio transition. Be specific enough for a director of photography to execute it.
-- returnToPresentInstructions (English): Specific cinematic technique instructions for EXITING this non-present scene and returning to the present timeline. Be specific enough for a director of photography to execute it.
+EXTRA FIELDS for non-Present scenes (Flashback/Dream/Imagination):
+- flashbackIndicator (ENGLISH ONLY): On-screen text card marking the shift. Under 6 words. E.g. "Five Years Earlier", "In Her Memory", "A Dream".
+- transitionInstructions (ENGLISH ONLY): Precise cinematic technique for ENTERING this scene. Specific enough for a director of photography.
+- returnToPresentInstructions (ENGLISH ONLY): Precise cinematic technique for EXITING back to present. Specific enough for a director of photography.
+
+VISUAL STYLE for non-Present scenes (ENGLISH ONLY):
+For "Flashback" scenes add:
+- flashbackVisualStyle: Color grade, film treatment, camera characteristics. E.g. "Warm sepia wash, 8mm film grain, softened edges with halation glow, shallow depth of field on faces; a subtle flicker every 3-4 seconds suggests archival footage."
+- flashbackAudioStyle: Audio treatment suggesting memory. E.g. "All dialogue carries a slight reverb as if heard across a room; music is high-pass filtered removing bass; background ambience reduced to 20% normal level; a faint tape hiss underlies the entire scene."
+
+For "Dream" scenes add:
+- dreamVisualStyle: Visual treatment distinguishing the dream from reality. E.g. "Oversaturated, hyper-real color palette; architecture bends at impossible angles; characters cast no shadows; lens flares bloom unpredictably; slow-motion applied to emotionally charged moments."
+- dreamAudioStyle: Audio treatment inside the dream. E.g. "Dialogue arrives 0.5 seconds delayed from lip movement; ambient sounds loop with slight pitch shift each cycle; music is atonal with sudden swells of clarity; the dreaming character's own voice sounds abnormally present and intimate."
 
 DIRECTOR'S NOTE (visualPrompt) RULES FOR NON-PRESENT SCENES:
-- For "Flashback" scenes: include the specific color grade (desaturated, sepia, warm-faded), film grain or texture level, and framing style that signals a memory.
-- For "Dream" scenes: describe the surreal, heightened, or distorted visual language that distinguishes the dream from reality.
-- For "Imagination" scenes: describe how the imagined world differs visually from the present.
+- Flashback: include color grade, film grain level, and framing style.
+- Dream: describe the surreal, heightened, or distorted visual language.
+- Imagination: describe how the imagined world visually differs from the present.
 
 ═══════════════════════════════════════════════
 STORY INTELLIGENCE EXTRACTION RULES
 ═══════════════════════════════════════════════
-For every scene, extract and separate the story into five distinct layers. Each layer captures a different type of storytelling content. Apply these rules strictly — do NOT mix categories.
+For every scene, extract and strictly separate the story into SIX distinct layers. Never mix categories.
 
 ── NARRATION ──
-Definition: Pure storytelling text from an external narrator. Descriptive prose that sets the scene, provides context, or advances the story from outside any character's perspective.
-Detect: Text that is NOT inside quotation marks, NOT attributed to a character speaking or thinking, and describes the world/situation from a third-person or omniscient viewpoint.
-Format: Array of plain strings. Each entry is one continuous narrator passage from the scene.
-Return [] if the scene has no narrator text.
+Definition: Pure storytelling text from an external narrator. Descriptive prose setting the scene, providing context, advancing the story from outside any character's perspective.
+Detect: Text NOT inside quotation marks, NOT attributed to a character, describes the world from third-person or omniscient viewpoint.
+Format: Array of plain strings. Each entry is one continuous narrator passage.
+Return [] if no narrator text.
 
 ── DIALOGUE ──
-Definition: Words that a character physically speaks aloud to another character or to the room. Must be actual spoken communication.
-Detect: Text inside quotation marks where the narrative says "said", "asked", "replied", "shouted", "whispered", "called out", "answered", or any verb of speaking. The character must be producing audible sound.
-Critical rule: Do NOT include internal thoughts here, even if they are in quotation marks. A character "saying to himself" silently is a Thought, not Dialogue.
-Format: Array of objects with "character" (exact name from profile) and "line" (the spoken words only, without surrounding quotation marks).
-Return [] if the scene has no spoken dialogue.
+Definition: Words a character physically speaks aloud to another character or to the room. Actual audible communication.
+Detect: Text in quotation marks where narrative says "said", "asked", "replied", "shouted", "whispered", "called out", or any verb of speaking.
+Critical rule: Do NOT include internal thoughts here, even if in quotation marks. A character "saying to himself" silently is a Thought, not Dialogue.
+Format: Array of objects with "character" (exact name from profile) and "line" (spoken words only, no quotation marks).
+Return [] if no spoken dialogue.
 
 ── THOUGHTS ──
-Definition: A character's private internal monologue, silent reflection, or unspoken feeling. Never heard by other characters.
-Detect: Text where narrative says "thought", "wondered", "realized", "felt", "said to himself/herself", "mused", "recalled", "asked himself/herself", or where context makes clear the character is not speaking aloud.
-Critical rule: Do NOT duplicate here anything already captured in Dialogue. If a character speaks AND thinks, they appear in both arrays separately.
-Format: Array of objects with "character" (exact name from profile) and "thought" (the internal thought text, without surrounding quotation marks).
-Return [] if the scene has no internal thoughts.
+Definition: A character's brief, reactive, single-moment private reflection or unspoken feeling. Never heard by others.
+Detect: "thought", "wondered", "realized", "felt", "said to himself/herself", "mused" — where the character is not speaking aloud.
+Critical rule: Do NOT duplicate here anything in Dialogue. Thoughts = brief, reactive, single-moment. Do NOT include extended inner voice passages (those go in Internal Monologue).
+Format: Array of objects with "character" and "thought".
+Return [] if no brief internal thoughts.
+
+── INTERNAL MONOLOGUE ──
+Definition: Extended stream-of-consciousness where a character narrates their own experience from the inside — a flowing inner voice that may be fragmented, self-contradictory, or emotionally raw.
+Detect: Extended passages simulating a character's ongoing inner dialogue with themselves: self-questioning, inner bargaining, replaying events in the mind, self-coaching under pressure, or any extended first-person inner narrative attributed to a character. These are longer and more sustained than Thoughts.
+Critical rule: Do NOT duplicate here anything in Thoughts. Thoughts = brief, reactive. Internal Monologue = extended, flowing, self-directed inner voice. Return [] if only brief thoughts are present.
+Format: Array of objects with "character" (exact name from profile) and "monologue" (inner voice passage in ${outputLanguageName}, no quotation marks, may be fragmented or elliptical).
+Return [] if no internal monologue is present.
 
 ── ACTIONS ──
-Definition: Physical actions, movements, or behaviors performed by characters. What the body does, not what the mind thinks or the mouth says.
-Detect: Verbs of physical activity — running, jumping, reaching, drawing a weapon, opening a door, falling, embracing, pointing, trembling, etc. Also include significant environmental interactions (character picks up an object, character enters a room).
-Format: Array of objects with "character" (exact name from profile, or "Narrator" for environmental action with no specific actor) and "action" (a concise present-tense description of the physical act).
-Return [] if the scene has no notable physical actions.
+Definition: Physical actions, movements, or behaviors performed by NAMED characters. What the body does.
+Detect: Verbs of physical activity — running, reaching, drawing a weapon, opening a door, falling, embracing, trembling, picking up objects.
+Critical rule: ONLY named characters from the character profiles may appear in the "character" field. Do NOT use "Narrator" in actions. If an environmental event has no specific actor, omit it.
+Format: Array of objects with "character" (exact name from profile ONLY) and "action" (concise present-tense description).
+Return [] if no physical actions by named characters.
 
 ── EMOTIONS ──
-Definition: Emotional states or feelings experienced by characters in this scene, as detected from narration, behavior, or internal thought.
-Detect: Explicit emotion words ("felt afraid", "smiled with joy"), implied emotions from behavior (hands trembling → fear; jaw clenched → anger), or emotional atmosphere described by the narrator.
+Definition: Emotional states or feelings experienced by characters, detected from narration, behavior, or internal thought.
+Detect: Explicit emotion words, implied emotions from behavior (hands trembling → fear; jaw clenched → anger), or emotional atmosphere.
 Format: Array of objects with:
   - "character": exact name from profile
-  - "emotion": a short, precise label for the emotional state (e.g. "grief", "quiet determination", "fearful anticipation", "warm nostalgia")
-  - "confidence": a float from 0.00 to 1.00 representing detection certainty. Use 0.90–1.00 for emotions explicitly stated in text ("felt terrified", "burst into tears"), 0.60–0.89 for emotions clearly implied by behavior or context, 0.30–0.59 for emotions inferred from subtle cues or atmosphere. Never use exactly 0 or 1.
+  - "emotion": short, precise label (e.g. "grief", "quiet determination", "fearful anticipation")
+  - "confidence": float 0.00–1.00. Use 0.90–1.00 for explicitly stated emotions, 0.60–0.89 for clearly implied, 0.30–0.59 for inferred from subtle cues. Never use exactly 0 or 1.
 Return [] if no emotions can be clearly detected.
 
 ── AUDIO INTELLIGENCE ──
-Definition: Sound design specifications for this scene to guide audio production.
-Generate three audio components for every scene. All audio fields are in English regardless of output language.
+Definition: Sound design specifications for this scene. All audio fields ENGLISH ONLY.
+- "backgroundAmbience": Array of 2-5 concise strings naming continuous environmental sounds. For Flashback: softer, muted versions. For Dream: ethereal or distorted.
+- "backgroundMusic": One string — tempo, instrumentation, emotional tone, genre reference. For Flashback: warped or echoed. For Dream: atonal or surreal.
+- "soundEffects": Array of 1-6 specific event-triggered sound effects. Return [] only if scene is entirely static.
 
-- "backgroundAmbience": Array of concise strings naming ambient environmental sounds that would be heard continuously in this scene's setting. Examples: "distant thunder rumbling", "river flowing over stones", "busy marketplace chatter", "wind through dry grass", "hospital corridor hum". List 2-5 items. For Flashback scenes use softer, more muted versions. For Dream scenes use ethereal or distorted ambience.
+── CONTINUITY CHECK ──
+Definition: A script supervisor's continuity review of this scene.
+Examine: Character presence logic, prop/object tracking, spatial consistency, temporal consistency, costume/appearance consistency with profiles.
+Format: Object with:
+  - "status": "Pass" if no issues, "Warning" if minor issues or ambiguities, "Fail" if a clear continuity error exists
+  - "issues": Array of concise English strings describing each issue. Return [] if status is "Pass".
 
-- "backgroundMusic": A single string describing the musical underscore for this scene. Include: tempo (slow/moderate/fast), instrumentation (strings, piano, drums, etc.), emotional tone, and any genre reference. Examples: "Slow, melancholy piano with sparse cello; reminiscent of a lullaby decaying into silence", "Tense, staccato strings building to a crescendo; action-thriller style", "Warm, gentle acoustic guitar with birdsong woven in; pastoral and hopeful". For Flashback: use soft, slightly warped or echoed music suggesting memory. For Dream: use ethereal, ambient, or surreal instrumentation.
+═══════════════════════════════════════════════
+PRODUCTION ASSESSMENT
+═══════════════════════════════════════════════
+After analyzing all scenes, generate two top-level assessment fields:
 
-- "soundEffects": Array of specific one-shot or intermittent sound effects triggered by events in this scene. Reference the actions and dialogue that trigger them. Examples: "sword drawn from scabbard", "door slams shut", "glass shatters on stone floor", "gasp of shock", "crowd falls silent". List 1-6 items. Return [] only if the scene is entirely static with no events.
+"productionReadinessScore": Integer 0–100 measuring overall production readiness. Consider: scene count and pacing, character depth and distinctiveness, dialogue quality, visual describability, structural completeness (setup/conflict/resolution), audio design richness, continuity cleanliness. Calibrate: 90–100 = festival-ready; 70–89 = solid draft needing polish; 50–69 = promising but incomplete; below 50 = significant development needed.
+
+"movieReadinessReport": Object with:
+  - "strengths": Array of 2–5 English strings, each naming one specific strength of this story as a film project.
+  - "weaknesses": Array of 1–4 English strings, each naming one specific weakness or underdeveloped element.
+  - "missingElements": Array of 0–3 English strings naming specific story elements that would strengthen the film but are absent (e.g. "antagonist motivation", "second-act midpoint reversal").
+  - "productionNotes": Single English paragraph (2–4 sentences) of practical production advice — budget implications, visual style recommendations, tone guidance, or casting considerations.
 
 Return ONLY valid JSON (no markdown, no code blocks):
 {
@@ -162,10 +188,11 @@ Return ONLY valid JSON (no markdown, no code blocks):
       "characterId": "english-lowercase-slug",
       "name": "Character name in ${outputLanguageName}",
       "species": "Species or archetype in ${outputLanguageName}",
-      "appearance": "3-4 sentences: height/build, face/eyes, coloring/texture, striking first impression — all in ${outputLanguageName}",
-      "clothing": "Garments, accessories, carried items with colors and condition in ${outputLanguageName}, or — if none",
-      "personality": "2-3 sentences: core motivation, emotional baseline, behavioral tell — in ${outputLanguageName}",
-      "distinctiveFeatures": "2-4 precise artist-reproducible markers as short phrases in ${outputLanguageName}, used verbatim in every scene's visualPrompt"
+      "appearance": "3-4 sentences in ${outputLanguageName}",
+      "clothing": "Garments and accessories in ${outputLanguageName}, or —",
+      "personality": "2-3 sentences in ${outputLanguageName}",
+      "distinctiveFeatures": "2-4 precise markers in ${outputLanguageName}",
+      "voiceStyle": "ENGLISH ONLY. One sentence: pitch, tempo, texture, accent, delivery style."
     }
   ],
   "scenes": [
@@ -173,62 +200,69 @@ Return ONLY valid JSON (no markdown, no code blocks):
       "sceneNumber": 1,
       "sceneType": "Present",
       "title": "Short scene title in ${outputLanguageName}",
-      "description": "2-3 sentences describing this scene in ${outputLanguageName}",
+      "description": "2-3 sentences in ${outputLanguageName}",
       "characters": ["Character name exactly as in the profile"],
-      "visualPrompt": "ENGLISH ONLY. Vivid 3D cartoon production prompt referencing each present character's distinctiveFeatures and appearance. Include lighting, camera angle, environment, character poses, mood, color palette. For non-Present scenes include temporal/mental-shift visual language. Style: vibrant 3D cartoon render, Pixar-inspired, cinematic composition.",
-      "narration": [
-        "Narrator passage text in ${outputLanguageName}"
-      ],
+      "visualPrompt": "ENGLISH ONLY. 40-80 words. Vivid 3D cartoon production prompt referencing each present character's distinctiveFeatures. Include lighting, camera angle, environment, poses, mood, color palette. Non-Present scenes include temporal/mental visual language. Style: vibrant 3D cartoon render, Pixar-inspired, cinematic composition.",
+      "narration": ["Narrator passage in ${outputLanguageName}"],
       "dialogue": [
-        {
-          "character": "Character name exactly as in the profile",
-          "line": "Spoken words only in ${outputLanguageName}, no quotation marks"
-        }
+        { "character": "Exact name from profile", "line": "Spoken words in ${outputLanguageName}, no quotation marks" }
       ],
       "thoughts": [
-        {
-          "character": "Character name exactly as in the profile",
-          "thought": "Internal thought text in ${outputLanguageName}, no quotation marks"
-        }
+        { "character": "Exact name from profile", "thought": "Brief internal reflection in ${outputLanguageName}, no quotation marks" }
+      ],
+      "internalMonologue": [
+        { "character": "Exact name from profile", "monologue": "Extended inner voice passage in ${outputLanguageName}, no quotation marks, may be fragmented" }
       ],
       "actions": [
-        {
-          "character": "Character name exactly as in the profile, or Narrator",
-          "action": "Concise present-tense physical action in ${outputLanguageName}"
-        }
+        { "character": "Named character ONLY — no Narrator", "action": "Concise present-tense physical action in ${outputLanguageName}" }
       ],
       "emotions": [
-        {
-          "character": "Character name exactly as in the profile",
-          "emotion": "Short precise emotional state label in ${outputLanguageName}",
-          "confidence": 0.85
-        }
+        { "character": "Exact name from profile", "emotion": "Precise emotional state in ${outputLanguageName}", "confidence": 0.85 }
       ],
       "audio": {
         "backgroundAmbience": ["ambient sound 1", "ambient sound 2"],
-        "backgroundMusic": "English description of musical underscore: tempo, instrumentation, emotional tone",
-        "soundEffects": ["specific sound effect 1", "specific sound effect 2"]
+        "backgroundMusic": "ENGLISH ONLY: tempo, instrumentation, emotional tone",
+        "soundEffects": ["specific sound effect 1"]
       },
-      "flashbackIndicator": "ONLY for sceneType Flashback/Dream/Imagination — short on-screen text card in English, omit for Present",
-      "transitionInstructions": "ONLY for sceneType Flashback/Dream/Imagination — English cinematic entry transition instructions, omit for Present",
-      "returnToPresentInstructions": "ONLY for sceneType Flashback/Dream/Imagination — English cinematic exit/return instructions, omit for Present"
+      "continuityCheck": {
+        "status": "Pass",
+        "issues": []
+      },
+      "flashbackVisualStyle": "ONLY for Flashback scenes — ENGLISH ONLY color grade, film treatment, camera characteristics. Omit for Present/Dream/Imagination.",
+      "flashbackAudioStyle": "ONLY for Flashback scenes — ENGLISH ONLY audio treatment. Omit for Present/Dream/Imagination.",
+      "dreamVisualStyle": "ONLY for Dream scenes — ENGLISH ONLY visual treatment. Omit for Present/Flashback/Imagination.",
+      "dreamAudioStyle": "ONLY for Dream scenes — ENGLISH ONLY audio treatment. Omit for Present/Flashback/Imagination.",
+      "flashbackIndicator": "ONLY for Flashback/Dream/Imagination — English on-screen text card. Omit for Present.",
+      "transitionInstructions": "ONLY for Flashback/Dream/Imagination — ENGLISH ONLY cinematic entry. Omit for Present.",
+      "returnToPresentInstructions": "ONLY for Flashback/Dream/Imagination — ENGLISH ONLY cinematic exit. Omit for Present."
     }
-  ]
+  ],
+  "productionReadinessScore": 85,
+  "movieReadinessReport": {
+    "strengths": ["Specific strength 1", "Specific strength 2"],
+    "weaknesses": ["Specific weakness 1"],
+    "missingElements": ["Missing element if any"],
+    "productionNotes": "ENGLISH ONLY. 2-4 sentence paragraph of practical production advice."
+  }
 }
 
 Final rules:
 - Extract all named or described characters; give each a unique English characterId
 - Divide the story into 3-8 meaningful scenes
-- Every scene MUST have "sceneType" — default is "Present" when no temporal or mental shift is detected
-- Every scene MUST have all five arrays: "narration", "dialogue", "thoughts", "actions", "emotions" (use [] for empty)
-- Every scene MUST have "audio" with all three fields: "backgroundAmbience", "backgroundMusic", "soundEffects"
-- The five story layers are STRICTLY SEPARATED — no content item appears in more than one array
-- Dialogue = audible speech only. Thoughts = silent only. Never merge them.
+- Every scene MUST have "sceneType" — default "Present" when no shift detected
+- Every scene MUST have all SIX arrays: "narration", "dialogue", "thoughts", "internalMonologue", "actions", "emotions" (use [] for empty)
+- Every scene MUST have "audio" with all three fields
+- Every scene MUST have "continuityCheck" with "status" and "issues"
+- The SIX story layers are STRICTLY SEPARATED — no content appears in more than one layer
+- Dialogue = audible speech only. Thoughts = brief reactive silent reflection. Internal Monologue = extended inner voice. Never merge.
+- Actions MUST only contain named characters from the profile. NEVER use "Narrator" in actions.
 - Emotion confidence MUST be a float 0.00–1.00, never a string
-- All audio fields are ENGLISH ONLY regardless of output language
-- Scenes with sceneType "Flashback", "Dream", or "Imagination" MUST include "flashbackIndicator", "transitionInstructions", and "returnToPresentInstructions"
-- Scenes with sceneType "Present" MUST NOT include "flashbackIndicator", "transitionInstructions", or "returnToPresentInstructions"
-- Each visualPrompt: English only, 40-80 words, vivid, references character distinctiveFeatures; non-Present scenes include the appropriate temporal/mental visual language
+- All audio, continuity, voiceStyle, visual style, and production assessment fields are ENGLISH ONLY
+- Flashback scenes MUST include flashbackVisualStyle and flashbackAudioStyle; Dream scenes MUST include dreamVisualStyle and dreamAudioStyle
+- Present and Imagination scenes MUST NOT include flashbackVisualStyle, flashbackAudioStyle, dreamVisualStyle, or dreamAudioStyle
+- Flashback/Dream/Imagination scenes MUST include flashbackIndicator, transitionInstructions, returnToPresentInstructions
+- Present scenes MUST NOT include those three fields
+- Each visualPrompt: English only, 40-80 words, vivid, references character distinctiveFeatures
 - Scene "characters" arrays MUST use the EXACT same name as in the character profile
 - Output language Unicode must be preserved exactly — never escape, romanize, or drop characters
 - Return ONLY the JSON object, nothing else`;
@@ -237,7 +271,7 @@ Final rules:
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash",
       contents: [{ role: "user", parts: [{ text: prompt }] }],
-      config: { maxOutputTokens: 8192, responseMimeType: "application/json" },
+      config: { maxOutputTokens: 16384, responseMimeType: "application/json" },
     });
 
     const text = response.text;
