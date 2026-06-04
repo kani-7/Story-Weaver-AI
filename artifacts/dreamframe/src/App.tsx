@@ -20,8 +20,7 @@ if (typeof window !== "undefined") {
 }
 
 type UILang = "en" | "si" | "ta";
-type StoryLang = "auto" | "en" | "si" | "ta";
-type NotesLang = "en" | "si" | "ta";
+type OutputLang = "en" | "si" | "ta";
 
 const UI_LANG_NAMES: Record<UILang, string> = {
   en: "English",
@@ -44,10 +43,8 @@ const translations: Record<UILang, Record<string, string>> = {
     errorTitle: "Error generating storyboard",
     errorDesc: "An unexpected error occurred. Please try again.",
     settingsTitle: "Language Settings",
-    storyLangLabel: "Story Language",
     uiLangLabel: "UI Language",
-    notesLangLabel: "Director Notes Language",
-    autoDetect: "Auto-detect",
+    outputLangLabel: "Output Language",
     analyzing: "Analyzing your story...",
     extracting: "Building character profiles...",
     visualizing: "Visualizing scenes...",
@@ -74,10 +71,8 @@ const translations: Record<UILang, Record<string, string>> = {
     errorTitle: "ස්ටෝරිබෝර්ඩ් සෑදීමේ දෝෂයක්",
     errorDesc: "අනපේක්ෂිත දෝෂයක් සිදු විය. නැවත උත්සාහ කරන්න.",
     settingsTitle: "භාෂා සැකසුම්",
-    storyLangLabel: "කතා භාෂාව",
     uiLangLabel: "UI භාෂාව",
-    notesLangLabel: "අධ්‍යක්ෂක සටහන් භාෂාව",
-    autoDetect: "ස්වයං හඳුනාගැනීම",
+    outputLangLabel: "ප්‍රතිදාන භාෂාව",
     analyzing: "කතාව විශ්ලේෂණය කරමින්...",
     extracting: "චරිත පැතිකඩ සාදමින්...",
     visualizing: "දර්ශන සිතිජය...",
@@ -104,10 +99,8 @@ const translations: Record<UILang, Record<string, string>> = {
     errorTitle: "திரைக்கதை உருவாக்குவதில் பிழை",
     errorDesc: "எதிர்பாராத பிழை ஏற்பட்டது. மீண்டும் முயற்சிக்கவும்.",
     settingsTitle: "மொழி அமைப்புகள்",
-    storyLangLabel: "கதை மொழி",
     uiLangLabel: "UI மொழி",
-    notesLangLabel: "இயக்குனர் குறிப்பு மொழி",
-    autoDetect: "தானாக கண்டறி",
+    outputLangLabel: "வெளியீட்டு மொழி",
     analyzing: "உங்கள் கதையை பகுப்பாய்வு செய்கிறோம்...",
     extracting: "கதாபாத்திர விவரங்களை உருவாக்குகிறோம்...",
     visualizing: "காட்சிகளை காட்சிப்படுத்துகிறோம்...",
@@ -206,18 +199,10 @@ function Home() {
   const [story, setStory] = useState("");
   const [storyboard, setStoryboard] = useState<any>(null);
   const [uiLanguage, setUiLanguage] = useState<UILang>("en");
-  const [storyLanguage, setStoryLanguage] = useState<StoryLang>("auto");
-  const [directorNotesLanguage, setDirectorNotesLanguage] = useState<NotesLang>("en");
+  const [outputLanguage, setOutputLanguage] = useState<OutputLang>("en");
   const [settingsOpen, setSettingsOpen] = useState(false);
 
   const t = translations[uiLanguage];
-
-  const storyLangOptions: { value: StoryLang; label: string }[] = [
-    { value: "auto", label: t.autoDetect },
-    { value: "en", label: "English" },
-    { value: "si", label: "සිංහල" },
-    { value: "ta", label: "தமிழ்" },
-  ];
 
   const uiLangOptions: { value: UILang; label: string }[] = [
     { value: "en", label: "English" },
@@ -225,7 +210,7 @@ function Home() {
     { value: "ta", label: "தமிழ்" },
   ];
 
-  const notesLangOptions: { value: NotesLang; label: string }[] = [
+  const outputLangOptions: { value: OutputLang; label: string }[] = [
     { value: "en", label: "English" },
     { value: "si", label: "සිංහල" },
     { value: "ta", label: "தமிழ்" },
@@ -237,7 +222,7 @@ function Home() {
       return;
     }
     analyzeMutation.mutate(
-      { data: { story, storyLanguage, directorNotesLanguage } },
+      { data: { story, outputLanguage } },
       {
         onSuccess: (data) => setStoryboard(data),
         onError: () => toast({ title: t.errorTitle, description: t.errorDesc, variant: "destructive" }),
@@ -322,13 +307,7 @@ function Home() {
                       transition={{ duration: 0.25, ease: "easeInOut" }}
                       className="overflow-hidden"
                     >
-                      <div className="px-5 pb-5 pt-2 grid grid-cols-1 sm:grid-cols-3 gap-4 border-t border-white/8">
-                        <LangSelect
-                          value={storyLanguage}
-                          onChange={setStoryLanguage}
-                          label={t.storyLangLabel}
-                          options={storyLangOptions}
-                        />
+                      <div className="px-5 pb-5 pt-2 grid grid-cols-1 sm:grid-cols-2 gap-4 border-t border-white/8">
                         <LangSelect
                           value={uiLanguage}
                           onChange={setUiLanguage}
@@ -336,10 +315,10 @@ function Home() {
                           options={uiLangOptions}
                         />
                         <LangSelect
-                          value={directorNotesLanguage}
-                          onChange={setDirectorNotesLanguage}
-                          label={t.notesLangLabel}
-                          options={notesLangOptions}
+                          value={outputLanguage}
+                          onChange={setOutputLanguage}
+                          label={t.outputLangLabel}
+                          options={outputLangOptions}
                         />
                       </div>
                     </motion.div>

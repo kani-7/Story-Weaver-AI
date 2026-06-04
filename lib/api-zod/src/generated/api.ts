@@ -22,13 +22,11 @@ export const HealthCheckResponse = zod.object({
  */
 export const analyzeStoryBodyStoryMin = 10;
 
-export const analyzeStoryBodyStoryLanguageDefault = `auto`;
-export const analyzeStoryBodyDirectorNotesLanguageDefault = `en`;
+export const analyzeStoryBodyOutputLanguageDefault = `en`;
 
 export const AnalyzeStoryBody = zod.object({
   "story": zod.string().min(analyzeStoryBodyStoryMin),
-  "storyLanguage": zod.enum(['auto', 'en', 'si', 'ta']).default(analyzeStoryBodyStoryLanguageDefault),
-  "directorNotesLanguage": zod.enum(['en', 'si', 'ta']).default(analyzeStoryBodyDirectorNotesLanguageDefault)
+  "outputLanguage": zod.enum(['en', 'si', 'ta']).default(analyzeStoryBodyOutputLanguageDefault)
 })
 
 export const AnalyzeStoryResponse = zod.object({

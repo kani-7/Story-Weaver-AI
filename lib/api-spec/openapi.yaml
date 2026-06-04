@@ -71,11 +71,7 @@ components:
         story:
           type: string
           minLength: 10
-        storyLanguage:
-          type: string
-          enum: [auto, en, si, ta]
-          default: auto
-        directorNotesLanguage:
+        outputLanguage:
           type: string
           enum: [en, si, ta]
           default: en

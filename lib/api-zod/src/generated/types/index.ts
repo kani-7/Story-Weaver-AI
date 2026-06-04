@@ -13,5 +13,4 @@ export * from './internalThought';
 export * from './scene';
 export * from './storyboard';
 export * from './storyInput';
-export * from './storyInputDirectorNotesLanguage';
-export * from './storyInputStoryLanguage';
+export * from './storyInputOutputLanguage';

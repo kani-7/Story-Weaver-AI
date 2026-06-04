@@ -6,11 +6,10 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export type StoryInputStoryLanguage = typeof StoryInputStoryLanguage[keyof typeof StoryInputStoryLanguage];
+export type StoryInputOutputLanguage = typeof StoryInputOutputLanguage[keyof typeof StoryInputOutputLanguage];
 
 
-export const StoryInputStoryLanguage = {
-  auto: 'auto',
+export const StoryInputOutputLanguage = {
   en: 'en',
   si: 'si',
   ta: 'ta',

@@ -9,20 +9,10 @@ export interface HealthStatus {
   status: string;
 }
 
-export type StoryInputStoryLanguage = typeof StoryInputStoryLanguage[keyof typeof StoryInputStoryLanguage];
+export type StoryInputOutputLanguage = typeof StoryInputOutputLanguage[keyof typeof StoryInputOutputLanguage];
 
 
-export const StoryInputStoryLanguage = {
-  auto: 'auto',
-  en: 'en',
-  si: 'si',
-  ta: 'ta',
-} as const;
-
-export type StoryInputDirectorNotesLanguage = typeof StoryInputDirectorNotesLanguage[keyof typeof StoryInputDirectorNotesLanguage];
-
-
-export const StoryInputDirectorNotesLanguage = {
+export const StoryInputOutputLanguage = {
   en: 'en',
   si: 'si',
   ta: 'ta',
@@ -31,8 +21,7 @@ export const StoryInputDirectorNotesLanguage = {
 export interface StoryInput {
   /** @minLength 10 */
   story: string;
-  storyLanguage?: StoryInputStoryLanguage;
-  directorNotesLanguage?: StoryInputDirectorNotesLanguage;
+  outputLanguage?: StoryInputOutputLanguage;
 }
 
 export interface CharacterProfile {
