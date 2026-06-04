@@ -11,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { motion, AnimatePresence } from "framer-motion";
-import { Film, Sparkles, User, Clapperboard, RotateCcw, Video, Brain, Settings2, ChevronDown } from "lucide-react";
+import { Film, Sparkles, User, Clapperboard, RotateCcw, Video, Brain, Settings2, ChevronDown, Eye, Zap, Fingerprint } from "lucide-react";
 
 const queryClient = new QueryClient();
 
@@ -363,11 +363,11 @@ function Home() {
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 {storyboard.characters.map((char: any, i: number) => (
-                  <Card key={i} className="bg-card/50 border-white/5 backdrop-blur-sm overflow-hidden" data-testid={`card-character-${i}`}>
+                  <Card key={i} className="bg-card/50 border-white/5 backdrop-blur-sm overflow-hidden flex flex-col" data-testid={`card-character-${i}`}>
                     {/* Profile header */}
-                    <div className="px-5 pt-5 pb-3 border-b border-white/5 flex items-start justify-between gap-3">
-                      <div>
-                        <div className="font-bold text-lg leading-tight text-primary-foreground">{char.name}</div>
+                    <div className="px-5 pt-5 pb-4 border-b border-white/5 flex items-start justify-between gap-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="font-bold text-xl leading-tight text-primary-foreground">{char.name}</div>
                         {char.species && (
                           <Badge className="mt-1.5 bg-accent/15 text-accent border-accent/20 text-xs">
                             {char.species}
@@ -375,34 +375,45 @@ function Home() {
                         )}
                       </div>
                       {char.characterId && (
-                        <span className="text-[10px] font-mono text-white/20 mt-1 shrink-0">#{char.characterId}</span>
+                        <span className="text-[10px] font-mono text-white/25 mt-0.5 shrink-0 bg-white/5 px-2 py-1 rounded border border-white/8">
+                          #{char.characterId}
+                        </span>
                       )}
                     </div>
 
                     {/* Profile fields */}
-                    <CardContent className="p-5 space-y-3">
+                    <CardContent className="p-5 space-y-4 flex-1">
                       {char.appearance && (
-                        <div>
-                          <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-0.5">{t.profileAppearance}</div>
-                          <p className="text-sm text-foreground/80 leading-relaxed">{char.appearance}</p>
+                        <div className="space-y-1.5">
+                          <div className="flex items-center gap-1.5">
+                            <Eye className="w-3 h-3 text-muted-foreground" />
+                            <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">{t.profileAppearance}</div>
+                          </div>
+                          <p className="text-sm text-foreground/75 leading-relaxed pl-4 border-l border-white/8">{char.appearance}</p>
                         </div>
                       )}
                       {char.clothing && char.clothing !== "—" && (
-                        <div>
-                          <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-0.5">{t.profileClothing}</div>
-                          <p className="text-sm text-foreground/80 leading-relaxed">{char.clothing}</p>
+                        <div className="space-y-1.5">
+                          <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground pl-[18px]">{t.profileClothing}</div>
+                          <p className="text-sm text-foreground/75 leading-relaxed pl-4 border-l border-white/8">{char.clothing}</p>
                         </div>
                       )}
                       {char.personality && (
-                        <div>
-                          <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-0.5">{t.profilePersonality}</div>
-                          <p className="text-sm text-foreground/80 leading-relaxed">{char.personality}</p>
+                        <div className="space-y-1.5">
+                          <div className="flex items-center gap-1.5">
+                            <Zap className="w-3 h-3 text-muted-foreground" />
+                            <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">{t.profilePersonality}</div>
+                          </div>
+                          <p className="text-sm text-foreground/75 leading-relaxed pl-4 border-l border-white/8">{char.personality}</p>
                         </div>
                       )}
                       {char.distinctiveFeatures && (
-                        <div className="pt-1 px-3 py-2.5 rounded-lg bg-primary/5 border border-primary/10">
-                          <div className="text-[10px] font-bold uppercase tracking-widest text-primary/70 mb-0.5">{t.profileFeatures}</div>
-                          <p className="text-sm text-primary-foreground/80 leading-relaxed">{char.distinctiveFeatures}</p>
+                        <div className="rounded-lg overflow-hidden border border-primary/20 bg-primary/8 mt-2">
+                          <div className="flex items-center gap-1.5 px-3 py-2 border-b border-primary/15 bg-primary/10">
+                            <Fingerprint className="w-3.5 h-3.5 text-primary/80" />
+                            <div className="text-[10px] font-bold uppercase tracking-widest text-primary/80">{t.profileFeatures}</div>
+                          </div>
+                          <p className="text-sm text-foreground/85 leading-relaxed px-3 py-3">{char.distinctiveFeatures}</p>
                         </div>
                       )}
                     </CardContent>

@@ -56,14 +56,32 @@ ${story}
 ═══════════════════════════════════════════════
 CHARACTER CONSISTENCY PROFILE RULES
 ═══════════════════════════════════════════════
-- Before generating scenes, build a complete Character Consistency Profile for EVERY named or described character.
-- Each profile MUST include all fields below.
-- characterId: a short unique slug in English lowercase only (e.g. "fox", "old-man", "queen"). Never reuse the same id.
-- name: character name in ${outputLanguageName} (transliterate from the story if needed). Use this exact spelling in every scene's "characters" array.
-- species, appearance, clothing, personality, distinctiveFeatures: all in ${outputLanguageName}.
-- clothing: describe garments and accessories if present or implied. Write "—" only if none exists.
-- distinctiveFeatures: one sentence of unique visual markers (scars, markings, eye color, patterns) that an artist must reproduce identically in every scene.
-- The profiles are the single source of truth. Every scene's visualPrompt MUST embed the distinctiveFeatures for each character present.
+Before generating any scenes, build a complete Character Consistency Profile for EVERY named or meaningfully described character. These profiles are the canonical reference; scenes must never contradict them.
+
+Field-by-field requirements (ALL fields mandatory, ALL in ${outputLanguageName} except characterId):
+
+• characterId — English lowercase hyphenated slug, 1-3 words, unique across all characters (e.g. "silver-fox", "old-keeper", "twin-sisters"). Never reuse; used by the system to track cross-scene consistency.
+
+• name — The character's name exactly as adapted to ${outputLanguageName}. Use this identical spelling in every scene's "characters" array without variation.
+
+• species — The character's species or archetype in ${outputLanguageName} (e.g. "Red Fox", "Human", "Ancient Dragon", "Sentient Robot"). One noun phrase only.
+
+• appearance — Write 3-4 sentences covering ALL of:
+  (a) Height, build, and overall body shape
+  (b) Face: shape, eye color, brow, jaw, notable facial features
+  (c) Skin / fur / scales / hair: exact color, texture, any gradient or pattern
+  (d) One immediately striking physical trait a viewer notices first
+  Be precise enough that an artist can draw this character cold, without asking follow-up questions.
+
+• clothing — Describe garments, accessories, footwear, and any carried items that are mentioned or clearly implied by context. Include colors and condition (worn, pristine, etc.). Write "—" ONLY if the character genuinely has no clothing and none is implied.
+
+• personality — Write 2-3 sentences covering:
+  (a) Core motivation: what fundamentally drives this character
+  (b) Emotional baseline: how they present to the world and relate to others
+  (c) A behavioral tell or quirk that surfaces under pressure or strong emotion
+  This must read as a character study, not a list of adjectives.
+
+• distinctiveFeatures — List exactly 2-4 specific, artist-reproducible visual markers as short precise phrases. Each marker must be concrete and unique enough to identify this character in a crowd. Examples of correct phrasing: "a diagonal scar bisecting the left eyebrow", "iridescent blue-tipped tail feathers that shimmer when moving", "always carries a cracked leather satchel over the right shoulder", "one amber eye and one pale grey eye". These EXACT markers must appear verbatim in every visualPrompt where this character appears.
 
 ═══════════════════════════════════════════════
 INTERNAL THOUGHT DETECTION RULES
@@ -79,13 +97,13 @@ Return ONLY valid JSON (no markdown, no code blocks):
   "title": "A short cinematic title in ${outputLanguageName}",
   "characters": [
     {
-      "characterId": "english-slug",
+      "characterId": "english-lowercase-slug",
       "name": "Character name in ${outputLanguageName}",
-      "species": "Species or type in ${outputLanguageName}",
-      "appearance": "Build, face, coloring, overall look in ${outputLanguageName}",
-      "clothing": "Garments and accessories in ${outputLanguageName}, or —",
-      "personality": "Temperament and behavioral traits in ${outputLanguageName}",
-      "distinctiveFeatures": "Unique visual markers in ${outputLanguageName}, used in every scene"
+      "species": "Species or archetype in ${outputLanguageName}",
+      "appearance": "3-4 sentences: height/build, face/eyes, coloring/texture, striking first impression — all in ${outputLanguageName}",
+      "clothing": "Garments, accessories, carried items with colors and condition in ${outputLanguageName}, or — if none",
+      "personality": "2-3 sentences: core motivation, emotional baseline, behavioral tell — in ${outputLanguageName}",
+      "distinctiveFeatures": "2-4 precise artist-reproducible markers as short phrases in ${outputLanguageName}, used verbatim in every scene's visualPrompt"
     }
   ],
   "scenes": [
