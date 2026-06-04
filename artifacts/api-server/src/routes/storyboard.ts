@@ -58,13 +58,30 @@ INTERNAL THOUGHT DETECTION RULES:
 - Each scene's "thoughts" array must list every Internal Thought that occurs in that scene, with the exact character who thought it.
 - If a scene has no Internal Thoughts, return an empty array: "thoughts": []
 
+CHARACTER CONSISTENCY PROFILE RULES:
+- Before generating scenes, build a complete Character Consistency Profile for EVERY named or described character.
+- Each profile MUST include: characterId, name, species, appearance, clothing, personality, distinctiveFeatures.
+- characterId: a short unique slug in English lowercase (e.g. "fox", "old-man", "queen"). Never reuse the same id for different characters.
+- name: the character's name exactly as it appears in the story (same script, same spelling).
+- species: the character's species or type (e.g. "Fox", "Human", "Dragon", "Robot"). Use the story's language.
+- appearance: 1-2 sentences describing build, face, eyes, fur/skin/hair color, and overall look. Use the story's language.
+- clothing: describe garments, accessories, footwear if mentioned or clearly implied. Write "—" only if the character has no clothing and none is implied. Use the story's language.
+- personality: 1-2 sentences on temperament, values, and how they act under pressure. Use the story's language.
+- distinctiveFeatures: 1 sentence listing unique visual markers (scars, patterns, markings, unusual eyes, etc.) that must appear consistently in every scene. Use the story's language.
+- These profiles are the ground truth. Every scene's visualPrompt MUST reference the character's distinctiveFeatures and appearance for any character present in that scene, ensuring visual consistency across all scenes.
+
 Return ONLY valid JSON (no markdown, no code blocks) with this exact structure:
 {
   "title": "A short cinematic title for this story (in the story's language)",
   "characters": [
     {
+      "characterId": "unique-slug",
       "name": "Character name exactly as it appears in the story",
-      "description": "Brief physical and personality description (in the story's language)"
+      "species": "Species or character type (in the story's language)",
+      "appearance": "Build, face, coloring, and overall look (in the story's language)",
+      "clothing": "Garments and accessories, or — if none",
+      "personality": "Temperament and behavioral traits (in the story's language)",
+      "distinctiveFeatures": "Unique visual markers that must appear in every scene (in the story's language)"
     }
   ],
   "scenes": [
@@ -73,7 +90,7 @@ Return ONLY valid JSON (no markdown, no code blocks) with this exact structure:
       "title": "Short scene title (in the story's language)",
       "description": "2-3 sentences describing what happens in this scene (in the story's language)",
       "characters": ["Character name 1", "Character name 2"],
-      "visualPrompt": "A detailed visual prompt for this scene in ${directorNotesLanguageName}. Describe lighting, camera angle, environment, character poses, mood, color palette. Style: vibrant 3D cartoon render, Pixar-inspired, cinematic composition, dramatic lighting.",
+      "visualPrompt": "A detailed visual prompt in ${directorNotesLanguageName}. MUST reference the appearance and distinctiveFeatures of every character present. Describe lighting, camera angle, environment, character poses, mood, color palette. Style: vibrant 3D cartoon render, Pixar-inspired, cinematic composition, dramatic lighting.",
       "thoughts": [
         {
           "character": "Character name exactly as in the story",
@@ -85,11 +102,12 @@ Return ONLY valid JSON (no markdown, no code blocks) with this exact structure:
 }
 
 Rules:
-- Extract all named or described characters from the story
+- Extract all named or described characters; give each a unique characterId
 - Divide the story into 3-8 meaningful scenes
-- Each visual prompt must be vivid, specific, and 40-80 words long
+- Each visual prompt must be vivid, specific, and 40-80 words long, and must include the character's distinctiveFeatures for every character present in that scene
 - Visual prompts should specify: 3D cartoon style, lighting type, camera angle, environment details, character expressions and poses, color palette
 - Every scene MUST include a "thoughts" field (empty array if no internal thoughts in that scene)
+- Scene "characters" arrays must use the EXACT same name spelling as in the character profiles
 - Preserve all Unicode characters exactly — never escape, romanize, or drop non-ASCII characters
 - Return ONLY the JSON object, nothing else
 - The JSON must be valid UTF-8 encoded with all original script characters intact`;

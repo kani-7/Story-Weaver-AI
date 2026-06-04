@@ -34,8 +34,13 @@ export const AnalyzeStoryBody = zod.object({
 export const AnalyzeStoryResponse = zod.object({
   "title": zod.string(),
   "characters": zod.array(zod.object({
+  "characterId": zod.string(),
   "name": zod.string(),
-  "description": zod.string()
+  "species": zod.string(),
+  "appearance": zod.string(),
+  "clothing": zod.string().optional(),
+  "personality": zod.string(),
+  "distinctiveFeatures": zod.string()
 })),
   "scenes": zod.array(zod.object({
   "sceneNumber": zod.number(),

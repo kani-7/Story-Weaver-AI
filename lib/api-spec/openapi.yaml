@@ -81,16 +81,30 @@ components:
           default: en
       required:
         - story
-    Character:
+    CharacterProfile:
       type: object
       properties:
+        characterId:
+          type: string
         name:
           type: string
-        description:
+        species:
+          type: string
+        appearance:
+          type: string
+        clothing:
+          type: string
+        personality:
+          type: string
+        distinctiveFeatures:
           type: string
       required:
+        - characterId
         - name
-        - description
+        - species
+        - appearance
+        - personality
+        - distinctiveFeatures
     InternalThought:
       type: object
       properties:
@@ -135,7 +149,7 @@ components:
         characters:
           type: array
           items:
-            $ref: "#/components/schemas/Character"
+            $ref: "#/components/schemas/CharacterProfile"
         scenes:
           type: array
           items:

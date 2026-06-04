@@ -5,11 +5,11 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
-import type { Character } from './character';
+import type { CharacterProfile } from './characterProfile';
 import type { Scene } from './scene';
 
 export interface Storyboard {
   title: string;
-  characters: Character[];
+  characters: CharacterProfile[];
   scenes: Scene[];
 }

@@ -35,9 +35,14 @@ export interface StoryInput {
   directorNotesLanguage?: StoryInputDirectorNotesLanguage;
 }
 
-export interface Character {
+export interface CharacterProfile {
+  characterId: string;
   name: string;
-  description: string;
+  species: string;
+  appearance: string;
+  clothing?: string;
+  personality: string;
+  distinctiveFeatures: string;
 }
 
 export interface InternalThought {
@@ -56,7 +61,7 @@ export interface Scene {
 
 export interface Storyboard {
   title: string;
-  characters: Character[];
+  characters: CharacterProfile[];
   scenes: Scene[];
 }
 

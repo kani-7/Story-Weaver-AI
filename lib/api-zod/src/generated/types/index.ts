@@ -7,7 +7,7 @@
  */
 
 export * from './apiError';
-export * from './character';
+export * from './characterProfile';
 export * from './healthStatus';
 export * from './internalThought';
 export * from './scene';

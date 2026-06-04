@@ -49,11 +49,16 @@ const translations: Record<UILang, Record<string, string>> = {
     notesLangLabel: "Director Notes Language",
     autoDetect: "Auto-detect",
     analyzing: "Analyzing your story...",
-    extracting: "Extracting characters...",
+    extracting: "Building character profiles...",
     visualizing: "Visualizing scenes...",
     generating: "Generating director notes...",
     finalizing: "Finalizing storyboard...",
     scene: "Scene",
+    profileAppearance: "Appearance",
+    profileClothing: "Clothing",
+    profilePersonality: "Personality",
+    profileFeatures: "Distinctive Features",
+    consistencyProfile: "Character Consistency Profile",
   },
   si: {
     subtitle: "අධ්‍යක්ෂකගේ පුටුවට ඇතුළු වන්න. ඔබේ කතාව ඇතුළු කර ක්ෂණිකව ස්ටෝරිබෝර්ඩ් එකක් ලබා ගන්න.",
@@ -74,11 +79,16 @@ const translations: Record<UILang, Record<string, string>> = {
     notesLangLabel: "අධ්‍යක්ෂක සටහන් භාෂාව",
     autoDetect: "ස්වයං හඳුනාගැනීම",
     analyzing: "කතාව විශ්ලේෂණය කරමින්...",
-    extracting: "චරිත හඳුනා ගනිමින්...",
+    extracting: "චරිත පැතිකඩ සාදමින්...",
     visualizing: "දර්ශන සිතිජය...",
     generating: "අධ්‍යක්ෂක සටහන් සාදමින්...",
     finalizing: "ස්ටෝරිබෝර්ඩ් සම්පූර්ණ කරමින්...",
     scene: "දර්ශනය",
+    profileAppearance: "පෙනුම",
+    profileClothing: "ඇඳුම",
+    profilePersonality: "පෞරුෂය",
+    profileFeatures: "විශේෂ ලක්ෂණ",
+    consistencyProfile: "චරිත ස්ථාවරතා පැතිකඩ",
   },
   ta: {
     subtitle: "இயக்குனரின் இருக்கையில் அமருங்கள். உங்கள் கதையை ஒட்டவும், நொடியில் திரைக்கதை உருவாகும்.",
@@ -99,11 +109,16 @@ const translations: Record<UILang, Record<string, string>> = {
     notesLangLabel: "இயக்குனர் குறிப்பு மொழி",
     autoDetect: "தானாக கண்டறி",
     analyzing: "உங்கள் கதையை பகுப்பாய்வு செய்கிறோம்...",
-    extracting: "கதாபாத்திரங்களை பிரித்தெடுக்கிறோம்...",
+    extracting: "கதாபாத்திர விவரங்களை உருவாக்குகிறோம்...",
     visualizing: "காட்சிகளை காட்சிப்படுத்துகிறோம்...",
     generating: "இயக்குனர் குறிப்புகளை உருவாக்குகிறோம்...",
     finalizing: "திரைக்கதையை இறுதி செய்கிறோம்...",
     scene: "காட்சி",
+    profileAppearance: "தோற்றம்",
+    profileClothing: "உடை",
+    profilePersonality: "குணாதிசயம்",
+    profileFeatures: "தனித்துவ அம்சங்கள்",
+    consistencyProfile: "கதாபாத்திர நிலைத்தன்மை விவரம்",
   },
 };
 
@@ -367,12 +382,50 @@ function Home() {
                 <User className="w-6 h-6 text-accent" />
                 <h3 className="text-2xl font-semibold">{t.castTitle}</h3>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 {storyboard.characters.map((char: any, i: number) => (
-                  <Card key={i} className="bg-card/50 border-white/5 backdrop-blur-sm" data-testid={`card-character-${i}`}>
-                    <CardContent className="p-5 flex flex-col gap-2">
-                      <div className="font-bold text-lg text-primary-foreground">{char.name}</div>
-                      <div className="text-sm text-muted-foreground leading-relaxed">{char.description}</div>
+                  <Card key={i} className="bg-card/50 border-white/5 backdrop-blur-sm overflow-hidden" data-testid={`card-character-${i}`}>
+                    {/* Profile header */}
+                    <div className="px-5 pt-5 pb-3 border-b border-white/5 flex items-start justify-between gap-3">
+                      <div>
+                        <div className="font-bold text-lg leading-tight text-primary-foreground">{char.name}</div>
+                        {char.species && (
+                          <Badge className="mt-1.5 bg-accent/15 text-accent border-accent/20 text-xs">
+                            {char.species}
+                          </Badge>
+                        )}
+                      </div>
+                      {char.characterId && (
+                        <span className="text-[10px] font-mono text-white/20 mt-1 shrink-0">#{char.characterId}</span>
+                      )}
+                    </div>
+
+                    {/* Profile fields */}
+                    <CardContent className="p-5 space-y-3">
+                      {char.appearance && (
+                        <div>
+                          <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-0.5">{t.profileAppearance}</div>
+                          <p className="text-sm text-foreground/80 leading-relaxed">{char.appearance}</p>
+                        </div>
+                      )}
+                      {char.clothing && char.clothing !== "—" && (
+                        <div>
+                          <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-0.5">{t.profileClothing}</div>
+                          <p className="text-sm text-foreground/80 leading-relaxed">{char.clothing}</p>
+                        </div>
+                      )}
+                      {char.personality && (
+                        <div>
+                          <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-0.5">{t.profilePersonality}</div>
+                          <p className="text-sm text-foreground/80 leading-relaxed">{char.personality}</p>
+                        </div>
+                      )}
+                      {char.distinctiveFeatures && (
+                        <div className="pt-1 px-3 py-2.5 rounded-lg bg-primary/5 border border-primary/10">
+                          <div className="text-[10px] font-bold uppercase tracking-widest text-primary/70 mb-0.5">{t.profileFeatures}</div>
+                          <p className="text-sm text-primary-foreground/80 leading-relaxed">{char.distinctiveFeatures}</p>
+                        </div>
+                      )}
                     </CardContent>
                   </Card>
                 ))}
