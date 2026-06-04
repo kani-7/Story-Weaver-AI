@@ -22,6 +22,7 @@ export interface CharacterAction {
 export interface CharacterEmotion {
   character: string;
   emotion: string;
+  confidence: 'high' | 'medium' | 'low';
 }
 
 export interface Scene {

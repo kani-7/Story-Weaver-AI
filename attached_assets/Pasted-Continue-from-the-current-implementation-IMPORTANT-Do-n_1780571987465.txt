@@ -1,0 +1,133 @@
+Continue from the current implementation.
+
+IMPORTANT:
+
+Do not rebuild the application.
+
+Do not remove or replace existing functionality.
+
+Keep all existing working features:
+
+- Story Analysis
+- Character Profiles
+- Character Consistency
+- Scene Generation
+- Flashback Intelligence
+- Director Notes
+- Language Architecture
+
+Improve Story Intelligence Engine.
+
+For every scene generate the following sections separately:
+
+1. Narration
+2. Dialogue
+3. Internal Thoughts
+4. Actions
+5. Emotions
+
+Definitions:
+
+Narration:
+Story events described by the narrator.
+
+Dialogue:
+Only words spoken aloud by characters.
+
+Internal Thoughts:
+Private thoughts that are not spoken aloud.
+
+Actions:
+Visible physical actions.
+
+Emotions:
+Detected emotional state of each character.
+
+Examples:
+
+Fox said:
+"What should I do now?"
+→ Dialogue
+
+Fox thought:
+"What should I do now?"
+→ Internal Thought
+
+Fox walked slowly through the forest.
+→ Action
+
+Fox felt afraid.
+→ Emotion
+
+Scene Types:
+
+Every scene must be classified as one of:
+
+- Present
+- Flashback
+- Dream
+- Imagination
+
+Flashback Requirements:
+
+- Detect memories and past events.
+- Add Flashback Start Transition.
+- Add Return To Present Transition.
+- Maintain character consistency inside flashbacks.
+
+Dialogue Requirements:
+
+For every dialogue include:
+
+- Speaker
+- Dialogue Text
+
+Thought Requirements:
+
+For every thought include:
+
+- Character
+- Thought Text
+
+Emotion Requirements:
+
+For every emotion include:
+
+- Character
+- Emotion
+- Confidence
+
+Character Consistency Requirements:
+
+Always use:
+
+- Character ID
+- Appearance
+- Personality
+- Distinctive Features
+
+across all scenes and scene types.
+
+Language Requirements:
+
+- Auto detect story language.
+- Keep Director Notes in English.
+- Keep Visual Prompts in English.
+- Keep Production Prompts in English.
+- UI language must not affect production prompts.
+
+Output Structure Order:
+
+1. Characters
+2. Character Profiles
+3. Scene Breakdown
+4. Narration
+5. Dialogue
+6. Internal Thoughts
+7. Actions
+8. Emotions
+9. Director Notes
+
+Do not change existing visual generation behavior.
+
+Do not remove existing scene generation behavior.

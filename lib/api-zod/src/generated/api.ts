@@ -64,7 +64,8 @@ export const AnalyzeStoryResponse = zod.object({
 })).default([]),
   "emotions": zod.array(zod.object({
   "character": zod.string(),
-  "emotion": zod.string()
+  "emotion": zod.string(),
+  "confidence": zod.enum(['high', 'medium', 'low'])
 })).default([]),
   "flashbackIndicator": zod.string().optional(),
   "transitionInstructions": zod.string().optional(),

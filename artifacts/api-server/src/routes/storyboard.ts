@@ -138,7 +138,10 @@ Return [] if the scene has no notable physical actions.
 ── EMOTIONS ──
 Definition: Emotional states or feelings experienced by characters in this scene, as detected from narration, behavior, or internal thought.
 Detect: Explicit emotion words ("felt afraid", "smiled with joy"), implied emotions from behavior (hands trembling → fear; jaw clenched → anger), or emotional atmosphere described by the narrator.
-Format: Array of objects with "character" (exact name from profile) and "emotion" (a short, precise label for the emotional state, e.g. "grief", "quiet determination", "fearful anticipation", "warm nostalgia").
+Format: Array of objects with:
+  - "character": exact name from profile
+  - "emotion": a short, precise label for the emotional state (e.g. "grief", "quiet determination", "fearful anticipation", "warm nostalgia")
+  - "confidence": your detection confidence — "high" if the emotion is explicitly stated in the text, "medium" if clearly implied by behavior or context, "low" if inferred from subtle cues or atmosphere
 Return [] if no emotions can be clearly detected.
 
 Return ONLY valid JSON (no markdown, no code blocks):
@@ -187,7 +190,8 @@ Return ONLY valid JSON (no markdown, no code blocks):
       "emotions": [
         {
           "character": "Character name exactly as in the profile",
-          "emotion": "Short precise emotional state label in ${outputLanguageName}"
+          "emotion": "Short precise emotional state label in ${outputLanguageName}",
+          "confidence": "high | medium | low"
         }
       ],
       "flashbackIndicator": "ONLY for sceneType Flashback/Dream/Imagination — short on-screen text card in English, omit for Present",

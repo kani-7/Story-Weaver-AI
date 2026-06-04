@@ -626,13 +626,22 @@ function Home() {
                                   <span className="text-[10px] font-bold uppercase tracking-widest text-rose-400">{t.emotions}</span>
                                 </div>
                                 <div className="flex flex-wrap gap-2">
-                                  {scene.emotions.map((em: any, ei: number) => (
-                                    <div key={ei} className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-rose-950/30 border border-rose-400/15">
-                                      <span className="text-[10px] font-semibold text-rose-400/80">{em.character}</span>
-                                      <span className="text-[10px] text-rose-200/50">·</span>
-                                      <span className="text-[10px] text-rose-200/70 italic">{em.emotion}</span>
-                                    </div>
-                                  ))}
+                                  {scene.emotions.map((em: any, ei: number) => {
+                                    const conf: string = em.confidence ?? "medium";
+                                    const confDot: Record<string, string> = {
+                                      high: "bg-rose-400",
+                                      medium: "bg-rose-400/50",
+                                      low: "bg-rose-400/20",
+                                    };
+                                    return (
+                                      <div key={ei} className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-rose-950/30 border border-rose-400/15">
+                                        <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${confDot[conf] ?? confDot.medium}`} title={conf} />
+                                        <span className="text-[10px] font-semibold text-rose-400/80">{em.character}</span>
+                                        <span className="text-[10px] text-rose-200/50">·</span>
+                                        <span className="text-[10px] text-rose-200/70 italic">{em.emotion}</span>
+                                      </div>
+                                    );
+                                  })}
                                 </div>
                               </div>
                             )}
