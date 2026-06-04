@@ -11,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { motion, AnimatePresence } from "framer-motion";
-import { Film, Sparkles, User, Clapperboard, RotateCcw, Video, Brain, Settings2, ChevronDown, Eye, Zap, Fingerprint, Clock, Moon, Lightbulb, ArrowLeftRight, BookOpen, MessageSquare, Swords, Heart } from "lucide-react";
+import { Film, Sparkles, User, Clapperboard, RotateCcw, Video, Brain, Settings2, ChevronDown, Eye, Zap, Fingerprint, Clock, Moon, Lightbulb, ArrowLeftRight, BookOpen, MessageSquare, Swords, Heart, Music, Volume2, Waves } from "lucide-react";
 
 const queryClient = new QueryClient();
 
@@ -67,6 +67,18 @@ const translations: Record<UILang, Record<string, string>> = {
     dialogue: "Dialogue",
     actions: "Actions",
     emotions: "Emotions",
+    audioIntelligence: "Audio Intelligence",
+    backgroundAmbience: "Background Ambience",
+    backgroundMusic: "Background Music",
+    soundEffects: "Sound Effects",
+    speaker: "Speaker",
+    dialogueLabel: "Dialogue",
+    character: "Character",
+    thoughtLabel: "Thought",
+    actionLabel: "Action",
+    emotionLabel: "Emotion",
+    confidenceLabel: "Confidence",
+    narratorLabel: "Narrator",
   },
   si: {
     subtitle: "අධ්‍යක්ෂකගේ පුටුවට ඇතුළු වන්න. ඔබේ කතාව ඇතුළු කර ක්ෂණිකව ස්ටෝරිබෝර්ඩ් එකක් ලබා ගන්න.",
@@ -106,6 +118,18 @@ const translations: Record<UILang, Record<string, string>> = {
     dialogue: "සංවාදය",
     actions: "ක්‍රියා",
     emotions: "හැඟීම්",
+    audioIntelligence: "ශ්‍රව්‍ය බුද්ධිය",
+    backgroundAmbience: "පසුබිම් ශබ්ද",
+    backgroundMusic: "පසුබිම් සංගීතය",
+    soundEffects: "ශබ්ද ප්‍රභාව",
+    speaker: "කථිකයා",
+    dialogueLabel: "සංවාදය",
+    character: "චරිතය",
+    thoughtLabel: "සිතුවිල්ල",
+    actionLabel: "ක්‍රියාව",
+    emotionLabel: "හැඟීම",
+    confidenceLabel: "විශ්වාසය",
+    narratorLabel: "කථකයා",
   },
   ta: {
     subtitle: "இயக்குனரின் இருக்கையில் அமருங்கள். உங்கள் கதையை ஒட்டவும், நொடியில் திரைக்கதை உருவாகும்.",
@@ -145,6 +169,18 @@ const translations: Record<UILang, Record<string, string>> = {
     dialogue: "உரையாடல்",
     actions: "செயல்கள்",
     emotions: "உணர்வுகள்",
+    audioIntelligence: "ஒலி நுண்ணறிவு",
+    backgroundAmbience: "பின்னணி சூழல் ஒலி",
+    backgroundMusic: "பின்னணி இசை",
+    soundEffects: "ஒலி விளைவுகள்",
+    speaker: "பேசுபவர்",
+    dialogueLabel: "உரையாடல்",
+    character: "கதாபாத்திரம்",
+    thoughtLabel: "எண்ணம்",
+    actionLabel: "செயல்",
+    emotionLabel: "உணர்வு",
+    confidenceLabel: "நம்பகத்தன்மை",
+    narratorLabel: "கதைசொல்லி",
   },
 };
 
@@ -548,9 +584,15 @@ function Home() {
                         const hasThoughts = scene.thoughts && scene.thoughts.length > 0;
                         const hasActions = scene.actions && scene.actions.length > 0;
                         const hasEmotions = scene.emotions && scene.emotions.length > 0;
-                        if (!hasNarration && !hasDialogue && !hasThoughts && !hasActions && !hasEmotions) return null;
+                        const hasAudio = scene.audio && (
+                          (scene.audio.backgroundAmbience && scene.audio.backgroundAmbience.length > 0) ||
+                          scene.audio.backgroundMusic ||
+                          (scene.audio.soundEffects && scene.audio.soundEffects.length > 0)
+                        );
+                        if (!hasNarration && !hasDialogue && !hasThoughts && !hasActions && !hasEmotions && !hasAudio) return null;
                         return (
                           <div className="border-t border-white/5 divide-y divide-white/5">
+
                             {/* Narration */}
                             {hasNarration && (
                               <div className="px-6 py-4">
@@ -560,13 +602,15 @@ function Home() {
                                 </div>
                                 <div className="space-y-2">
                                   {scene.narration.map((line: string, ni: number) => (
-                                    <p key={ni} className="text-sm text-slate-300/70 italic leading-relaxed pl-4 border-l border-slate-500/20">
-                                      {line}
-                                    </p>
+                                    <div key={ni} className="p-3 rounded-lg bg-slate-900/40 border border-slate-500/10">
+                                      <span className="text-[9px] font-bold uppercase tracking-widest text-slate-500 block mb-1">{t.narratorLabel}</span>
+                                      <p className="text-sm text-slate-300/75 italic leading-relaxed">{line}</p>
+                                    </div>
                                   ))}
                                 </div>
                               </div>
                             )}
+
                             {/* Dialogue */}
                             {hasDialogue && (
                               <div className="px-6 py-4">
@@ -576,14 +620,21 @@ function Home() {
                                 </div>
                                 <div className="space-y-2">
                                   {scene.dialogue.map((dl: any, di: number) => (
-                                    <div key={di} className="flex gap-3 p-3 rounded-lg bg-emerald-950/30 border border-emerald-400/10">
-                                      <span className="text-xs font-semibold text-emerald-400/80 whitespace-nowrap pt-0.5 shrink-0">{dl.character}</span>
-                                      <span className="text-sm text-emerald-100/75 leading-relaxed">"{dl.line}"</span>
+                                    <div key={di} className="p-3 rounded-lg bg-emerald-950/30 border border-emerald-400/10 space-y-1">
+                                      <div className="flex items-center gap-2">
+                                        <span className="text-[9px] font-bold uppercase tracking-widest text-emerald-500/70">{t.speaker}:</span>
+                                        <span className="text-xs font-semibold text-emerald-400/90">{dl.character}</span>
+                                      </div>
+                                      <div className="flex items-start gap-2">
+                                        <span className="text-[9px] font-bold uppercase tracking-widest text-emerald-500/70 pt-0.5 shrink-0">{t.dialogueLabel}:</span>
+                                        <span className="text-sm text-emerald-100/80 leading-relaxed">"{dl.line}"</span>
+                                      </div>
                                     </div>
                                   ))}
                                 </div>
                               </div>
                             )}
+
                             {/* Internal Thoughts */}
                             {hasThoughts && (
                               <div className="px-6 py-4">
@@ -593,14 +644,21 @@ function Home() {
                                 </div>
                                 <div className="space-y-2">
                                   {scene.thoughts.map((th: any, ti: number) => (
-                                    <div key={ti} className="flex gap-3 p-3 rounded-lg bg-amber-950/30 border border-amber-400/10">
-                                      <span className="text-xs font-semibold text-amber-400/80 whitespace-nowrap pt-0.5 shrink-0">{th.character}</span>
-                                      <span className="text-sm text-amber-100/70 italic leading-relaxed">"{th.thought}"</span>
+                                    <div key={ti} className="p-3 rounded-lg bg-amber-950/30 border border-amber-400/10 space-y-1">
+                                      <div className="flex items-center gap-2">
+                                        <span className="text-[9px] font-bold uppercase tracking-widest text-amber-500/70">{t.character}:</span>
+                                        <span className="text-xs font-semibold text-amber-400/90">{th.character}</span>
+                                      </div>
+                                      <div className="flex items-start gap-2">
+                                        <span className="text-[9px] font-bold uppercase tracking-widest text-amber-500/70 pt-0.5 shrink-0">{t.thoughtLabel}:</span>
+                                        <span className="text-sm text-amber-100/75 italic leading-relaxed">"{th.thought}"</span>
+                                      </div>
                                     </div>
                                   ))}
                                 </div>
                               </div>
                             )}
+
                             {/* Actions */}
                             {hasActions && (
                               <div className="px-6 py-4">
@@ -610,14 +668,21 @@ function Home() {
                                 </div>
                                 <div className="space-y-2">
                                   {scene.actions.map((ac: any, ai: number) => (
-                                    <div key={ai} className="flex gap-3 p-3 rounded-lg bg-orange-950/25 border border-orange-400/10">
-                                      <span className="text-xs font-semibold text-orange-400/80 whitespace-nowrap pt-0.5 shrink-0">{ac.character}</span>
-                                      <span className="text-sm text-orange-100/70 leading-relaxed">{ac.action}</span>
+                                    <div key={ai} className="p-3 rounded-lg bg-orange-950/25 border border-orange-400/10 space-y-1">
+                                      <div className="flex items-center gap-2">
+                                        <span className="text-[9px] font-bold uppercase tracking-widest text-orange-500/70">{t.character}:</span>
+                                        <span className="text-xs font-semibold text-orange-400/90">{ac.character}</span>
+                                      </div>
+                                      <div className="flex items-start gap-2">
+                                        <span className="text-[9px] font-bold uppercase tracking-widest text-orange-500/70 pt-0.5 shrink-0">{t.actionLabel}:</span>
+                                        <span className="text-sm text-orange-100/75 leading-relaxed">{ac.action}</span>
+                                      </div>
                                     </div>
                                   ))}
                                 </div>
                               </div>
                             )}
+
                             {/* Emotions */}
                             {hasEmotions && (
                               <div className="px-6 py-4">
@@ -625,26 +690,90 @@ function Home() {
                                   <Heart className="w-3.5 h-3.5 text-rose-400" />
                                   <span className="text-[10px] font-bold uppercase tracking-widest text-rose-400">{t.emotions}</span>
                                 </div>
-                                <div className="flex flex-wrap gap-2">
+                                <div className="space-y-2">
                                   {scene.emotions.map((em: any, ei: number) => {
-                                    const conf: string = em.confidence ?? "medium";
-                                    const confDot: Record<string, string> = {
-                                      high: "bg-rose-400",
-                                      medium: "bg-rose-400/50",
-                                      low: "bg-rose-400/20",
-                                    };
+                                    const conf: number = typeof em.confidence === "number" ? em.confidence : 0.5;
+                                    const pct = Math.round(conf * 100);
+                                    const barColor = conf >= 0.8 ? "bg-rose-400" : conf >= 0.5 ? "bg-rose-400/60" : "bg-rose-400/30";
                                     return (
-                                      <div key={ei} className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-rose-950/30 border border-rose-400/15">
-                                        <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${confDot[conf] ?? confDot.medium}`} title={conf} />
-                                        <span className="text-[10px] font-semibold text-rose-400/80">{em.character}</span>
-                                        <span className="text-[10px] text-rose-200/50">·</span>
-                                        <span className="text-[10px] text-rose-200/70 italic">{em.emotion}</span>
+                                      <div key={ei} className="p-3 rounded-lg bg-rose-950/25 border border-rose-400/10 space-y-1.5">
+                                        <div className="flex items-center gap-2">
+                                          <span className="text-[9px] font-bold uppercase tracking-widest text-rose-500/70">{t.character}:</span>
+                                          <span className="text-xs font-semibold text-rose-400/90">{em.character}</span>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                          <span className="text-[9px] font-bold uppercase tracking-widest text-rose-500/70 shrink-0">{t.emotionLabel}:</span>
+                                          <span className="text-sm text-rose-100/80 italic">{em.emotion}</span>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                          <span className="text-[9px] font-bold uppercase tracking-widest text-rose-500/70 shrink-0">{t.confidenceLabel}:</span>
+                                          <div className="flex items-center gap-1.5 flex-1">
+                                            <div className="flex-1 h-1 rounded-full bg-rose-950/60 overflow-hidden">
+                                              <div className={`h-full rounded-full ${barColor}`} style={{ width: `${pct}%` }} />
+                                            </div>
+                                            <span className="text-[10px] font-mono text-rose-300/60 tabular-nums">{conf.toFixed(2)}</span>
+                                          </div>
+                                        </div>
                                       </div>
                                     );
                                   })}
                                 </div>
                               </div>
                             )}
+
+                            {/* Audio Intelligence */}
+                            {hasAudio && (
+                              <div className="px-6 py-4 bg-indigo-950/10">
+                                <div className="flex items-center gap-2 mb-4">
+                                  <Music className="w-3.5 h-3.5 text-indigo-400" />
+                                  <span className="text-[10px] font-bold uppercase tracking-widest text-indigo-400">{t.audioIntelligence}</span>
+                                </div>
+                                <div className="space-y-3">
+                                  {scene.audio.backgroundAmbience && scene.audio.backgroundAmbience.length > 0 && (
+                                    <div className="space-y-1.5">
+                                      <div className="flex items-center gap-1.5">
+                                        <Waves className="w-3 h-3 text-indigo-400/60" />
+                                        <span className="text-[9px] font-bold uppercase tracking-widest text-indigo-400/60">{t.backgroundAmbience}</span>
+                                      </div>
+                                      <div className="flex flex-wrap gap-1.5 pl-4">
+                                        {scene.audio.backgroundAmbience.map((a: string, ai: number) => (
+                                          <span key={ai} className="text-[11px] px-2 py-1 rounded bg-indigo-950/40 border border-indigo-400/10 text-indigo-200/60">
+                                            {a}
+                                          </span>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
+                                  {scene.audio.backgroundMusic && (
+                                    <div className="space-y-1.5">
+                                      <div className="flex items-center gap-1.5">
+                                        <Music className="w-3 h-3 text-indigo-400/60" />
+                                        <span className="text-[9px] font-bold uppercase tracking-widest text-indigo-400/60">{t.backgroundMusic}</span>
+                                      </div>
+                                      <p className="text-xs text-indigo-200/60 italic leading-relaxed pl-4 border-l border-indigo-500/15">
+                                        {scene.audio.backgroundMusic}
+                                      </p>
+                                    </div>
+                                  )}
+                                  {scene.audio.soundEffects && scene.audio.soundEffects.length > 0 && (
+                                    <div className="space-y-1.5">
+                                      <div className="flex items-center gap-1.5">
+                                        <Volume2 className="w-3 h-3 text-indigo-400/60" />
+                                        <span className="text-[9px] font-bold uppercase tracking-widest text-indigo-400/60">{t.soundEffects}</span>
+                                      </div>
+                                      <div className="flex flex-wrap gap-1.5 pl-4">
+                                        {scene.audio.soundEffects.map((sfx: string, si: number) => (
+                                          <span key={si} className="text-[11px] px-2 py-1 rounded bg-indigo-950/40 border border-indigo-400/10 text-indigo-200/60">
+                                            {sfx}
+                                          </span>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            )}
+
                           </div>
                         );
                       })()}

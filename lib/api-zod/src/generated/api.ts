@@ -65,8 +65,13 @@ export const AnalyzeStoryResponse = zod.object({
   "emotions": zod.array(zod.object({
   "character": zod.string(),
   "emotion": zod.string(),
-  "confidence": zod.enum(['high', 'medium', 'low'])
+  "confidence": zod.number().min(0).max(1)
 })).default([]),
+  "audio": zod.object({
+  "backgroundAmbience": zod.array(zod.string()),
+  "backgroundMusic": zod.string(),
+  "soundEffects": zod.array(zod.string())
+}).optional(),
   "flashbackIndicator": zod.string().optional(),
   "transitionInstructions": zod.string().optional(),
   "returnToPresentInstructions": zod.string().optional()

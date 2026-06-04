@@ -22,7 +22,13 @@ export interface CharacterAction {
 export interface CharacterEmotion {
   character: string;
   emotion: string;
-  confidence: 'high' | 'medium' | 'low';
+  confidence: number;
+}
+
+export interface SceneAudio {
+  backgroundAmbience: string[];
+  backgroundMusic: string;
+  soundEffects: string[];
 }
 
 export interface Scene {
@@ -37,6 +43,7 @@ export interface Scene {
   thoughts: InternalThought[];
   actions: CharacterAction[];
   emotions: CharacterEmotion[];
+  audio?: SceneAudio;
   flashbackIndicator?: string;
   transitionInstructions?: string;
   returnToPresentInstructions?: string;

@@ -141,8 +141,18 @@ Detect: Explicit emotion words ("felt afraid", "smiled with joy"), implied emoti
 Format: Array of objects with:
   - "character": exact name from profile
   - "emotion": a short, precise label for the emotional state (e.g. "grief", "quiet determination", "fearful anticipation", "warm nostalgia")
-  - "confidence": your detection confidence — "high" if the emotion is explicitly stated in the text, "medium" if clearly implied by behavior or context, "low" if inferred from subtle cues or atmosphere
+  - "confidence": a float from 0.00 to 1.00 representing detection certainty. Use 0.90–1.00 for emotions explicitly stated in text ("felt terrified", "burst into tears"), 0.60–0.89 for emotions clearly implied by behavior or context, 0.30–0.59 for emotions inferred from subtle cues or atmosphere. Never use exactly 0 or 1.
 Return [] if no emotions can be clearly detected.
+
+── AUDIO INTELLIGENCE ──
+Definition: Sound design specifications for this scene to guide audio production.
+Generate three audio components for every scene. All audio fields are in English regardless of output language.
+
+- "backgroundAmbience": Array of concise strings naming ambient environmental sounds that would be heard continuously in this scene's setting. Examples: "distant thunder rumbling", "river flowing over stones", "busy marketplace chatter", "wind through dry grass", "hospital corridor hum". List 2-5 items. For Flashback scenes use softer, more muted versions. For Dream scenes use ethereal or distorted ambience.
+
+- "backgroundMusic": A single string describing the musical underscore for this scene. Include: tempo (slow/moderate/fast), instrumentation (strings, piano, drums, etc.), emotional tone, and any genre reference. Examples: "Slow, melancholy piano with sparse cello; reminiscent of a lullaby decaying into silence", "Tense, staccato strings building to a crescendo; action-thriller style", "Warm, gentle acoustic guitar with birdsong woven in; pastoral and hopeful". For Flashback: use soft, slightly warped or echoed music suggesting memory. For Dream: use ethereal, ambient, or surreal instrumentation.
+
+- "soundEffects": Array of specific one-shot or intermittent sound effects triggered by events in this scene. Reference the actions and dialogue that trigger them. Examples: "sword drawn from scabbard", "door slams shut", "glass shatters on stone floor", "gasp of shock", "crowd falls silent". List 1-6 items. Return [] only if the scene is entirely static with no events.
 
 Return ONLY valid JSON (no markdown, no code blocks):
 {
@@ -191,9 +201,14 @@ Return ONLY valid JSON (no markdown, no code blocks):
         {
           "character": "Character name exactly as in the profile",
           "emotion": "Short precise emotional state label in ${outputLanguageName}",
-          "confidence": "high | medium | low"
+          "confidence": 0.85
         }
       ],
+      "audio": {
+        "backgroundAmbience": ["ambient sound 1", "ambient sound 2"],
+        "backgroundMusic": "English description of musical underscore: tempo, instrumentation, emotional tone",
+        "soundEffects": ["specific sound effect 1", "specific sound effect 2"]
+      },
       "flashbackIndicator": "ONLY for sceneType Flashback/Dream/Imagination — short on-screen text card in English, omit for Present",
       "transitionInstructions": "ONLY for sceneType Flashback/Dream/Imagination — English cinematic entry transition instructions, omit for Present",
       "returnToPresentInstructions": "ONLY for sceneType Flashback/Dream/Imagination — English cinematic exit/return instructions, omit for Present"
@@ -206,8 +221,11 @@ Final rules:
 - Divide the story into 3-8 meaningful scenes
 - Every scene MUST have "sceneType" — default is "Present" when no temporal or mental shift is detected
 - Every scene MUST have all five arrays: "narration", "dialogue", "thoughts", "actions", "emotions" (use [] for empty)
-- The five arrays are STRICTLY SEPARATED — no content item appears in more than one array
+- Every scene MUST have "audio" with all three fields: "backgroundAmbience", "backgroundMusic", "soundEffects"
+- The five story layers are STRICTLY SEPARATED — no content item appears in more than one array
 - Dialogue = audible speech only. Thoughts = silent only. Never merge them.
+- Emotion confidence MUST be a float 0.00–1.00, never a string
+- All audio fields are ENGLISH ONLY regardless of output language
 - Scenes with sceneType "Flashback", "Dream", or "Imagination" MUST include "flashbackIndicator", "transitionInstructions", and "returnToPresentInstructions"
 - Scenes with sceneType "Present" MUST NOT include "flashbackIndicator", "transitionInstructions", or "returnToPresentInstructions"
 - Each visualPrompt: English only, 40-80 words, vivid, references character distinctiveFeatures; non-Present scenes include the appropriate temporal/mental visual language
