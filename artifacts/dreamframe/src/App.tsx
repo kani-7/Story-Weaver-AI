@@ -19,15 +19,17 @@ if (typeof window !== "undefined") {
   document.documentElement.classList.add("dark");
 }
 
-type LangCode = "en" | "si" | "ta";
+type UILang = "en" | "si" | "ta";
+type StoryLang = "auto" | "en" | "si" | "ta";
+type NotesLang = "en" | "si" | "ta";
 
-const LANG_NAMES: Record<LangCode, string> = {
+const UI_LANG_NAMES: Record<UILang, string> = {
   en: "English",
   si: "සිංහල",
   ta: "தமிழ்",
 };
 
-const translations: Record<LangCode, Record<string, string>> = {
+const translations: Record<UILang, Record<string, string>> = {
   en: {
     subtitle: "Step into the director's chair. Paste your story and watch it transform into a cinematic storyboard in seconds.",
     generateBtn: "Generate Storyboard",
@@ -42,8 +44,10 @@ const translations: Record<LangCode, Record<string, string>> = {
     errorTitle: "Error generating storyboard",
     errorDesc: "An unexpected error occurred. Please try again.",
     settingsTitle: "Language Settings",
-    uiLanguageLabel: "UI Language",
-    directorNotesLangLabel: "Director Notes Language",
+    storyLangLabel: "Story Language",
+    uiLangLabel: "UI Language",
+    notesLangLabel: "Director Notes Language",
+    autoDetect: "Auto-detect",
     analyzing: "Analyzing your story...",
     extracting: "Extracting characters...",
     visualizing: "Visualizing scenes...",
@@ -65,8 +69,10 @@ const translations: Record<LangCode, Record<string, string>> = {
     errorTitle: "ස්ටෝරිබෝර්ඩ් සෑදීමේ දෝෂයක්",
     errorDesc: "අනපේක්ෂිත දෝෂයක් සිදු විය. නැවත උත්සාහ කරන්න.",
     settingsTitle: "භාෂා සැකසුම්",
-    uiLanguageLabel: "UI භාෂාව",
-    directorNotesLangLabel: "අධ්‍යක්ෂක සටහන් භාෂාව",
+    storyLangLabel: "කතා භාෂාව",
+    uiLangLabel: "UI භාෂාව",
+    notesLangLabel: "අධ්‍යක්ෂක සටහන් භාෂාව",
+    autoDetect: "ස්වයං හඳුනාගැනීම",
     analyzing: "කතාව විශ්ලේෂණය කරමින්...",
     extracting: "චරිත හඳුනා ගනිමින්...",
     visualizing: "දර්ශන සිතිජය...",
@@ -88,8 +94,10 @@ const translations: Record<LangCode, Record<string, string>> = {
     errorTitle: "திரைக்கதை உருவாக்குவதில் பிழை",
     errorDesc: "எதிர்பாராத பிழை ஏற்பட்டது. மீண்டும் முயற்சிக்கவும்.",
     settingsTitle: "மொழி அமைப்புகள்",
-    uiLanguageLabel: "UI மொழி",
-    directorNotesLangLabel: "இயக்குனர் குறிப்பு மொழி",
+    storyLangLabel: "கதை மொழி",
+    uiLangLabel: "UI மொழி",
+    notesLangLabel: "இயக்குனர் குறிப்பு மொழி",
+    autoDetect: "தானாக கண்டறி",
     analyzing: "உங்கள் கதையை பகுப்பாய்வு செய்கிறோம்...",
     extracting: "கதாபாத்திரங்களை பிரித்தெடுக்கிறோம்...",
     visualizing: "காட்சிகளை காட்சிப்படுத்துகிறோம்...",
@@ -99,14 +107,16 @@ const translations: Record<LangCode, Record<string, string>> = {
   },
 };
 
-function LanguageSelect({
+function LangSelect<T extends string>({
   value,
   onChange,
   label,
+  options,
 }: {
-  value: LangCode;
-  onChange: (v: LangCode) => void;
+  value: T;
+  onChange: (v: T) => void;
   label: string;
+  options: { value: T; label: string }[];
 }) {
   return (
     <div className="flex flex-col gap-1.5">
@@ -116,12 +126,12 @@ function LanguageSelect({
       <div className="relative">
         <select
           value={value}
-          onChange={(e) => onChange(e.target.value as LangCode)}
+          onChange={(e) => onChange(e.target.value as T)}
           className="w-full appearance-none bg-card/60 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground cursor-pointer hover:border-white/20 focus:outline-none focus:border-primary/50 pr-8"
         >
-          {(Object.keys(LANG_NAMES) as LangCode[]).map((code) => (
-            <option key={code} value={code} className="bg-background">
-              {LANG_NAMES[code]}
+          {options.map((o) => (
+            <option key={o.value} value={o.value} className="bg-background">
+              {o.label}
             </option>
           ))}
         </select>
@@ -132,14 +142,7 @@ function LanguageSelect({
 }
 
 function LoadingState({ t }: { t: Record<string, string> }) {
-  const messages = [
-    t.analyzing,
-    t.extracting,
-    t.visualizing,
-    t.generating,
-    t.finalizing,
-  ];
-
+  const messages = [t.analyzing, t.extracting, t.visualizing, t.generating, t.finalizing];
   const [msgIndex, setMsgIndex] = useState(0);
 
   useEffect(() => {
@@ -187,35 +190,42 @@ function Home() {
 
   const [story, setStory] = useState("");
   const [storyboard, setStoryboard] = useState<any>(null);
-  const [uiLanguage, setUiLanguage] = useState<LangCode>("en");
-  const [directorNotesLanguage, setDirectorNotesLanguage] = useState<LangCode>("en");
+  const [uiLanguage, setUiLanguage] = useState<UILang>("en");
+  const [storyLanguage, setStoryLanguage] = useState<StoryLang>("auto");
+  const [directorNotesLanguage, setDirectorNotesLanguage] = useState<NotesLang>("en");
   const [settingsOpen, setSettingsOpen] = useState(false);
 
   const t = translations[uiLanguage];
 
+  const storyLangOptions: { value: StoryLang; label: string }[] = [
+    { value: "auto", label: t.autoDetect },
+    { value: "en", label: "English" },
+    { value: "si", label: "සිංහල" },
+    { value: "ta", label: "தமிழ்" },
+  ];
+
+  const uiLangOptions: { value: UILang; label: string }[] = [
+    { value: "en", label: "English" },
+    { value: "si", label: "සිංහල" },
+    { value: "ta", label: "தமிழ்" },
+  ];
+
+  const notesLangOptions: { value: NotesLang; label: string }[] = [
+    { value: "en", label: "English" },
+    { value: "si", label: "සිංහල" },
+    { value: "ta", label: "தமிழ்" },
+  ];
+
   const handleGenerate = () => {
     if (story.trim().length < 10) {
-      toast({
-        title: t.storyTooShort,
-        description: t.storyTooShortDesc,
-        variant: "destructive",
-      });
+      toast({ title: t.storyTooShort, description: t.storyTooShortDesc, variant: "destructive" });
       return;
     }
-
     analyzeMutation.mutate(
-      { data: { story, directorNotesLanguage } },
+      { data: { story, storyLanguage, directorNotesLanguage } },
       {
-        onSuccess: (data) => {
-          setStoryboard(data);
-        },
-        onError: () => {
-          toast({
-            title: t.errorTitle,
-            description: t.errorDesc,
-            variant: "destructive",
-          });
-        },
+        onSuccess: (data) => setStoryboard(data),
+        onError: () => toast({ title: t.errorTitle, description: t.errorDesc, variant: "destructive" }),
       }
     );
   };
@@ -228,12 +238,8 @@ function Home() {
 
   const containerVariants = {
     hidden: { opacity: 0 },
-    show: {
-      opacity: 1,
-      transition: { staggerChildren: 0.1 },
-    },
+    show: { opacity: 1, transition: { staggerChildren: 0.1 } },
   };
-
   const itemVariants = {
     hidden: { opacity: 0, y: 20 },
     show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 24 } },
@@ -242,9 +248,9 @@ function Home() {
   return (
     <div className="min-h-screen bg-background text-foreground relative overflow-hidden">
       <div className="pointer-events-none fixed inset-0 z-0">
-        <div className="absolute top-0 left-1/4 w-[50vw] h-[50vh] bg-primary/10 rounded-full blur-[120px] mix-blend-screen opacity-50"></div>
-        <div className="absolute bottom-0 right-1/4 w-[60vw] h-[60vh] bg-accent/10 rounded-full blur-[120px] mix-blend-screen opacity-50"></div>
-        <div className="absolute inset-0 bg-background/60 backdrop-blur-[2px]"></div>
+        <div className="absolute top-0 left-1/4 w-[50vw] h-[50vh] bg-primary/10 rounded-full blur-[120px] mix-blend-screen opacity-50" />
+        <div className="absolute bottom-0 right-1/4 w-[60vw] h-[60vh] bg-accent/10 rounded-full blur-[120px] mix-blend-screen opacity-50" />
+        <div className="absolute inset-0 bg-background/60 backdrop-blur-[2px]" />
       </div>
 
       <main className="relative z-10 container mx-auto px-4 py-12 md:py-24 max-w-5xl">
@@ -267,7 +273,7 @@ function Home() {
 
             <div className="w-full max-w-3xl mt-12 space-y-4">
               <div className="relative group">
-                <div className="absolute -inset-1 bg-gradient-to-r from-primary to-accent rounded-xl blur opacity-25 group-hover:opacity-40 transition duration-500"></div>
+                <div className="absolute -inset-1 bg-gradient-to-r from-primary to-accent rounded-xl blur opacity-25 group-hover:opacity-40 transition duration-500" />
                 <Textarea
                   value={story}
                   onChange={(e) => setStory(e.target.value)}
@@ -287,10 +293,7 @@ function Home() {
                     <Settings2 className="w-4 h-4" />
                     <span className="font-medium">{t.settingsTitle}</span>
                   </div>
-                  <motion.div
-                    animate={{ rotate: settingsOpen ? 180 : 0 }}
-                    transition={{ duration: 0.2 }}
-                  >
+                  <motion.div animate={{ rotate: settingsOpen ? 180 : 0 }} transition={{ duration: 0.2 }}>
                     <ChevronDown className="w-4 h-4" />
                   </motion.div>
                 </button>
@@ -304,16 +307,24 @@ function Home() {
                       transition={{ duration: 0.25, ease: "easeInOut" }}
                       className="overflow-hidden"
                     >
-                      <div className="px-5 pb-5 pt-1 grid grid-cols-1 sm:grid-cols-2 gap-4 border-t border-white/8">
-                        <LanguageSelect
+                      <div className="px-5 pb-5 pt-2 grid grid-cols-1 sm:grid-cols-3 gap-4 border-t border-white/8">
+                        <LangSelect
+                          value={storyLanguage}
+                          onChange={setStoryLanguage}
+                          label={t.storyLangLabel}
+                          options={storyLangOptions}
+                        />
+                        <LangSelect
                           value={uiLanguage}
                           onChange={setUiLanguage}
-                          label={t.uiLanguageLabel}
+                          label={t.uiLangLabel}
+                          options={uiLangOptions}
                         />
-                        <LanguageSelect
+                        <LangSelect
                           value={directorNotesLanguage}
                           onChange={setDirectorNotesLanguage}
-                          label={t.directorNotesLangLabel}
+                          label={t.notesLangLabel}
+                          options={notesLangOptions}
                         />
                       </div>
                     </motion.div>
@@ -336,12 +347,7 @@ function Home() {
         {analyzeMutation.isPending && <LoadingState t={t} />}
 
         {storyboard && (
-          <motion.div
-            variants={containerVariants}
-            initial="hidden"
-            animate="show"
-            className="space-y-16"
-          >
+          <motion.div variants={containerVariants} initial="hidden" animate="show" className="space-y-16">
             {/* Header */}
             <motion.div variants={itemVariants} className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 border-b border-white/10 pb-8">
               <div className="space-y-4">
@@ -350,12 +356,7 @@ function Home() {
                 </Badge>
                 <h2 className="text-4xl md:text-5xl font-bold">{storyboard.title}</h2>
               </div>
-              <Button
-                variant="outline"
-                onClick={handleReset}
-                className="border-white/10 hover:bg-white/5"
-                data-testid="button-reset"
-              >
+              <Button variant="outline" onClick={handleReset} className="border-white/10 hover:bg-white/5" data-testid="button-reset">
                 <RotateCcw className="mr-2 w-4 h-4" /> {t.startOver}
               </Button>
             </motion.div>
@@ -384,7 +385,6 @@ function Home() {
                 <Clapperboard className="w-6 h-6 text-primary" />
                 <h3 className="text-2xl font-semibold">{t.scenesTitle}</h3>
               </div>
-
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 {storyboard.scenes.map((scene: any, i: number) => (
                   <motion.div key={i} variants={itemVariants}>
@@ -396,10 +396,7 @@ function Home() {
                           </Badge>
                         </div>
                         <h4 className="text-xl font-bold">{scene.title}</h4>
-                        <p className="text-muted-foreground leading-relaxed">
-                          {scene.description}
-                        </p>
-
+                        <p className="text-muted-foreground leading-relaxed">{scene.description}</p>
                         <div className="flex flex-wrap gap-2 pt-2">
                           {scene.characters.map((charName: string, ci: number) => (
                             <Badge key={ci} variant="outline" className="border-accent/30 text-accent/90 bg-accent/5">
@@ -409,7 +406,7 @@ function Home() {
                         </div>
                       </div>
 
-                      {/* Internal Thoughts Section */}
+                      {/* Internal Thoughts */}
                       {scene.thoughts && scene.thoughts.length > 0 && (
                         <div className="px-6 pb-4">
                           <div className="flex items-center gap-2 mb-3">
@@ -427,9 +424,9 @@ function Home() {
                         </div>
                       )}
 
-                      {/* Visual Prompt / Director's Note Section */}
+                      {/* Director's Note */}
                       <div className="p-6 bg-black/40 relative">
-                        <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-primary/50 to-transparent"></div>
+                        <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-primary/50 to-transparent" />
                         <div className="flex items-center gap-2 mb-3">
                           <Video className="w-4 h-4 text-primary" />
                           <span className="text-xs font-bold uppercase tracking-wider text-primary">{t.directorNote}</span>

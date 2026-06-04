@@ -4,6 +4,12 @@ import { AnalyzeStoryBody } from "@workspace/api-zod";
 
 const router: IRouter = Router();
 
+const LANG_NAMES: Record<string, string> = {
+  en: "English",
+  si: "Sinhala (සිංහල)",
+  ta: "Tamil (தமிழ்)",
+};
+
 router.post("/storyboard/analyze", async (req, res): Promise<void> => {
   const parsed = AnalyzeStoryBody.safeParse(req.body);
   if (!parsed.success) {
@@ -11,29 +17,32 @@ router.post("/storyboard/analyze", async (req, res): Promise<void> => {
     return;
   }
 
-  const { story, directorNotesLanguage = "en" } = parsed.data;
+  const {
+    story,
+    storyLanguage = "auto",
+    directorNotesLanguage = "en",
+  } = parsed.data;
 
-  const directorNotesLanguageMap: Record<string, string> = {
-    en: "English",
-    si: "Sinhala (සිංහල)",
-    ta: "Tamil (தமிழ்)",
-  };
-  const directorNotesLanguageName = directorNotesLanguageMap[directorNotesLanguage] ?? "English";
+  const directorNotesLanguageName = LANG_NAMES[directorNotesLanguage] ?? "English";
+
+  const storyLanguageInstruction =
+    storyLanguage === "auto" || !storyLanguage
+      ? `Detect the language of the story automatically. The story may be written in Sinhala (සිංහල), Tamil (தமிழ்), English, or any other language.`
+      : `The user has explicitly selected "${LANG_NAMES[storyLanguage] ?? storyLanguage}" as the story language. Treat the story as written in that language.`;
 
   const prompt = `You are a professional storyboard director and visual storyteller with full multilingual capability. Analyze the following story and produce a structured storyboard.
 
-LANGUAGE DETECTION AND RESPONSE RULES (highest priority):
-1. Detect the language of the story automatically before doing anything else.
-2. The story may be written in Sinhala (සිංහල), Tamil (தமிழ்), English, or any other language.
-3. You MUST write ALL output fields — title, character names, character descriptions, scene titles, scene descriptions — in the EXACT SAME LANGUAGE as the input story.
-4. Do NOT translate those fields into English or any other language unless the input story is already in English.
-5. For Sinhala stories: preserve all Sinhala Unicode characters (U+0D80–U+0DFF) exactly. Do not romanize or transliterate.
-6. For Tamil stories: preserve all Tamil Unicode characters (U+0B80–U+0BFF) exactly. Do not romanize or transliterate.
-7. Character names must be written exactly as they appear in the story (same script, same spelling).
+STORY LANGUAGE RULES (highest priority):
+1. ${storyLanguageInstruction}
+2. You MUST write ALL output fields — title, character names, character descriptions, scene titles, scene descriptions, and thoughts — in the EXACT SAME LANGUAGE as the story (or the explicitly selected story language above).
+3. Do NOT translate those fields into English or any other language unless the story is already in English.
+4. For Sinhala: preserve all Sinhala Unicode characters (U+0D80–U+0DFF) exactly. Do not romanize or transliterate.
+5. For Tamil: preserve all Tamil Unicode characters (U+0B80–U+0BFF) exactly. Do not romanize or transliterate.
+6. Character names MUST be written exactly as they appear in the story — same script, same spelling, no transliteration.
 
-DIRECTOR NOTES LANGUAGE (separate rule — overrides story language for visualPrompt only):
-- The "visualPrompt" field MUST be written in ${directorNotesLanguageName}, regardless of what language the story is in.
-- All other fields (title, character names, descriptions, scene titles, scene descriptions, thoughts) remain in the story's own language.
+DIRECTOR NOTES LANGUAGE (independent rule — controls visualPrompt only):
+- The "visualPrompt" field MUST be written in ${directorNotesLanguageName}, regardless of the story language.
+- All other fields (title, character names, descriptions, scene titles, scene descriptions, thoughts) remain in the story's language.
 - If ${directorNotesLanguageName} is Sinhala or Tamil, preserve their Unicode characters exactly in the visualPrompt too.
 
 Story:
@@ -64,7 +73,7 @@ Return ONLY valid JSON (no markdown, no code blocks) with this exact structure:
       "title": "Short scene title (in the story's language)",
       "description": "2-3 sentences describing what happens in this scene (in the story's language)",
       "characters": ["Character name 1", "Character name 2"],
-      "visualPrompt": "A detailed visual prompt for this scene in the story's language. Describe lighting, camera angle, environment, character poses, mood, color palette. Style: vibrant 3D cartoon render, Pixar-inspired, cinematic composition, dramatic lighting.",
+      "visualPrompt": "A detailed visual prompt for this scene in ${directorNotesLanguageName}. Describe lighting, camera angle, environment, character poses, mood, color palette. Style: vibrant 3D cartoon render, Pixar-inspired, cinematic composition, dramatic lighting.",
       "thoughts": [
         {
           "character": "Character name exactly as in the story",
