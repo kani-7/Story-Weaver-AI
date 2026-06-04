@@ -9,6 +9,21 @@ import type { InternalThought } from './internalThought';
 
 export type SceneType = 'Present' | 'Flashback' | 'Dream' | 'Imagination';
 
+export interface DialogueLine {
+  character: string;
+  line: string;
+}
+
+export interface CharacterAction {
+  character: string;
+  action: string;
+}
+
+export interface CharacterEmotion {
+  character: string;
+  emotion: string;
+}
+
 export interface Scene {
   sceneNumber: number;
   sceneType: SceneType;
@@ -16,7 +31,11 @@ export interface Scene {
   description: string;
   characters: string[];
   visualPrompt: string;
+  narration: string[];
+  dialogue: DialogueLine[];
   thoughts: InternalThought[];
+  actions: CharacterAction[];
+  emotions: CharacterEmotion[];
   flashbackIndicator?: string;
   transitionInstructions?: string;
   returnToPresentInstructions?: string;

@@ -49,10 +49,23 @@ export const AnalyzeStoryResponse = zod.object({
   "description": zod.string(),
   "characters": zod.array(zod.string()),
   "visualPrompt": zod.string(),
+  "narration": zod.array(zod.string()).default([]),
+  "dialogue": zod.array(zod.object({
+  "character": zod.string(),
+  "line": zod.string()
+})).default([]),
   "thoughts": zod.array(zod.object({
   "character": zod.string(),
   "thought": zod.string()
-})),
+})).default([]),
+  "actions": zod.array(zod.object({
+  "character": zod.string(),
+  "action": zod.string()
+})).default([]),
+  "emotions": zod.array(zod.object({
+  "character": zod.string(),
+  "emotion": zod.string()
+})).default([]),
   "flashbackIndicator": zod.string().optional(),
   "transitionInstructions": zod.string().optional(),
   "returnToPresentInstructions": zod.string().optional()

@@ -42,7 +42,7 @@ LAYER 2 — PRODUCTION PIPELINE (fixed English, internal)
 ═══════════════════════════════════════════════
 LAYER 3 — OUTPUT LANGUAGE (user-selected: ${outputLanguageName})
 ═══════════════════════════════════════════════
-- ALL human-readable output fields — title, species, appearance, clothing, personality, distinctiveFeatures, scene titles, scene descriptions, thought text — MUST be written in ${outputLanguageName}.
+- ALL human-readable output fields — title, species, appearance, clothing, personality, distinctiveFeatures, scene titles, scene descriptions, narration, dialogue, thoughts, actions, emotions — MUST be written in ${outputLanguageName}.
 - This is independent of the story's original language. Translate or adapt as needed.
 - Character names: transliterate or adapt to ${outputLanguageName} conventions. Use the same spelling consistently across every scene.
 - For Sinhala output: preserve all Sinhala Unicode characters (U+0D80–U+0DFF) exactly.
@@ -84,15 +84,6 @@ Field-by-field requirements (ALL fields mandatory, ALL in ${outputLanguageName} 
 • distinctiveFeatures — List exactly 2-4 specific, artist-reproducible visual markers as short precise phrases. Each marker must be concrete and unique enough to identify this character in a crowd. Examples of correct phrasing: "a diagonal scar bisecting the left eyebrow", "iridescent blue-tipped tail feathers that shimmer when moving", "always carries a cracked leather satchel over the right shoulder", "one amber eye and one pale grey eye". These EXACT markers must appear verbatim in every visualPrompt where this character appears.
 
 ═══════════════════════════════════════════════
-INTERNAL THOUGHT DETECTION RULES
-═══════════════════════════════════════════════
-- Quoted text is NOT always spoken dialogue. Decide carefully whether each quoted passage is spoken aloud or is a private thought.
-- Internal Thought: narration says "thought", "wondered", "realized", "felt", "said to himself/herself", or context shows it is not spoken aloud.
-- Dialogue: character physically speaks to another character, calls out, shouts, or replies aloud.
-- Do NOT merge Thoughts and Dialogue.
-- Each scene's "thoughts" array lists every Internal Thought in that scene. Return "thoughts": [] if none.
-
-═══════════════════════════════════════════════
 SCENE TYPE DETECTION RULES
 ═══════════════════════════════════════════════
 Every scene MUST be assigned exactly one sceneType from: "Present", "Flashback", "Dream", "Imagination".
@@ -105,13 +96,50 @@ Detection guidance:
 
 FLASHBACK / DREAM / IMAGINATION SCENE EXTRA FIELDS (required when sceneType ≠ "Present"):
 - flashbackIndicator (English): A concise on-screen text card or narrator cue that marks the temporal/mental shift for the audience. Examples: "Five Years Earlier", "In Her Memory", "A Dream", "His Imagination". Keep it under 6 words, evocative, and precise.
-- transitionInstructions (English): Specific cinematic technique instructions for ENTERING this non-present scene. Describe the exact visual/audio transition: e.g., "Slow dissolve to sepia-toned footage with a soft whoosh sound; edges vignette inward as the frame desaturates", "Hard cut to grainy super-8 footage; a muffled echo effect on all audio". Be specific enough for a director of photography to execute it.
-- returnToPresentInstructions (English): Specific cinematic technique instructions for EXITING this non-present scene and returning to the present timeline. Describe the exact visual/audio technique: e.g., "Match-cut on the character's eyes snapping open; color floods back in a single frame", "Fade to white, then dissolve to the present scene with ambient sound rising". Be specific enough for a director of photography to execute it.
+- transitionInstructions (English): Specific cinematic technique instructions for ENTERING this non-present scene. Describe the exact visual/audio transition. Be specific enough for a director of photography to execute it.
+- returnToPresentInstructions (English): Specific cinematic technique instructions for EXITING this non-present scene and returning to the present timeline. Be specific enough for a director of photography to execute it.
 
 DIRECTOR'S NOTE (visualPrompt) RULES FOR NON-PRESENT SCENES:
-- For "Flashback" scenes: include the specific color grade (desaturated, sepia, warm-faded), film grain or texture level, and framing style (e.g., tighter crop, softer focus) that signals a memory. Note any aged or period-appropriate set dressing.
-- For "Dream" scenes: describe the surreal, heightened, or distorted visual language — unusual color, impossible geometry, lighting that defies logic — that distinguishes the dream from reality.
-- For "Imagination" scenes: describe how the imagined world differs visually from the present — idealized colors, exaggerated scale, stylized rendering — that makes the subjective mental image legible to the audience.
+- For "Flashback" scenes: include the specific color grade (desaturated, sepia, warm-faded), film grain or texture level, and framing style that signals a memory.
+- For "Dream" scenes: describe the surreal, heightened, or distorted visual language that distinguishes the dream from reality.
+- For "Imagination" scenes: describe how the imagined world differs visually from the present.
+
+═══════════════════════════════════════════════
+STORY INTELLIGENCE EXTRACTION RULES
+═══════════════════════════════════════════════
+For every scene, extract and separate the story into five distinct layers. Each layer captures a different type of storytelling content. Apply these rules strictly — do NOT mix categories.
+
+── NARRATION ──
+Definition: Pure storytelling text from an external narrator. Descriptive prose that sets the scene, provides context, or advances the story from outside any character's perspective.
+Detect: Text that is NOT inside quotation marks, NOT attributed to a character speaking or thinking, and describes the world/situation from a third-person or omniscient viewpoint.
+Format: Array of plain strings. Each entry is one continuous narrator passage from the scene.
+Return [] if the scene has no narrator text.
+
+── DIALOGUE ──
+Definition: Words that a character physically speaks aloud to another character or to the room. Must be actual spoken communication.
+Detect: Text inside quotation marks where the narrative says "said", "asked", "replied", "shouted", "whispered", "called out", "answered", or any verb of speaking. The character must be producing audible sound.
+Critical rule: Do NOT include internal thoughts here, even if they are in quotation marks. A character "saying to himself" silently is a Thought, not Dialogue.
+Format: Array of objects with "character" (exact name from profile) and "line" (the spoken words only, without surrounding quotation marks).
+Return [] if the scene has no spoken dialogue.
+
+── THOUGHTS ──
+Definition: A character's private internal monologue, silent reflection, or unspoken feeling. Never heard by other characters.
+Detect: Text where narrative says "thought", "wondered", "realized", "felt", "said to himself/herself", "mused", "recalled", "asked himself/herself", or where context makes clear the character is not speaking aloud.
+Critical rule: Do NOT duplicate here anything already captured in Dialogue. If a character speaks AND thinks, they appear in both arrays separately.
+Format: Array of objects with "character" (exact name from profile) and "thought" (the internal thought text, without surrounding quotation marks).
+Return [] if the scene has no internal thoughts.
+
+── ACTIONS ──
+Definition: Physical actions, movements, or behaviors performed by characters. What the body does, not what the mind thinks or the mouth says.
+Detect: Verbs of physical activity — running, jumping, reaching, drawing a weapon, opening a door, falling, embracing, pointing, trembling, etc. Also include significant environmental interactions (character picks up an object, character enters a room).
+Format: Array of objects with "character" (exact name from profile, or "Narrator" for environmental action with no specific actor) and "action" (a concise present-tense description of the physical act).
+Return [] if the scene has no notable physical actions.
+
+── EMOTIONS ──
+Definition: Emotional states or feelings experienced by characters in this scene, as detected from narration, behavior, or internal thought.
+Detect: Explicit emotion words ("felt afraid", "smiled with joy"), implied emotions from behavior (hands trembling → fear; jaw clenched → anger), or emotional atmosphere described by the narrator.
+Format: Array of objects with "character" (exact name from profile) and "emotion" (a short, precise label for the emotional state, e.g. "grief", "quiet determination", "fearful anticipation", "warm nostalgia").
+Return [] if no emotions can be clearly detected.
 
 Return ONLY valid JSON (no markdown, no code blocks):
 {
@@ -134,11 +162,32 @@ Return ONLY valid JSON (no markdown, no code blocks):
       "title": "Short scene title in ${outputLanguageName}",
       "description": "2-3 sentences describing this scene in ${outputLanguageName}",
       "characters": ["Character name exactly as in the profile"],
-      "visualPrompt": "ENGLISH ONLY. Vivid 3D cartoon production prompt referencing each present character's distinctiveFeatures and appearance. Include lighting, camera angle, environment, character poses, mood, color palette. For non-Present scenes include temporal/mental-shift visual language as described in the rules above. Style: vibrant 3D cartoon render, Pixar-inspired, cinematic composition.",
+      "visualPrompt": "ENGLISH ONLY. Vivid 3D cartoon production prompt referencing each present character's distinctiveFeatures and appearance. Include lighting, camera angle, environment, character poses, mood, color palette. For non-Present scenes include temporal/mental-shift visual language. Style: vibrant 3D cartoon render, Pixar-inspired, cinematic composition.",
+      "narration": [
+        "Narrator passage text in ${outputLanguageName}"
+      ],
+      "dialogue": [
+        {
+          "character": "Character name exactly as in the profile",
+          "line": "Spoken words only in ${outputLanguageName}, no quotation marks"
+        }
+      ],
       "thoughts": [
         {
           "character": "Character name exactly as in the profile",
-          "thought": "Internal thought text in ${outputLanguageName}"
+          "thought": "Internal thought text in ${outputLanguageName}, no quotation marks"
+        }
+      ],
+      "actions": [
+        {
+          "character": "Character name exactly as in the profile, or Narrator",
+          "action": "Concise present-tense physical action in ${outputLanguageName}"
+        }
+      ],
+      "emotions": [
+        {
+          "character": "Character name exactly as in the profile",
+          "emotion": "Short precise emotional state label in ${outputLanguageName}"
         }
       ],
       "flashbackIndicator": "ONLY for sceneType Flashback/Dream/Imagination — short on-screen text card in English, omit for Present",
@@ -152,7 +201,9 @@ Final rules:
 - Extract all named or described characters; give each a unique English characterId
 - Divide the story into 3-8 meaningful scenes
 - Every scene MUST have "sceneType" — default is "Present" when no temporal or mental shift is detected
-- Every scene MUST have "thoughts" (empty array if none)
+- Every scene MUST have all five arrays: "narration", "dialogue", "thoughts", "actions", "emotions" (use [] for empty)
+- The five arrays are STRICTLY SEPARATED — no content item appears in more than one array
+- Dialogue = audible speech only. Thoughts = silent only. Never merge them.
 - Scenes with sceneType "Flashback", "Dream", or "Imagination" MUST include "flashbackIndicator", "transitionInstructions", and "returnToPresentInstructions"
 - Scenes with sceneType "Present" MUST NOT include "flashbackIndicator", "transitionInstructions", or "returnToPresentInstructions"
 - Each visualPrompt: English only, 40-80 words, vivid, references character distinctiveFeatures; non-Present scenes include the appropriate temporal/mental visual language

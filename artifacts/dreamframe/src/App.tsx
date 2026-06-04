@@ -11,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { motion, AnimatePresence } from "framer-motion";
-import { Film, Sparkles, User, Clapperboard, RotateCcw, Video, Brain, Settings2, ChevronDown, Eye, Zap, Fingerprint, Clock, Moon, Lightbulb, ArrowLeftRight } from "lucide-react";
+import { Film, Sparkles, User, Clapperboard, RotateCcw, Video, Brain, Settings2, ChevronDown, Eye, Zap, Fingerprint, Clock, Moon, Lightbulb, ArrowLeftRight, BookOpen, MessageSquare, Swords, Heart } from "lucide-react";
 
 const queryClient = new QueryClient();
 
@@ -63,6 +63,10 @@ const translations: Record<UILang, Record<string, string>> = {
     flashbackIndicator: "Flashback Indicator",
     transitionIn: "Transition In",
     returnToPresent: "Return to Present",
+    narration: "Narration",
+    dialogue: "Dialogue",
+    actions: "Actions",
+    emotions: "Emotions",
   },
   si: {
     subtitle: "අධ්‍යක්ෂකගේ පුටුවට ඇතුළු වන්න. ඔබේ කතාව ඇතුළු කර ක්ෂණිකව ස්ටෝරිබෝර්ඩ් එකක් ලබා ගන්න.",
@@ -98,6 +102,10 @@ const translations: Record<UILang, Record<string, string>> = {
     flashbackIndicator: "ෆ්ලෑෂ්බෑක් සංඥාව",
     transitionIn: "ආරම්භක සංක්‍රමණය",
     returnToPresent: "වර්තමානයට ආපසු",
+    narration: "කථනය",
+    dialogue: "සංවාදය",
+    actions: "ක්‍රියා",
+    emotions: "හැඟීම්",
   },
   ta: {
     subtitle: "இயக்குனரின் இருக்கையில் அமருங்கள். உங்கள் கதையை ஒட்டவும், நொடியில் திரைக்கதை உருவாகும்.",
@@ -133,6 +141,10 @@ const translations: Record<UILang, Record<string, string>> = {
     flashbackIndicator: "ஃபிளாஷ்பேக் குறிகாட்டி",
     transitionIn: "நுழைவு மாற்றம்",
     returnToPresent: "நிகழ்காலத்திற்கு திரும்பு",
+    narration: "கதைச்சொல்லல்",
+    dialogue: "உரையாடல்",
+    actions: "செயல்கள்",
+    emotions: "உணர்வுகள்",
   },
 };
 
@@ -529,23 +541,104 @@ function Home() {
                         </div>
                       )}
 
-                      {/* Internal Thoughts */}
-                      {scene.thoughts && scene.thoughts.length > 0 && (
-                        <div className="px-6 pb-4">
-                          <div className="flex items-center gap-2 mb-3">
-                            <Brain className="w-4 h-4 text-amber-400" />
-                            <span className="text-xs font-bold uppercase tracking-wider text-amber-400">{t.thoughts}</span>
-                          </div>
-                          <div className="space-y-2">
-                            {scene.thoughts.map((th: any, ti: number) => (
-                              <div key={ti} className="flex gap-3 p-3 rounded-lg bg-amber-950/30 border border-amber-400/10">
-                                <span className="text-xs font-semibold text-amber-400/80 whitespace-nowrap pt-0.5">{th.character}</span>
-                                <span className="text-sm text-amber-100/70 italic leading-relaxed">"{th.thought}"</span>
+                      {/* Story Intelligence Layers */}
+                      {(() => {
+                        const hasNarration = scene.narration && scene.narration.length > 0;
+                        const hasDialogue = scene.dialogue && scene.dialogue.length > 0;
+                        const hasThoughts = scene.thoughts && scene.thoughts.length > 0;
+                        const hasActions = scene.actions && scene.actions.length > 0;
+                        const hasEmotions = scene.emotions && scene.emotions.length > 0;
+                        if (!hasNarration && !hasDialogue && !hasThoughts && !hasActions && !hasEmotions) return null;
+                        return (
+                          <div className="border-t border-white/5 divide-y divide-white/5">
+                            {/* Narration */}
+                            {hasNarration && (
+                              <div className="px-6 py-4">
+                                <div className="flex items-center gap-2 mb-3">
+                                  <BookOpen className="w-3.5 h-3.5 text-slate-400" />
+                                  <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">{t.narration}</span>
+                                </div>
+                                <div className="space-y-2">
+                                  {scene.narration.map((line: string, ni: number) => (
+                                    <p key={ni} className="text-sm text-slate-300/70 italic leading-relaxed pl-4 border-l border-slate-500/20">
+                                      {line}
+                                    </p>
+                                  ))}
+                                </div>
                               </div>
-                            ))}
+                            )}
+                            {/* Dialogue */}
+                            {hasDialogue && (
+                              <div className="px-6 py-4">
+                                <div className="flex items-center gap-2 mb-3">
+                                  <MessageSquare className="w-3.5 h-3.5 text-emerald-400" />
+                                  <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-400">{t.dialogue}</span>
+                                </div>
+                                <div className="space-y-2">
+                                  {scene.dialogue.map((dl: any, di: number) => (
+                                    <div key={di} className="flex gap-3 p-3 rounded-lg bg-emerald-950/30 border border-emerald-400/10">
+                                      <span className="text-xs font-semibold text-emerald-400/80 whitespace-nowrap pt-0.5 shrink-0">{dl.character}</span>
+                                      <span className="text-sm text-emerald-100/75 leading-relaxed">"{dl.line}"</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                            {/* Internal Thoughts */}
+                            {hasThoughts && (
+                              <div className="px-6 py-4">
+                                <div className="flex items-center gap-2 mb-3">
+                                  <Brain className="w-3.5 h-3.5 text-amber-400" />
+                                  <span className="text-[10px] font-bold uppercase tracking-widest text-amber-400">{t.thoughts}</span>
+                                </div>
+                                <div className="space-y-2">
+                                  {scene.thoughts.map((th: any, ti: number) => (
+                                    <div key={ti} className="flex gap-3 p-3 rounded-lg bg-amber-950/30 border border-amber-400/10">
+                                      <span className="text-xs font-semibold text-amber-400/80 whitespace-nowrap pt-0.5 shrink-0">{th.character}</span>
+                                      <span className="text-sm text-amber-100/70 italic leading-relaxed">"{th.thought}"</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                            {/* Actions */}
+                            {hasActions && (
+                              <div className="px-6 py-4">
+                                <div className="flex items-center gap-2 mb-3">
+                                  <Swords className="w-3.5 h-3.5 text-orange-400" />
+                                  <span className="text-[10px] font-bold uppercase tracking-widest text-orange-400">{t.actions}</span>
+                                </div>
+                                <div className="space-y-2">
+                                  {scene.actions.map((ac: any, ai: number) => (
+                                    <div key={ai} className="flex gap-3 p-3 rounded-lg bg-orange-950/25 border border-orange-400/10">
+                                      <span className="text-xs font-semibold text-orange-400/80 whitespace-nowrap pt-0.5 shrink-0">{ac.character}</span>
+                                      <span className="text-sm text-orange-100/70 leading-relaxed">{ac.action}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                            {/* Emotions */}
+                            {hasEmotions && (
+                              <div className="px-6 py-4">
+                                <div className="flex items-center gap-2 mb-3">
+                                  <Heart className="w-3.5 h-3.5 text-rose-400" />
+                                  <span className="text-[10px] font-bold uppercase tracking-widest text-rose-400">{t.emotions}</span>
+                                </div>
+                                <div className="flex flex-wrap gap-2">
+                                  {scene.emotions.map((em: any, ei: number) => (
+                                    <div key={ei} className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-rose-950/30 border border-rose-400/15">
+                                      <span className="text-[10px] font-semibold text-rose-400/80">{em.character}</span>
+                                      <span className="text-[10px] text-rose-200/50">·</span>
+                                      <span className="text-[10px] text-rose-200/70 italic">{em.emotion}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
                           </div>
-                        </div>
-                      )}
+                        );
+                      })()}
 
                       {/* Director's Note */}
                       <div className="p-6 bg-black/40 relative">
