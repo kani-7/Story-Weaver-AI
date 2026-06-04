@@ -5,8 +5,10 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { StoryInputDirectorNotesLanguage } from './storyInputDirectorNotesLanguage';
 
 export interface StoryInput {
   /** @minLength 10 */
   story: string;
+  directorNotesLanguage?: StoryInputDirectorNotesLanguage;
 }

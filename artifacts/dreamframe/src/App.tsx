@@ -11,24 +11,135 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { motion, AnimatePresence } from "framer-motion";
-import { Film, Sparkles, User, Clapperboard, RotateCcw, Video, Brain } from "lucide-react";
+import { Film, Sparkles, User, Clapperboard, RotateCcw, Video, Brain, Settings2, ChevronDown } from "lucide-react";
 
 const queryClient = new QueryClient();
 
-// Add dark class to document body always
 if (typeof window !== "undefined") {
   document.documentElement.classList.add("dark");
 }
 
-function LoadingState() {
+type LangCode = "en" | "si" | "ta";
+
+const LANG_NAMES: Record<LangCode, string> = {
+  en: "English",
+  si: "සිංහල",
+  ta: "தமிழ்",
+};
+
+const translations: Record<LangCode, Record<string, string>> = {
+  en: {
+    subtitle: "Step into the director's chair. Paste your story and watch it transform into a cinematic storyboard in seconds.",
+    generateBtn: "Generate Storyboard",
+    productionDraft: "Production Draft",
+    castTitle: "Cast & Characters",
+    scenesTitle: "Scene Breakdown",
+    directorNote: "Director's Note",
+    thoughts: "Thoughts",
+    startOver: "Start Over",
+    storyTooShort: "Story too short",
+    storyTooShortDesc: "Please enter at least 10 characters to generate a storyboard.",
+    errorTitle: "Error generating storyboard",
+    errorDesc: "An unexpected error occurred. Please try again.",
+    settingsTitle: "Language Settings",
+    uiLanguageLabel: "UI Language",
+    directorNotesLangLabel: "Director Notes Language",
+    analyzing: "Analyzing your story...",
+    extracting: "Extracting characters...",
+    visualizing: "Visualizing scenes...",
+    generating: "Generating director notes...",
+    finalizing: "Finalizing storyboard...",
+    scene: "Scene",
+  },
+  si: {
+    subtitle: "අධ්‍යක්ෂකගේ පුටුවට ඇතුළු වන්න. ඔබේ කතාව ඇතුළු කර ක්ෂණිකව ස්ටෝරිබෝර්ඩ් එකක් ලබා ගන්න.",
+    generateBtn: "ස්ටෝරිබෝර්ඩ් සාදන්න",
+    productionDraft: "නිෂ්පාදන කෙටුම්",
+    castTitle: "චරිත",
+    scenesTitle: "දර්ශන විශ්ලේෂණය",
+    directorNote: "අධ්‍යක්ෂකගේ සටහන",
+    thoughts: "සිතුවිලි",
+    startOver: "නැවත ආරම්භ කරන්න",
+    storyTooShort: "කතාව ඉතා කෙටියි",
+    storyTooShortDesc: "ස්ටෝරිබෝර්ඩ් සෑදීමට අවම වශයෙන් අකුරු 10ක් ඇතුළු කරන්න.",
+    errorTitle: "ස්ටෝරිබෝර්ඩ් සෑදීමේ දෝෂයක්",
+    errorDesc: "අනපේක්ෂිත දෝෂයක් සිදු විය. නැවත උත්සාහ කරන්න.",
+    settingsTitle: "භාෂා සැකසුම්",
+    uiLanguageLabel: "UI භාෂාව",
+    directorNotesLangLabel: "අධ්‍යක්ෂක සටහන් භාෂාව",
+    analyzing: "කතාව විශ්ලේෂණය කරමින්...",
+    extracting: "චරිත හඳුනා ගනිමින්...",
+    visualizing: "දර්ශන සිතිජය...",
+    generating: "අධ්‍යක්ෂක සටහන් සාදමින්...",
+    finalizing: "ස්ටෝරිබෝර්ඩ් සම්පූර්ණ කරමින්...",
+    scene: "දර්ශනය",
+  },
+  ta: {
+    subtitle: "இயக்குனரின் இருக்கையில் அமருங்கள். உங்கள் கதையை ஒட்டவும், நொடியில் திரைக்கதை உருவாகும்.",
+    generateBtn: "திரைக்கதை உருவாக்கு",
+    productionDraft: "தயாரிப்பு வரைவு",
+    castTitle: "கதாபாத்திரங்கள்",
+    scenesTitle: "காட்சி விவரம்",
+    directorNote: "இயக்குனர் குறிப்பு",
+    thoughts: "எண்ணங்கள்",
+    startOver: "மீண்டும் தொடங்கு",
+    storyTooShort: "கதை மிகவும் குறைவு",
+    storyTooShortDesc: "திரைக்கதை உருவாக்க குறைந்தது 10 எழுத்துகள் தேவை.",
+    errorTitle: "திரைக்கதை உருவாக்குவதில் பிழை",
+    errorDesc: "எதிர்பாராத பிழை ஏற்பட்டது. மீண்டும் முயற்சிக்கவும்.",
+    settingsTitle: "மொழி அமைப்புகள்",
+    uiLanguageLabel: "UI மொழி",
+    directorNotesLangLabel: "இயக்குனர் குறிப்பு மொழி",
+    analyzing: "உங்கள் கதையை பகுப்பாய்வு செய்கிறோம்...",
+    extracting: "கதாபாத்திரங்களை பிரித்தெடுக்கிறோம்...",
+    visualizing: "காட்சிகளை காட்சிப்படுத்துகிறோம்...",
+    generating: "இயக்குனர் குறிப்புகளை உருவாக்குகிறோம்...",
+    finalizing: "திரைக்கதையை இறுதி செய்கிறோம்...",
+    scene: "காட்சி",
+  },
+};
+
+function LanguageSelect({
+  value,
+  onChange,
+  label,
+}: {
+  value: LangCode;
+  onChange: (v: LangCode) => void;
+  label: string;
+}) {
+  return (
+    <div className="flex flex-col gap-1.5">
+      <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+        {label}
+      </label>
+      <div className="relative">
+        <select
+          value={value}
+          onChange={(e) => onChange(e.target.value as LangCode)}
+          className="w-full appearance-none bg-card/60 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground cursor-pointer hover:border-white/20 focus:outline-none focus:border-primary/50 pr-8"
+        >
+          {(Object.keys(LANG_NAMES) as LangCode[]).map((code) => (
+            <option key={code} value={code} className="bg-background">
+              {LANG_NAMES[code]}
+            </option>
+          ))}
+        </select>
+        <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
+      </div>
+    </div>
+  );
+}
+
+function LoadingState({ t }: { t: Record<string, string> }) {
   const messages = [
-    "Analyzing your story...",
-    "Extracting characters...",
-    "Visualizing scenes...",
-    "Generating render prompts...",
-    "Finalizing storyboard..."
+    t.analyzing,
+    t.extracting,
+    t.visualizing,
+    t.generating,
+    t.finalizing,
   ];
-  
+
   const [msgIndex, setMsgIndex] = useState(0);
 
   useEffect(() => {
@@ -73,33 +184,38 @@ function LoadingState() {
 function Home() {
   const { toast } = useToast();
   const analyzeMutation = useAnalyzeStory();
-  
+
   const [story, setStory] = useState("");
   const [storyboard, setStoryboard] = useState<any>(null);
+  const [uiLanguage, setUiLanguage] = useState<LangCode>("en");
+  const [directorNotesLanguage, setDirectorNotesLanguage] = useState<LangCode>("en");
+  const [settingsOpen, setSettingsOpen] = useState(false);
+
+  const t = translations[uiLanguage];
 
   const handleGenerate = () => {
     if (story.trim().length < 10) {
       toast({
-        title: "Story too short",
-        description: "Please enter at least 10 characters to generate a storyboard.",
-        variant: "destructive"
+        title: t.storyTooShort,
+        description: t.storyTooShortDesc,
+        variant: "destructive",
       });
       return;
     }
 
     analyzeMutation.mutate(
-      { data: { story } },
+      { data: { story, directorNotesLanguage } },
       {
         onSuccess: (data) => {
           setStoryboard(data);
         },
-        onError: (error) => {
+        onError: () => {
           toast({
-            title: "Error generating storyboard",
-            description: "An unexpected error occurred. Please try again.",
-            variant: "destructive"
+            title: t.errorTitle,
+            description: t.errorDesc,
+            variant: "destructive",
           });
-        }
+        },
       }
     );
   };
@@ -107,27 +223,24 @@ function Home() {
   const handleReset = () => {
     setStoryboard(null);
     setStory("");
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const containerVariants = {
     hidden: { opacity: 0 },
     show: {
       opacity: 1,
-      transition: {
-        staggerChildren: 0.1
-      }
-    }
+      transition: { staggerChildren: 0.1 },
+    },
   };
 
   const itemVariants = {
     hidden: { opacity: 0, y: 20 },
-    show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 24 } }
+    show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 24 } },
   };
 
   return (
     <div className="min-h-screen bg-background text-foreground relative overflow-hidden">
-      {/* Cinematic Gradient Background */}
       <div className="pointer-events-none fixed inset-0 z-0">
         <div className="absolute top-0 left-1/4 w-[50vw] h-[50vh] bg-primary/10 rounded-full blur-[120px] mix-blend-screen opacity-50"></div>
         <div className="absolute bottom-0 right-1/4 w-[60vw] h-[60vh] bg-accent/10 rounded-full blur-[120px] mix-blend-screen opacity-50"></div>
@@ -136,7 +249,7 @@ function Home() {
 
       <main className="relative z-10 container mx-auto px-4 py-12 md:py-24 max-w-5xl">
         {!analyzeMutation.isPending && !storyboard && (
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, ease: "easeOut" }}
@@ -149,13 +262,13 @@ function Home() {
               DreamFrame AI
             </h1>
             <p className="text-xl md:text-2xl text-muted-foreground max-w-2xl font-light">
-              Step into the director's chair. Paste your story and watch it transform into a cinematic storyboard in seconds.
+              {t.subtitle}
             </p>
 
             <div className="w-full max-w-3xl mt-12 space-y-4">
               <div className="relative group">
                 <div className="absolute -inset-1 bg-gradient-to-r from-primary to-accent rounded-xl blur opacity-25 group-hover:opacity-40 transition duration-500"></div>
-                <Textarea 
+                <Textarea
                   value={story}
                   onChange={(e) => setStory(e.target.value)}
                   placeholder="The scene opens in a dimly lit cyberpunk alley. Rain pours relentlessly as Kael, a rogue replicant, clutches a glowing data drive. Suddenly, neon-drenched enforcers block the exit..."
@@ -163,22 +276,67 @@ function Home() {
                   data-testid="textarea-story"
                 />
               </div>
-              <Button 
-                onClick={handleGenerate} 
-                size="lg" 
+
+              {/* Language Settings Panel */}
+              <div className="rounded-xl border border-white/8 bg-card/40 backdrop-blur-sm overflow-hidden">
+                <button
+                  onClick={() => setSettingsOpen((o) => !o)}
+                  className="w-full flex items-center justify-between px-5 py-3.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <div className="flex items-center gap-2">
+                    <Settings2 className="w-4 h-4" />
+                    <span className="font-medium">{t.settingsTitle}</span>
+                  </div>
+                  <motion.div
+                    animate={{ rotate: settingsOpen ? 180 : 0 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <ChevronDown className="w-4 h-4" />
+                  </motion.div>
+                </button>
+
+                <AnimatePresence>
+                  {settingsOpen && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: "auto", opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.25, ease: "easeInOut" }}
+                      className="overflow-hidden"
+                    >
+                      <div className="px-5 pb-5 pt-1 grid grid-cols-1 sm:grid-cols-2 gap-4 border-t border-white/8">
+                        <LanguageSelect
+                          value={uiLanguage}
+                          onChange={setUiLanguage}
+                          label={t.uiLanguageLabel}
+                        />
+                        <LanguageSelect
+                          value={directorNotesLanguage}
+                          onChange={setDirectorNotesLanguage}
+                          label={t.directorNotesLangLabel}
+                        />
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+
+              <Button
+                onClick={handleGenerate}
+                size="lg"
                 className="w-full h-16 text-lg font-semibold rounded-xl bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 transition-all shadow-[0_0_40px_-10px_hsl(var(--primary))]"
                 data-testid="button-generate"
               >
-                Generate Storyboard <Film className="ml-2 w-5 h-5" />
+                {t.generateBtn} <Film className="ml-2 w-5 h-5" />
               </Button>
             </div>
           </motion.div>
         )}
 
-        {analyzeMutation.isPending && <LoadingState />}
+        {analyzeMutation.isPending && <LoadingState t={t} />}
 
         {storyboard && (
-          <motion.div 
+          <motion.div
             variants={containerVariants}
             initial="hidden"
             animate="show"
@@ -188,17 +346,17 @@ function Home() {
             <motion.div variants={itemVariants} className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 border-b border-white/10 pb-8">
               <div className="space-y-4">
                 <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 px-3 py-1 text-sm uppercase tracking-widest">
-                  Production Draft
+                  {t.productionDraft}
                 </Badge>
                 <h2 className="text-4xl md:text-5xl font-bold">{storyboard.title}</h2>
               </div>
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 onClick={handleReset}
                 className="border-white/10 hover:bg-white/5"
                 data-testid="button-reset"
               >
-                <RotateCcw className="mr-2 w-4 h-4" /> Start Over
+                <RotateCcw className="mr-2 w-4 h-4" /> {t.startOver}
               </Button>
             </motion.div>
 
@@ -206,7 +364,7 @@ function Home() {
             <motion.div variants={itemVariants} className="space-y-6">
               <div className="flex items-center gap-3">
                 <User className="w-6 h-6 text-accent" />
-                <h3 className="text-2xl font-semibold">Cast & Characters</h3>
+                <h3 className="text-2xl font-semibold">{t.castTitle}</h3>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                 {storyboard.characters.map((char: any, i: number) => (
@@ -224,9 +382,9 @@ function Home() {
             <motion.div variants={itemVariants} className="space-y-6">
               <div className="flex items-center gap-3">
                 <Clapperboard className="w-6 h-6 text-primary" />
-                <h3 className="text-2xl font-semibold">Scene Breakdown</h3>
+                <h3 className="text-2xl font-semibold">{t.scenesTitle}</h3>
               </div>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 {storyboard.scenes.map((scene: any, i: number) => (
                   <motion.div key={i} variants={itemVariants}>
@@ -234,14 +392,14 @@ function Home() {
                       <div className="p-6 border-b border-white/5 flex-grow space-y-4">
                         <div className="flex justify-between items-start">
                           <Badge className="bg-white/10 text-white hover:bg-white/20">
-                            Scene {scene.sceneNumber.toString().padStart(2, '0')}
+                            {t.scene} {scene.sceneNumber.toString().padStart(2, "0")}
                           </Badge>
                         </div>
                         <h4 className="text-xl font-bold">{scene.title}</h4>
                         <p className="text-muted-foreground leading-relaxed">
                           {scene.description}
                         </p>
-                        
+
                         <div className="flex flex-wrap gap-2 pt-2">
                           {scene.characters.map((charName: string, ci: number) => (
                             <Badge key={ci} variant="outline" className="border-accent/30 text-accent/90 bg-accent/5">
@@ -250,31 +408,31 @@ function Home() {
                           ))}
                         </div>
                       </div>
-                      
+
                       {/* Internal Thoughts Section */}
                       {scene.thoughts && scene.thoughts.length > 0 && (
                         <div className="px-6 pb-4">
                           <div className="flex items-center gap-2 mb-3">
                             <Brain className="w-4 h-4 text-amber-400" />
-                            <span className="text-xs font-bold uppercase tracking-wider text-amber-400">Thoughts</span>
+                            <span className="text-xs font-bold uppercase tracking-wider text-amber-400">{t.thoughts}</span>
                           </div>
                           <div className="space-y-2">
-                            {scene.thoughts.map((t: any, ti: number) => (
+                            {scene.thoughts.map((th: any, ti: number) => (
                               <div key={ti} className="flex gap-3 p-3 rounded-lg bg-amber-950/30 border border-amber-400/10">
-                                <span className="text-xs font-semibold text-amber-400/80 whitespace-nowrap pt-0.5">{t.character}</span>
-                                <span className="text-sm text-amber-100/70 italic leading-relaxed">"{t.thought}"</span>
+                                <span className="text-xs font-semibold text-amber-400/80 whitespace-nowrap pt-0.5">{th.character}</span>
+                                <span className="text-sm text-amber-100/70 italic leading-relaxed">"{th.thought}"</span>
                               </div>
                             ))}
                           </div>
                         </div>
                       )}
 
-                      {/* Visual Prompt Section */}
+                      {/* Visual Prompt / Director's Note Section */}
                       <div className="p-6 bg-black/40 relative">
                         <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-primary/50 to-transparent"></div>
                         <div className="flex items-center gap-2 mb-3">
                           <Video className="w-4 h-4 text-primary" />
-                          <span className="text-xs font-bold uppercase tracking-wider text-primary">Director's Note</span>
+                          <span className="text-xs font-bold uppercase tracking-wider text-primary">{t.directorNote}</span>
                         </div>
                         <div className="font-mono text-sm text-primary-foreground/80 leading-relaxed p-4 rounded-lg bg-black/50 border border-primary/20 shadow-[inset_0_0_20px_rgba(109,40,217,0.1)]">
                           {scene.visualPrompt}

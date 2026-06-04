@@ -71,6 +71,10 @@ components:
         story:
           type: string
           minLength: 10
+        directorNotesLanguage:
+          type: string
+          enum: [en, si, ta]
+          default: en
       required:
         - story
     Character:

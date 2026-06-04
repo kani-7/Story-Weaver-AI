@@ -11,19 +11,30 @@ router.post("/storyboard/analyze", async (req, res): Promise<void> => {
     return;
   }
 
-  const { story } = parsed.data;
+  const { story, directorNotesLanguage = "en" } = parsed.data;
+
+  const directorNotesLanguageMap: Record<string, string> = {
+    en: "English",
+    si: "Sinhala (සිංහල)",
+    ta: "Tamil (தமிழ்)",
+  };
+  const directorNotesLanguageName = directorNotesLanguageMap[directorNotesLanguage] ?? "English";
 
   const prompt = `You are a professional storyboard director and visual storyteller with full multilingual capability. Analyze the following story and produce a structured storyboard.
 
 LANGUAGE DETECTION AND RESPONSE RULES (highest priority):
 1. Detect the language of the story automatically before doing anything else.
 2. The story may be written in Sinhala (සිංහල), Tamil (தமிழ்), English, or any other language.
-3. You MUST write ALL output fields — title, character names, character descriptions, scene titles, scene descriptions, and visualPrompt — in the EXACT SAME LANGUAGE as the input story.
-4. Do NOT translate the story or any output into English or any other language unless the input story is already in English.
+3. You MUST write ALL output fields — title, character names, character descriptions, scene titles, scene descriptions — in the EXACT SAME LANGUAGE as the input story.
+4. Do NOT translate those fields into English or any other language unless the input story is already in English.
 5. For Sinhala stories: preserve all Sinhala Unicode characters (U+0D80–U+0DFF) exactly. Do not romanize or transliterate.
 6. For Tamil stories: preserve all Tamil Unicode characters (U+0B80–U+0BFF) exactly. Do not romanize or transliterate.
 7. Character names must be written exactly as they appear in the story (same script, same spelling).
-8. The visualPrompt field must also be written in the story's language. It should describe the visual scene richly enough for an artist to illustrate it.
+
+DIRECTOR NOTES LANGUAGE (separate rule — overrides story language for visualPrompt only):
+- The "visualPrompt" field MUST be written in ${directorNotesLanguageName}, regardless of what language the story is in.
+- All other fields (title, character names, descriptions, scene titles, scene descriptions, thoughts) remain in the story's own language.
+- If ${directorNotesLanguageName} is Sinhala or Tamil, preserve their Unicode characters exactly in the visualPrompt too.
 
 Story:
 """
