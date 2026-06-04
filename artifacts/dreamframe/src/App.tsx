@@ -11,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { motion, AnimatePresence } from "framer-motion";
-import { Film, Sparkles, User, Clapperboard, RotateCcw, Video } from "lucide-react";
+import { Film, Sparkles, User, Clapperboard, RotateCcw, Video, Brain } from "lucide-react";
 
 const queryClient = new QueryClient();
 
@@ -251,6 +251,24 @@ function Home() {
                         </div>
                       </div>
                       
+                      {/* Internal Thoughts Section */}
+                      {scene.thoughts && scene.thoughts.length > 0 && (
+                        <div className="px-6 pb-4">
+                          <div className="flex items-center gap-2 mb-3">
+                            <Brain className="w-4 h-4 text-amber-400" />
+                            <span className="text-xs font-bold uppercase tracking-wider text-amber-400">Thoughts</span>
+                          </div>
+                          <div className="space-y-2">
+                            {scene.thoughts.map((t: any, ti: number) => (
+                              <div key={ti} className="flex gap-3 p-3 rounded-lg bg-amber-950/30 border border-amber-400/10">
+                                <span className="text-xs font-semibold text-amber-400/80 whitespace-nowrap pt-0.5">{t.character}</span>
+                                <span className="text-sm text-amber-100/70 italic leading-relaxed">"{t.thought}"</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
                       {/* Visual Prompt Section */}
                       <div className="p-6 bg-black/40 relative">
                         <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-primary/50 to-transparent"></div>

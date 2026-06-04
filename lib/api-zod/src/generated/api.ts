@@ -39,7 +39,11 @@ export const AnalyzeStoryResponse = zod.object({
   "title": zod.string(),
   "description": zod.string(),
   "characters": zod.array(zod.string()),
-  "visualPrompt": zod.string()
+  "visualPrompt": zod.string(),
+  "thoughts": zod.array(zod.object({
+  "character": zod.string(),
+  "thought": zod.string()
+}))
 }))
 })
 

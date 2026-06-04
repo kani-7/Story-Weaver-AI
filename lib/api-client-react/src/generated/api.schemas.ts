@@ -19,12 +19,18 @@ export interface Character {
   description: string;
 }
 
+export interface InternalThought {
+  character: string;
+  thought: string;
+}
+
 export interface Scene {
   sceneNumber: number;
   title: string;
   description: string;
   characters: string[];
   visualPrompt: string;
+  thoughts: InternalThought[];
 }
 
 export interface Storyboard {

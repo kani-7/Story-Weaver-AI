@@ -9,6 +9,7 @@
 export * from './apiError';
 export * from './character';
 export * from './healthStatus';
+export * from './internalThought';
 export * from './scene';
 export * from './storyboard';
 export * from './storyInput';

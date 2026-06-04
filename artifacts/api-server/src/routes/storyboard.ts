@@ -30,6 +30,14 @@ Story:
 ${story}
 """
 
+INTERNAL THOUGHT DETECTION RULES:
+- Quoted text is NOT always spoken dialogue. Carefully decide whether each quoted passage is spoken aloud or is a private thought inside a character's mind.
+- A passage is an Internal Thought when: the narration says the character "thought", "wondered", "asked himself/herself", "realized", "felt", "said to himself/herself", or similar — OR when the context clearly shows the character is not speaking aloud.
+- A passage is Dialogue when: the character physically speaks to another character, calls out, shouts, replies, or says something aloud.
+- Internal Thoughts must be classified separately from Dialogue. Do not merge them together.
+- Each scene's "thoughts" array must list every Internal Thought that occurs in that scene, with the exact character who thought it.
+- If a scene has no Internal Thoughts, return an empty array: "thoughts": []
+
 Return ONLY valid JSON (no markdown, no code blocks) with this exact structure:
 {
   "title": "A short cinematic title for this story (in the story's language)",
@@ -45,7 +53,13 @@ Return ONLY valid JSON (no markdown, no code blocks) with this exact structure:
       "title": "Short scene title (in the story's language)",
       "description": "2-3 sentences describing what happens in this scene (in the story's language)",
       "characters": ["Character name 1", "Character name 2"],
-      "visualPrompt": "A detailed visual prompt for this scene in the story's language. Describe lighting, camera angle, environment, character poses, mood, color palette. Style: vibrant 3D cartoon render, Pixar-inspired, cinematic composition, dramatic lighting."
+      "visualPrompt": "A detailed visual prompt for this scene in the story's language. Describe lighting, camera angle, environment, character poses, mood, color palette. Style: vibrant 3D cartoon render, Pixar-inspired, cinematic composition, dramatic lighting.",
+      "thoughts": [
+        {
+          "character": "Character name exactly as in the story",
+          "thought": "The exact internal thought text, in the story's language"
+        }
+      ]
     }
   ]
 }
@@ -55,6 +69,7 @@ Rules:
 - Divide the story into 3-8 meaningful scenes
 - Each visual prompt must be vivid, specific, and 40-80 words long
 - Visual prompts should specify: 3D cartoon style, lighting type, camera angle, environment details, character expressions and poses, color palette
+- Every scene MUST include a "thoughts" field (empty array if no internal thoughts in that scene)
 - Preserve all Unicode characters exactly — never escape, romanize, or drop non-ASCII characters
 - Return ONLY the JSON object, nothing else
 - The JSON must be valid UTF-8 encoded with all original script characters intact`;

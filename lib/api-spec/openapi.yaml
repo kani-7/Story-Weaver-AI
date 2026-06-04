@@ -83,6 +83,16 @@ components:
       required:
         - name
         - description
+    InternalThought:
+      type: object
+      properties:
+        character:
+          type: string
+        thought:
+          type: string
+      required:
+        - character
+        - thought
     Scene:
       type: object
       properties:
@@ -98,12 +108,17 @@ components:
             type: string
         visualPrompt:
           type: string
+        thoughts:
+          type: array
+          items:
+            $ref: "#/components/schemas/InternalThought"
       required:
         - sceneNumber
         - title
         - description
         - characters
         - visualPrompt
+        - thoughts
     Storyboard:
       type: object
       properties:
