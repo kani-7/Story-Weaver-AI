@@ -7,11 +7,17 @@
  */
 import type { InternalThought } from './internalThought';
 
+export type SceneType = 'Present' | 'Flashback' | 'Dream' | 'Imagination';
+
 export interface Scene {
   sceneNumber: number;
+  sceneType: SceneType;
   title: string;
   description: string;
   characters: string[];
   visualPrompt: string;
   thoughts: InternalThought[];
+  flashbackIndicator?: string;
+  transitionInstructions?: string;
+  returnToPresentInstructions?: string;
 }

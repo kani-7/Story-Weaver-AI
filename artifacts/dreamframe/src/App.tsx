@@ -11,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { motion, AnimatePresence } from "framer-motion";
-import { Film, Sparkles, User, Clapperboard, RotateCcw, Video, Brain, Settings2, ChevronDown, Eye, Zap, Fingerprint } from "lucide-react";
+import { Film, Sparkles, User, Clapperboard, RotateCcw, Video, Brain, Settings2, ChevronDown, Eye, Zap, Fingerprint, Clock, Moon, Lightbulb, ArrowLeftRight } from "lucide-react";
 
 const queryClient = new QueryClient();
 
@@ -56,6 +56,13 @@ const translations: Record<UILang, Record<string, string>> = {
     profilePersonality: "Personality",
     profileFeatures: "Distinctive Features",
     consistencyProfile: "Character Consistency Profile",
+    sceneTypePresent: "Present",
+    sceneTypeFlashback: "Flashback",
+    sceneTypeDream: "Dream",
+    sceneTypeImagination: "Imagination",
+    flashbackIndicator: "Flashback Indicator",
+    transitionIn: "Transition In",
+    returnToPresent: "Return to Present",
   },
   si: {
     subtitle: "අධ්‍යක්ෂකගේ පුටුවට ඇතුළු වන්න. ඔබේ කතාව ඇතුළු කර ක්ෂණිකව ස්ටෝරිබෝර්ඩ් එකක් ලබා ගන්න.",
@@ -84,6 +91,13 @@ const translations: Record<UILang, Record<string, string>> = {
     profilePersonality: "පෞරුෂය",
     profileFeatures: "විශේෂ ලක්ෂණ",
     consistencyProfile: "චරිත ස්ථාවරතා පැතිකඩ",
+    sceneTypePresent: "වර්තමාන",
+    sceneTypeFlashback: "ෆ්ලෑෂ්බෑක්",
+    sceneTypeDream: "සිහිනය",
+    sceneTypeImagination: "සිතීම",
+    flashbackIndicator: "ෆ්ලෑෂ්බෑක් සංඥාව",
+    transitionIn: "ආරම්භක සංක්‍රමණය",
+    returnToPresent: "වර්තමානයට ආපසු",
   },
   ta: {
     subtitle: "இயக்குனரின் இருக்கையில் அமருங்கள். உங்கள் கதையை ஒட்டவும், நொடியில் திரைக்கதை உருவாகும்.",
@@ -112,6 +126,13 @@ const translations: Record<UILang, Record<string, string>> = {
     profilePersonality: "குணாதிசயம்",
     profileFeatures: "தனித்துவ அம்சங்கள்",
     consistencyProfile: "கதாபாத்திர நிலைத்தன்மை விவரம்",
+    sceneTypePresent: "நிகழ்காலம்",
+    sceneTypeFlashback: "ஃபிளாஷ்பேக்",
+    sceneTypeDream: "கனவு",
+    sceneTypeImagination: "கற்பனை",
+    flashbackIndicator: "ஃபிளாஷ்பேக் குறிகாட்டி",
+    transitionIn: "நுழைவு மாற்றம்",
+    returnToPresent: "நிகழ்காலத்திற்கு திரும்பு",
   },
 };
 
@@ -429,15 +450,46 @@ function Home() {
                 <h3 className="text-2xl font-semibold">{t.scenesTitle}</h3>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                {storyboard.scenes.map((scene: any, i: number) => (
+                {storyboard.scenes.map((scene: any, i: number) => {
+                  const sceneType: string = scene.sceneType ?? "Present";
+                  const isNonPresent = sceneType !== "Present";
+
+                  const sceneTypeMeta: Record<string, { label: string; icon: React.ReactNode; color: string; border: string; bg: string }> = {
+                    Present: { label: t.sceneTypePresent, icon: <Film className="w-3 h-3" />, color: "text-white", border: "border-white/20", bg: "bg-white/10" },
+                    Flashback: { label: t.sceneTypeFlashback, icon: <Clock className="w-3 h-3" />, color: "text-amber-300", border: "border-amber-400/30", bg: "bg-amber-950/40" },
+                    Dream: { label: t.sceneTypeDream, icon: <Moon className="w-3 h-3" />, color: "text-violet-300", border: "border-violet-400/30", bg: "bg-violet-950/40" },
+                    Imagination: { label: t.sceneTypeImagination, icon: <Lightbulb className="w-3 h-3" />, color: "text-sky-300", border: "border-sky-400/30", bg: "bg-sky-950/40" },
+                  };
+                  const meta = sceneTypeMeta[sceneType] ?? sceneTypeMeta.Present;
+
+                  const cardBorder = isNonPresent
+                    ? sceneType === "Flashback" ? "border-amber-400/15" : sceneType === "Dream" ? "border-violet-400/15" : "border-sky-400/15"
+                    : "border-white/5";
+
+                  return (
                   <motion.div key={i} variants={itemVariants}>
-                    <Card className="h-full bg-card/60 border-white/5 backdrop-blur-md overflow-hidden flex flex-col" data-testid={`card-scene-${i}`}>
+                    <Card className={`h-full bg-card/60 backdrop-blur-md overflow-hidden flex flex-col border ${cardBorder}`} data-testid={`card-scene-${i}`}>
                       <div className="p-6 border-b border-white/5 flex-grow space-y-4">
-                        <div className="flex justify-between items-start">
+                        <div className="flex flex-wrap justify-between items-start gap-2">
                           <Badge className="bg-white/10 text-white hover:bg-white/20">
                             {t.scene} {scene.sceneNumber.toString().padStart(2, "0")}
                           </Badge>
+                          <Badge className={`flex items-center gap-1.5 ${meta.bg} ${meta.color} border ${meta.border}`}>
+                            {meta.icon}
+                            {meta.label}
+                          </Badge>
                         </div>
+
+                        {/* Flashback indicator banner */}
+                        {isNonPresent && scene.flashbackIndicator && (
+                          <div className={`flex items-center gap-2 px-3 py-2 rounded-lg border ${meta.border} ${meta.bg}`}>
+                            <ArrowLeftRight className={`w-3.5 h-3.5 shrink-0 ${meta.color}`} />
+                            <span className={`text-xs font-bold uppercase tracking-widest ${meta.color}`}>
+                              {scene.flashbackIndicator}
+                            </span>
+                          </div>
+                        )}
+
                         <h4 className="text-xl font-bold">{scene.title}</h4>
                         <p className="text-muted-foreground leading-relaxed">{scene.description}</p>
                         <div className="flex flex-wrap gap-2 pt-2">
@@ -448,6 +500,34 @@ function Home() {
                           ))}
                         </div>
                       </div>
+
+                      {/* Transition Instructions (non-present scenes) */}
+                      {isNonPresent && (scene.transitionInstructions || scene.returnToPresentInstructions) && (
+                        <div className={`px-6 py-4 border-b ${cardBorder} space-y-3`}>
+                          {scene.transitionInstructions && (
+                            <div className="space-y-1.5">
+                              <div className="flex items-center gap-1.5">
+                                <ArrowLeftRight className={`w-3 h-3 ${meta.color}`} />
+                                <span className={`text-[10px] font-bold uppercase tracking-widest ${meta.color}`}>{t.transitionIn}</span>
+                              </div>
+                              <p className="text-xs text-foreground/65 leading-relaxed pl-4 border-l border-white/10 italic">
+                                {scene.transitionInstructions}
+                              </p>
+                            </div>
+                          )}
+                          {scene.returnToPresentInstructions && (
+                            <div className="space-y-1.5">
+                              <div className="flex items-center gap-1.5">
+                                <ArrowLeftRight className={`w-3 h-3 ${meta.color} rotate-180`} />
+                                <span className={`text-[10px] font-bold uppercase tracking-widest ${meta.color}`}>{t.returnToPresent}</span>
+                              </div>
+                              <p className="text-xs text-foreground/65 leading-relaxed pl-4 border-l border-white/10 italic">
+                                {scene.returnToPresentInstructions}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      )}
 
                       {/* Internal Thoughts */}
                       {scene.thoughts && scene.thoughts.length > 0 && (
@@ -480,7 +560,8 @@ function Home() {
                       </div>
                     </Card>
                   </motion.div>
-                ))}
+                  );
+                })}
               </div>
             </motion.div>
           </motion.div>

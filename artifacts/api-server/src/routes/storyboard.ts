@@ -92,6 +92,27 @@ INTERNAL THOUGHT DETECTION RULES
 - Do NOT merge Thoughts and Dialogue.
 - Each scene's "thoughts" array lists every Internal Thought in that scene. Return "thoughts": [] if none.
 
+═══════════════════════════════════════════════
+SCENE TYPE DETECTION RULES
+═══════════════════════════════════════════════
+Every scene MUST be assigned exactly one sceneType from: "Present", "Flashback", "Dream", "Imagination".
+
+Detection guidance:
+- "Present": The scene takes place in the current narrative timeline. Default when no temporal shift is detected.
+- "Flashback": The scene depicts a past event, memory, or recollection. Detect via: past-tense narration stepping back in time, phrases like "remembered", "recalled", "years ago", "when he/she was young", "in those days", character mentally revisiting a prior event, or any explicit statement that time has jumped backward.
+- "Dream": The scene occurs within a character's dream or sleep state. Detect via: a character sleeping then experiencing events, surreal or impossible imagery within a sleep context, waking up from the events depicted, or narration explicitly naming it a dream/nightmare.
+- "Imagination": The scene occurs in a character's active imagination, fantasy, or hypothetical mental projection while awake. Detect via: phrases like "imagined", "pictured", "fantasized", "what if", "envisioned", or a character consciously constructing a scenario in their mind.
+
+FLASHBACK / DREAM / IMAGINATION SCENE EXTRA FIELDS (required when sceneType ≠ "Present"):
+- flashbackIndicator (English): A concise on-screen text card or narrator cue that marks the temporal/mental shift for the audience. Examples: "Five Years Earlier", "In Her Memory", "A Dream", "His Imagination". Keep it under 6 words, evocative, and precise.
+- transitionInstructions (English): Specific cinematic technique instructions for ENTERING this non-present scene. Describe the exact visual/audio transition: e.g., "Slow dissolve to sepia-toned footage with a soft whoosh sound; edges vignette inward as the frame desaturates", "Hard cut to grainy super-8 footage; a muffled echo effect on all audio". Be specific enough for a director of photography to execute it.
+- returnToPresentInstructions (English): Specific cinematic technique instructions for EXITING this non-present scene and returning to the present timeline. Describe the exact visual/audio technique: e.g., "Match-cut on the character's eyes snapping open; color floods back in a single frame", "Fade to white, then dissolve to the present scene with ambient sound rising". Be specific enough for a director of photography to execute it.
+
+DIRECTOR'S NOTE (visualPrompt) RULES FOR NON-PRESENT SCENES:
+- For "Flashback" scenes: include the specific color grade (desaturated, sepia, warm-faded), film grain or texture level, and framing style (e.g., tighter crop, softer focus) that signals a memory. Note any aged or period-appropriate set dressing.
+- For "Dream" scenes: describe the surreal, heightened, or distorted visual language — unusual color, impossible geometry, lighting that defies logic — that distinguishes the dream from reality.
+- For "Imagination" scenes: describe how the imagined world differs visually from the present — idealized colors, exaggerated scale, stylized rendering — that makes the subjective mental image legible to the audience.
+
 Return ONLY valid JSON (no markdown, no code blocks):
 {
   "title": "A short cinematic title in ${outputLanguageName}",
@@ -109,16 +130,20 @@ Return ONLY valid JSON (no markdown, no code blocks):
   "scenes": [
     {
       "sceneNumber": 1,
+      "sceneType": "Present",
       "title": "Short scene title in ${outputLanguageName}",
       "description": "2-3 sentences describing this scene in ${outputLanguageName}",
       "characters": ["Character name exactly as in the profile"],
-      "visualPrompt": "ENGLISH ONLY. Vivid 3D cartoon production prompt referencing each present character's distinctiveFeatures and appearance. Include lighting, camera angle, environment, character poses, mood, color palette. Style: vibrant 3D cartoon render, Pixar-inspired, cinematic composition.",
+      "visualPrompt": "ENGLISH ONLY. Vivid 3D cartoon production prompt referencing each present character's distinctiveFeatures and appearance. Include lighting, camera angle, environment, character poses, mood, color palette. For non-Present scenes include temporal/mental-shift visual language as described in the rules above. Style: vibrant 3D cartoon render, Pixar-inspired, cinematic composition.",
       "thoughts": [
         {
           "character": "Character name exactly as in the profile",
           "thought": "Internal thought text in ${outputLanguageName}"
         }
-      ]
+      ],
+      "flashbackIndicator": "ONLY for sceneType Flashback/Dream/Imagination — short on-screen text card in English, omit for Present",
+      "transitionInstructions": "ONLY for sceneType Flashback/Dream/Imagination — English cinematic entry transition instructions, omit for Present",
+      "returnToPresentInstructions": "ONLY for sceneType Flashback/Dream/Imagination — English cinematic exit/return instructions, omit for Present"
     }
   ]
 }
@@ -126,8 +151,11 @@ Return ONLY valid JSON (no markdown, no code blocks):
 Final rules:
 - Extract all named or described characters; give each a unique English characterId
 - Divide the story into 3-8 meaningful scenes
-- Each visualPrompt: English only, 40-80 words, vivid, references character distinctiveFeatures
+- Every scene MUST have "sceneType" — default is "Present" when no temporal or mental shift is detected
 - Every scene MUST have "thoughts" (empty array if none)
+- Scenes with sceneType "Flashback", "Dream", or "Imagination" MUST include "flashbackIndicator", "transitionInstructions", and "returnToPresentInstructions"
+- Scenes with sceneType "Present" MUST NOT include "flashbackIndicator", "transitionInstructions", or "returnToPresentInstructions"
+- Each visualPrompt: English only, 40-80 words, vivid, references character distinctiveFeatures; non-Present scenes include the appropriate temporal/mental visual language
 - Scene "characters" arrays MUST use the EXACT same name as in the character profile
 - Output language Unicode must be preserved exactly — never escape, romanize, or drop characters
 - Return ONLY the JSON object, nothing else`;

@@ -29,6 +29,8 @@ export const AnalyzeStoryBody = zod.object({
   "outputLanguage": zod.enum(['en', 'si', 'ta']).default(analyzeStoryBodyOutputLanguageDefault)
 })
 
+export const SceneType = zod.enum(['Present', 'Flashback', 'Dream', 'Imagination']);
+
 export const AnalyzeStoryResponse = zod.object({
   "title": zod.string(),
   "characters": zod.array(zod.object({
@@ -42,6 +44,7 @@ export const AnalyzeStoryResponse = zod.object({
 })),
   "scenes": zod.array(zod.object({
   "sceneNumber": zod.number(),
+  "sceneType": SceneType.default('Present'),
   "title": zod.string(),
   "description": zod.string(),
   "characters": zod.array(zod.string()),
@@ -49,7 +52,10 @@ export const AnalyzeStoryResponse = zod.object({
   "thoughts": zod.array(zod.object({
   "character": zod.string(),
   "thought": zod.string()
-}))
+})),
+  "flashbackIndicator": zod.string().optional(),
+  "transitionInstructions": zod.string().optional(),
+  "returnToPresentInstructions": zod.string().optional()
 }))
 })
 
