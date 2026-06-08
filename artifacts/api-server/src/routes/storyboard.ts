@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { ai } from "@workspace/integrations-gemini-ai";
-import { AnalyzeStoryBody } from "@workspace/api-zod";
+import { AnalyzeStoryBody, AnalyzeStoryResponse } from "@workspace/api-zod";
 
 const router: IRouter = Router();
 
@@ -9,6 +9,28 @@ const OUTPUT_LANG_NAMES: Record<string, string> = {
   si: "Sinhala (සිංහල)",
   ta: "Tamil (தமிழ்)",
 };
+
+// ─── Validation Metrics ────────────────────────────────────────────────────────
+export const validationMetrics = {
+  validationPassed: 0,
+  validationFailed: 0,
+  retrySuccess: 0,
+  retryFailed: 0,
+};
+
+// ─── Gemini Call Helper ────────────────────────────────────────────────────────
+async function callGemini(prompt: string): Promise<unknown> {
+  const response = await ai.models.generateContent({
+    model: "gemini-2.5-flash",
+    contents: [{ role: "user", parts: [{ text: prompt }] }],
+    config: { maxOutputTokens: 16384, responseMimeType: "application/json" },
+  });
+
+  const text = response.text;
+  if (!text) throw new Error("No response from Gemini");
+
+  return JSON.parse(text);
+}
 
 router.post("/storyboard/analyze", async (req, res): Promise<void> => {
   const parsed = AnalyzeStoryBody.safeParse(req.body);
@@ -267,33 +289,74 @@ Final rules:
 - Output language Unicode must be preserved exactly — never escape, romanize, or drop characters
 - Return ONLY the JSON object, nothing else`;
 
+  // ─── Attempt 1: Call Gemini ─────────────────────────────────────────────────
+  let raw: unknown;
   try {
-    const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
-      contents: [{ role: "user", parts: [{ text: prompt }] }],
-      config: { maxOutputTokens: 16384, responseMimeType: "application/json" },
-    });
-
-    const text = response.text;
-    if (!text) {
-      res.status(500).json({ error: "No response from Gemini" });
-      return;
-    }
-
-    let storyboard;
-    try {
-      storyboard = JSON.parse(text);
-    } catch {
-      req.log.error({ text }, "Failed to parse Gemini JSON response");
-      res.status(500).json({ error: "Failed to parse AI response" });
-      return;
-    }
-
-    res.json(storyboard);
+    raw = await callGemini(prompt);
   } catch (err) {
-    req.log.error({ err }, "Gemini API error");
+    req.log.error({ err }, "Gemini API error (attempt 1)");
     res.status(500).json({ error: "AI analysis failed. Please check your API key and try again." });
+    return;
   }
+
+  // ─── Attempt 1: Validate ────────────────────────────────────────────────────
+  let validated = AnalyzeStoryResponse.safeParse(raw);
+
+  if (!validated.success) {
+    validationMetrics.validationFailed++;
+    req.log.warn(
+      { zodErrors: validated.error.issues, attempt: 1 },
+      "Storyboard validation failed — retrying"
+    );
+
+    // ─── Attempt 2: Retry Gemini ───────────────────────────────────────────────
+    let raw2: unknown;
+    try {
+      raw2 = await callGemini(prompt);
+    } catch (err) {
+      validationMetrics.retryFailed++;
+      req.log.error({ err }, "Gemini API error (attempt 2)");
+      res.status(500).json({ error: "AI analysis failed. Please check your API key and try again." });
+      return;
+    }
+
+    // ─── Attempt 2: Validate ──────────────────────────────────────────────────
+    validated = AnalyzeStoryResponse.safeParse(raw2);
+
+    if (!validated.success) {
+      validationMetrics.retryFailed++;
+      req.log.error(
+        { zodErrors: validated.error.issues, attempt: 2 },
+        "Storyboard validation failed after retry — returning error"
+      );
+      res.status(500).json({
+        error: "AI response did not meet the required structure after two attempts. Please try again.",
+      });
+      return;
+    }
+
+    // ─── Retry succeeded ───────────────────────────────────────────────────────
+    validationMetrics.retrySuccess++;
+    req.log.info(
+      {
+        attempt: 2,
+        metrics: { ...validationMetrics },
+      },
+      "Storyboard validation passed after retry"
+    );
+  } else {
+    // ─── First attempt succeeded ───────────────────────────────────────────────
+    validationMetrics.validationPassed++;
+    req.log.info(
+      {
+        attempt: 1,
+        metrics: { ...validationMetrics },
+      },
+      "Storyboard validation passed"
+    );
+  }
+
+  res.json(validated.data);
 });
 
 export default router;
