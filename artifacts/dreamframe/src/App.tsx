@@ -5,7 +5,17 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useToast } from "@/hooks/use-toast";
 import NotFound from "@/pages/not-found";
-import { useAnalyzeStory } from "@workspace/api-client-react";
+import {
+  useAnalyzeStory,
+  type Storyboard,
+  type CharacterProfile,
+  type Scene,
+  type DialogueLine,
+  type InternalThought,
+  type InternalMonologueLine,
+  type CharacterAction,
+  type CharacterEmotion,
+} from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
@@ -323,7 +333,7 @@ function Home() {
   const analyzeMutation = useAnalyzeStory();
 
   const [story, setStory] = useState("");
-  const [storyboard, setStoryboard] = useState<any>(null);
+  const [storyboard, setStoryboard] = useState<Storyboard | null>(null);
   const [uiLanguage, setUiLanguage] = useState<UILang>("en");
   const [outputLanguage, setOutputLanguage] = useState<OutputLang>("en");
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -488,7 +498,7 @@ function Home() {
                 <h3 className="text-2xl font-semibold">{t.castTitle}</h3>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                {storyboard.characters.map((char: any, i: number) => (
+                {storyboard.characters.map((char: CharacterProfile, i: number) => (
                   <Card key={i} className="bg-card/50 border-white/5 backdrop-blur-sm overflow-hidden flex flex-col" data-testid={`card-character-${i}`}>
                     {/* Profile header */}
                     <div className="px-5 pt-5 pb-4 border-b border-white/5 flex items-start justify-between gap-3">
@@ -564,8 +574,8 @@ function Home() {
                 <h3 className="text-2xl font-semibold">{t.scenesTitle}</h3>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                {storyboard.scenes.map((scene: any, i: number) => {
-                  const sceneType: string = scene.sceneType ?? "Present";
+                {storyboard.scenes.map((scene: Scene, i: number) => {
+                  const sceneType = scene.sceneType;
                   const isNonPresent = sceneType !== "Present";
 
                   const sceneTypeMeta: Record<string, { label: string; icon: React.ReactNode; color: string; border: string; bg: string }> = {
@@ -734,7 +744,7 @@ function Home() {
                                   <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-400">{t.dialogue}</span>
                                 </div>
                                 <div className="space-y-2">
-                                  {scene.dialogue.map((dl: any, di: number) => (
+                                  {scene.dialogue.map((dl: DialogueLine, di: number) => (
                                     <div key={di} className="p-3 rounded-lg bg-emerald-950/30 border border-emerald-400/10 space-y-1">
                                       <div className="flex items-center gap-2">
                                         <span className="text-[9px] font-bold uppercase tracking-widest text-emerald-500/70">{t.speaker}:</span>
@@ -758,7 +768,7 @@ function Home() {
                                   <span className="text-[10px] font-bold uppercase tracking-widest text-amber-400">{t.thoughts}</span>
                                 </div>
                                 <div className="space-y-2">
-                                  {scene.thoughts.map((th: any, ti: number) => (
+                                  {scene.thoughts.map((th: InternalThought, ti: number) => (
                                     <div key={ti} className="p-3 rounded-lg bg-amber-950/30 border border-amber-400/10 space-y-1">
                                       <div className="flex items-center gap-2">
                                         <span className="text-[9px] font-bold uppercase tracking-widest text-amber-500/70">{t.character}:</span>
@@ -782,7 +792,7 @@ function Home() {
                                   <span className="text-[10px] font-bold uppercase tracking-widest text-purple-400">{t.internalMonologue}</span>
                                 </div>
                                 <div className="space-y-2">
-                                  {scene.internalMonologue.map((ml: any, mi: number) => (
+                                  {scene.internalMonologue.map((ml: InternalMonologueLine, mi: number) => (
                                     <div key={mi} className="p-3 rounded-lg bg-purple-950/25 border border-purple-400/10 space-y-1">
                                       <div className="flex items-center gap-2">
                                         <span className="text-[9px] font-bold uppercase tracking-widest text-purple-500/70">{t.character}:</span>
@@ -806,7 +816,7 @@ function Home() {
                                   <span className="text-[10px] font-bold uppercase tracking-widest text-orange-400">{t.actions}</span>
                                 </div>
                                 <div className="space-y-2">
-                                  {scene.actions.map((ac: any, ai: number) => (
+                                  {scene.actions.map((ac: CharacterAction, ai: number) => (
                                     <div key={ai} className="p-3 rounded-lg bg-orange-950/25 border border-orange-400/10 space-y-1">
                                       <div className="flex items-center gap-2">
                                         <span className="text-[9px] font-bold uppercase tracking-widest text-orange-500/70">{t.character}:</span>
@@ -830,8 +840,8 @@ function Home() {
                                   <span className="text-[10px] font-bold uppercase tracking-widest text-rose-400">{t.emotions}</span>
                                 </div>
                                 <div className="space-y-2">
-                                  {scene.emotions.map((em: any, ei: number) => {
-                                    const conf: number = typeof em.confidence === "number" ? em.confidence : 0.5;
+                                  {scene.emotions.map((em: CharacterEmotion, ei: number) => {
+                                    const conf: number = em.confidence;
                                     const pct = Math.round(conf * 100);
                                     const barColor = conf >= 0.8 ? "bg-rose-400" : conf >= 0.5 ? "bg-rose-400/60" : "bg-rose-400/30";
                                     return (

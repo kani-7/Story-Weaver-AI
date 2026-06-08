@@ -24,14 +24,33 @@ export interface StoryInput {
   outputLanguage?: StoryInputOutputLanguage;
 }
 
+export type SceneType = typeof SceneType[keyof typeof SceneType];
+
+
+export const SceneType = {
+  Present: 'Present',
+  Flashback: 'Flashback',
+  Dream: 'Dream',
+  Imagination: 'Imagination',
+} as const;
+
 export interface CharacterProfile {
+  /** English lowercase hyphenated slug, unique across all characters */
   characterId: string;
+  /** Character name in the output language */
   name: string;
+  /** Species or archetype in the output language */
   species: string;
+  /** 3-4 sentences describing the character visually */
   appearance: string;
+  /** Garments, accessories, footwear in the output language. "—" if none. */
   clothing?: string;
+  /** 2-3 sentences covering motivation, baseline, and behavioral tell */
   personality: string;
+  /** 2-4 precise, artist-reproducible visual markers */
   distinctiveFeatures: string;
+  /** English only. One sentence: pitch, tempo, texture, accent, delivery style. */
+  voiceStyle?: string;
 }
 
 export interface InternalThought {
@@ -39,19 +58,129 @@ export interface InternalThought {
   thought: string;
 }
 
+export interface DialogueLine {
+  /** Exact character name from profile */
+  character: string;
+  /** Spoken words only, no quotation marks */
+  line: string;
+}
+
+export interface InternalMonologueLine {
+  /** Exact character name from profile */
+  character: string;
+  /** Extended inner voice passage, may be fragmented */
+  monologue: string;
+}
+
+export interface CharacterAction {
+  /** Named character only — never "Narrator" */
+  character: string;
+  /** Concise present-tense physical action */
+  action: string;
+}
+
+export interface CharacterEmotion {
+  /** Exact character name from profile */
+  character: string;
+  /** Short, precise emotional state label */
+  emotion: string;
+  /**
+     * Float 0.00–1.00: 0.90–1.00 explicit, 0.60–0.89 implied, 0.30–0.59 inferred
+     * @minimum 0
+     * @maximum 1
+     */
+  confidence: number;
+}
+
+export interface SceneAudio {
+  /** 2-5 continuous environmental sound descriptions (English only) */
+  backgroundAmbience: string[];
+  /** Tempo, instrumentation, emotional tone, genre reference (English only) */
+  backgroundMusic: string;
+  /** 1-6 event-triggered sound effects (English only) */
+  soundEffects: string[];
+}
+
+export type ContinuityStatus = typeof ContinuityStatus[keyof typeof ContinuityStatus];
+
+
+export const ContinuityStatus = {
+  Pass: 'Pass',
+  Warning: 'Warning',
+  Fail: 'Fail',
+} as const;
+
+export interface SceneContinuityCheck {
+  status: ContinuityStatus;
+  /** List of continuity issues. Empty if status is Pass. */
+  issues: string[];
+}
+
+export interface MovieReadinessReport {
+  /** 2-5 specific strengths of this story as a film project */
+  strengths: string[];
+  /** 1-4 specific weaknesses or underdeveloped elements */
+  weaknesses: string[];
+  /** 0-3 story elements that would strengthen the film but are absent */
+  missingElements: string[];
+  /** English only. 2-4 sentence paragraph of practical production advice. */
+  productionNotes: string;
+}
+
 export interface Scene {
+  /** Sequential scene number starting from 1 */
   sceneNumber: number;
+  sceneType: SceneType;
+  /** Short scene title in output language */
   title: string;
+  /** 2-3 sentence scene description in output language */
   description: string;
+  /** Character names exactly as in their profiles */
   characters: string[];
+  /** English only. 40-80 words. Vivid 3D cartoon production prompt referencing distinctiveFeatures. */
   visualPrompt: string;
+  /** External narrator passages in output language */
+  narration: string[];
+  /** Audible spoken dialogue only */
+  dialogue: DialogueLine[];
+  /** Brief reactive private reflections */
   thoughts: InternalThought[];
+  /** Extended inner voice stream-of-consciousness passages */
+  internalMonologue: InternalMonologueLine[];
+  /** Physical actions by named characters only */
+  actions: CharacterAction[];
+  /** Detected emotional states with confidence scores */
+  emotions: CharacterEmotion[];
+  audio?: SceneAudio;
+  continuityCheck?: SceneContinuityCheck;
+  /** Flashback scenes only. English only. Color grade, film treatment, camera characteristics. */
+  flashbackVisualStyle?: string;
+  /** Flashback scenes only. English only. Audio treatment suggesting memory. */
+  flashbackAudioStyle?: string;
+  /** Dream scenes only. English only. Visual treatment distinguishing dream from reality. */
+  dreamVisualStyle?: string;
+  /** Dream scenes only. English only. Audio treatment inside the dream. */
+  dreamAudioStyle?: string;
+  /** Flashback/Dream/Imagination only. English on-screen text card. Under 6 words. */
+  flashbackIndicator?: string;
+  /** Flashback/Dream/Imagination only. English only. Cinematic entry technique. */
+  transitionInstructions?: string;
+  /** Flashback/Dream/Imagination only. English only. Cinematic exit technique. */
+  returnToPresentInstructions?: string;
 }
 
 export interface Storyboard {
+  /** Short cinematic title in output language */
   title: string;
   characters: CharacterProfile[];
   scenes: Scene[];
+  /**
+     * Overall production readiness: 90-100 festival-ready, 70-89 solid draft, 50-69 promising, <50 needs development
+     * @minimum 0
+     * @maximum 100
+     */
+  productionReadinessScore?: number;
+  movieReadinessReport?: MovieReadinessReport;
 }
 
 export interface ApiError {

@@ -6,10 +6,19 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { CharacterProfile } from './characterProfile';
+import type { MovieReadinessReport } from './movieReadinessReport';
 import type { Scene } from './scene';
 
 export interface Storyboard {
+  /** Short cinematic title in output language */
   title: string;
   characters: CharacterProfile[];
   scenes: Scene[];
+  /**
+     * Overall production readiness: 90-100 festival-ready, 70-89 solid draft, 50-69 promising, <50 needs development
+     * @minimum 0
+     * @maximum 100
+     */
+  productionReadinessScore?: number;
+  movieReadinessReport?: MovieReadinessReport;
 }

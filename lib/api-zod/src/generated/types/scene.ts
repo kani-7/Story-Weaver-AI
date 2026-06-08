@@ -5,69 +5,53 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { CharacterAction } from './characterAction';
+import type { CharacterEmotion } from './characterEmotion';
+import type { DialogueLine } from './dialogueLine';
+import type { InternalMonologueLine } from './internalMonologueLine';
 import type { InternalThought } from './internalThought';
-
-export type SceneType = 'Present' | 'Flashback' | 'Dream' | 'Imagination';
-
-export interface DialogueLine {
-  character: string;
-  line: string;
-}
-
-export interface CharacterAction {
-  character: string;
-  action: string;
-}
-
-export interface CharacterEmotion {
-  character: string;
-  emotion: string;
-  confidence: number;
-}
-
-export interface InternalMonologueLine {
-  character: string;
-  monologue: string;
-}
-
-export interface SceneAudio {
-  backgroundAmbience: string[];
-  backgroundMusic: string;
-  soundEffects: string[];
-}
-
-export interface SceneContinuityCheck {
-  status: 'Pass' | 'Warning' | 'Fail';
-  issues: string[];
-}
-
-export interface MovieReadinessReport {
-  strengths: string[];
-  weaknesses: string[];
-  missingElements: string[];
-  productionNotes: string;
-}
+import type { SceneAudio } from './sceneAudio';
+import type { SceneContinuityCheck } from './sceneContinuityCheck';
+import type { SceneType } from './sceneType';
 
 export interface Scene {
+  /** Sequential scene number starting from 1 */
   sceneNumber: number;
   sceneType: SceneType;
+  /** Short scene title in output language */
   title: string;
+  /** 2-3 sentence scene description in output language */
   description: string;
+  /** Character names exactly as in their profiles */
   characters: string[];
+  /** English only. 40-80 words. Vivid 3D cartoon production prompt referencing distinctiveFeatures. */
   visualPrompt: string;
+  /** External narrator passages in output language */
   narration: string[];
+  /** Audible spoken dialogue only */
   dialogue: DialogueLine[];
+  /** Brief reactive private reflections */
   thoughts: InternalThought[];
+  /** Extended inner voice stream-of-consciousness passages */
   internalMonologue: InternalMonologueLine[];
+  /** Physical actions by named characters only */
   actions: CharacterAction[];
+  /** Detected emotional states with confidence scores */
   emotions: CharacterEmotion[];
   audio?: SceneAudio;
   continuityCheck?: SceneContinuityCheck;
+  /** Flashback scenes only. English only. Color grade, film treatment, camera characteristics. */
   flashbackVisualStyle?: string;
+  /** Flashback scenes only. English only. Audio treatment suggesting memory. */
   flashbackAudioStyle?: string;
+  /** Dream scenes only. English only. Visual treatment distinguishing dream from reality. */
   dreamVisualStyle?: string;
+  /** Dream scenes only. English only. Audio treatment inside the dream. */
   dreamAudioStyle?: string;
+  /** Flashback/Dream/Imagination only. English on-screen text card. Under 6 words. */
   flashbackIndicator?: string;
+  /** Flashback/Dream/Imagination only. English only. Cinematic entry technique. */
   transitionInstructions?: string;
+  /** Flashback/Dream/Imagination only. English only. Cinematic exit technique. */
   returnToPresentInstructions?: string;
 }

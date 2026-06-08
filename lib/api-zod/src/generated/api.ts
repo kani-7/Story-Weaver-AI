@@ -29,71 +29,86 @@ export const AnalyzeStoryBody = zod.object({
   "outputLanguage": zod.enum(['en', 'si', 'ta']).default(analyzeStoryBodyOutputLanguageDefault)
 })
 
-export const SceneType = zod.enum(['Present', 'Flashback', 'Dream', 'Imagination']);
+export const analyzeStoryResponseScenesItemSceneTypeDefault = `Present`;
+export const analyzeStoryResponseScenesItemNarrationDefault = [];
+export const analyzeStoryResponseScenesItemDialogueDefault = [];
+export const analyzeStoryResponseScenesItemThoughtsDefault = [];
+export const analyzeStoryResponseScenesItemInternalMonologueDefault = [];
+export const analyzeStoryResponseScenesItemActionsDefault = [];
+export const analyzeStoryResponseScenesItemEmotionsItemConfidenceMin = 0;
+export const analyzeStoryResponseScenesItemEmotionsItemConfidenceMax = 1;
+
+export const analyzeStoryResponseScenesItemEmotionsDefault = [];
+export const analyzeStoryResponseProductionReadinessScoreMin = 0;
+export const analyzeStoryResponseProductionReadinessScoreMax = 100;
+
+
 
 export const AnalyzeStoryResponse = zod.object({
-  "title": zod.string(),
+  "title": zod.string().describe('Short cinematic title in output language'),
   "characters": zod.array(zod.object({
-  "characterId": zod.string(),
-  "name": zod.string(),
-  "species": zod.string(),
-  "appearance": zod.string(),
-  "clothing": zod.string().optional(),
-  "personality": zod.string(),
-  "distinctiveFeatures": zod.string(),
-  "voiceStyle": zod.string().optional()
+  "characterId": zod.string().describe('English lowercase hyphenated slug, unique across all characters'),
+  "name": zod.string().describe('Character name in the output language'),
+  "species": zod.string().describe('Species or archetype in the output language'),
+  "appearance": zod.string().describe('3-4 sentences describing the character visually'),
+  "clothing": zod.string().optional().describe('Garments, accessories, footwear in the output language. \"—\" if none.'),
+  "personality": zod.string().describe('2-3 sentences covering motivation, baseline, and behavioral tell'),
+  "distinctiveFeatures": zod.string().describe('2-4 precise, artist-reproducible visual markers'),
+  "voiceStyle": zod.string().optional().describe('English only. One sentence: pitch, tempo, texture, accent, delivery style.')
 })),
   "scenes": zod.array(zod.object({
-  "sceneNumber": zod.number(),
-  "sceneType": SceneType.default('Present'),
-  "title": zod.string(),
-  "description": zod.string(),
-  "characters": zod.array(zod.string()),
-  "visualPrompt": zod.string(),
-  "narration": zod.array(zod.string()).default([]),
+  "sceneNumber": zod.number().describe('Sequential scene number starting from 1'),
+  "sceneType": zod.enum(['Present', 'Flashback', 'Dream', 'Imagination']).default(analyzeStoryResponseScenesItemSceneTypeDefault),
+  "title": zod.string().describe('Short scene title in output language'),
+  "description": zod.string().describe('2-3 sentence scene description in output language'),
+  "characters": zod.array(zod.string()).describe('Character names exactly as in their profiles'),
+  "visualPrompt": zod.string().describe('English only. 40-80 words. Vivid 3D cartoon production prompt referencing distinctiveFeatures.'),
+  "narration": zod.array(zod.string()).default(analyzeStoryResponseScenesItemNarrationDefault).describe('External narrator passages in output language'),
   "dialogue": zod.array(zod.object({
-  "character": zod.string(),
-  "line": zod.string()
-})).default([]),
+  "character": zod.string().describe('Exact character name from profile'),
+  "line": zod.string().describe('Spoken words only, no quotation marks')
+})).default(analyzeStoryResponseScenesItemDialogueDefault).describe('Audible spoken dialogue only'),
   "thoughts": zod.array(zod.object({
   "character": zod.string(),
   "thought": zod.string()
-})).default([]),
+})).default(analyzeStoryResponseScenesItemThoughtsDefault).describe('Brief reactive private reflections'),
   "internalMonologue": zod.array(zod.object({
-  "character": zod.string(),
-  "monologue": zod.string()
-})).default([]),
+  "character": zod.string().describe('Exact character name from profile'),
+  "monologue": zod.string().describe('Extended inner voice passage, may be fragmented')
+})).default(analyzeStoryResponseScenesItemInternalMonologueDefault).describe('Extended inner voice stream-of-consciousness passages'),
   "actions": zod.array(zod.object({
-  "character": zod.string(),
-  "action": zod.string()
-})).default([]),
+  "character": zod.string().describe('Named character only — never \"Narrator\"'),
+  "action": zod.string().describe('Concise present-tense physical action')
+})).default(analyzeStoryResponseScenesItemActionsDefault).describe('Physical actions by named characters only'),
   "emotions": zod.array(zod.object({
-  "character": zod.string(),
-  "emotion": zod.string(),
-  "confidence": zod.number().min(0).max(1)
-})).default([]),
+  "character": zod.string().describe('Exact character name from profile'),
+  "emotion": zod.string().describe('Short, precise emotional state label'),
+  "confidence": zod.number().min(analyzeStoryResponseScenesItemEmotionsItemConfidenceMin).max(analyzeStoryResponseScenesItemEmotionsItemConfidenceMax).describe('Float 0.00–1.00: 0.90–1.00 explicit, 0.60–0.89 implied, 0.30–0.59 inferred')
+})).default(analyzeStoryResponseScenesItemEmotionsDefault).describe('Detected emotional states with confidence scores'),
   "audio": zod.object({
-  "backgroundAmbience": zod.array(zod.string()),
-  "backgroundMusic": zod.string(),
-  "soundEffects": zod.array(zod.string())
+  "backgroundAmbience": zod.array(zod.string()).describe('2-5 continuous environmental sound descriptions (English only)'),
+  "backgroundMusic": zod.string().describe('Tempo, instrumentation, emotional tone, genre reference (English only)'),
+  "soundEffects": zod.array(zod.string()).describe('1-6 event-triggered sound effects (English only)')
 }).optional(),
   "continuityCheck": zod.object({
   "status": zod.enum(['Pass', 'Warning', 'Fail']),
-  "issues": zod.array(zod.string())
+  "issues": zod.array(zod.string()).describe('List of continuity issues. Empty if status is Pass.')
 }).optional(),
-  "flashbackVisualStyle": zod.string().optional(),
-  "flashbackAudioStyle": zod.string().optional(),
-  "dreamVisualStyle": zod.string().optional(),
-  "dreamAudioStyle": zod.string().optional(),
-  "flashbackIndicator": zod.string().optional(),
-  "transitionInstructions": zod.string().optional(),
-  "returnToPresentInstructions": zod.string().optional()
+  "flashbackVisualStyle": zod.string().optional().describe('Flashback scenes only. English only. Color grade, film treatment, camera characteristics.'),
+  "flashbackAudioStyle": zod.string().optional().describe('Flashback scenes only. English only. Audio treatment suggesting memory.'),
+  "dreamVisualStyle": zod.string().optional().describe('Dream scenes only. English only. Visual treatment distinguishing dream from reality.'),
+  "dreamAudioStyle": zod.string().optional().describe('Dream scenes only. English only. Audio treatment inside the dream.'),
+  "flashbackIndicator": zod.string().optional().describe('Flashback\/Dream\/Imagination only. English on-screen text card. Under 6 words.'),
+  "transitionInstructions": zod.string().optional().describe('Flashback\/Dream\/Imagination only. English only. Cinematic entry technique.'),
+  "returnToPresentInstructions": zod.string().optional().describe('Flashback\/Dream\/Imagination only. English only. Cinematic exit technique.')
 })),
-  "productionReadinessScore": zod.number().min(0).max(100).optional(),
+  "productionReadinessScore": zod.number().min(analyzeStoryResponseProductionReadinessScoreMin).max(analyzeStoryResponseProductionReadinessScoreMax).optional().describe('Overall production readiness: 90-100 festival-ready, 70-89 solid draft, 50-69 promising, <50 needs development'),
   "movieReadinessReport": zod.object({
-  "strengths": zod.array(zod.string()),
-  "weaknesses": zod.array(zod.string()),
-  "missingElements": zod.array(zod.string()),
-  "productionNotes": zod.string()
+  "strengths": zod.array(zod.string()).describe('2-5 specific strengths of this story as a film project'),
+  "weaknesses": zod.array(zod.string()).describe('1-4 specific weaknesses or underdeveloped elements'),
+  "missingElements": zod.array(zod.string()).describe('0-3 story elements that would strengthen the film but are absent'),
+  "productionNotes": zod.string().describe('English only. 2-4 sentence paragraph of practical production advice.')
 }).optional()
 })
+
+

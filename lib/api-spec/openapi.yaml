@@ -65,6 +65,7 @@ components:
           type: string
       required:
         - status
+
     StoryInput:
       type: object
       properties:
@@ -77,23 +78,40 @@ components:
           default: en
       required:
         - story
+
+    # ─── Scene Type ────────────────────────────────────────────────────────────
+    SceneType:
+      type: string
+      enum: [Present, Flashback, Dream, Imagination]
+
+    # ─── Character Schemas ─────────────────────────────────────────────────────
     CharacterProfile:
       type: object
       properties:
         characterId:
           type: string
+          description: English lowercase hyphenated slug, unique across all characters
         name:
           type: string
+          description: Character name in the output language
         species:
           type: string
+          description: Species or archetype in the output language
         appearance:
           type: string
+          description: 3-4 sentences describing the character visually
         clothing:
           type: string
+          description: Garments, accessories, footwear in the output language. "—" if none.
         personality:
           type: string
+          description: 2-3 sentences covering motivation, baseline, and behavioral tell
         distinctiveFeatures:
           type: string
+          description: 2-4 precise, artist-reproducible visual markers
+        voiceStyle:
+          type: string
+          description: "English only. One sentence: pitch, tempo, texture, accent, delivery style."
       required:
         - characterId
         - name
@@ -101,6 +119,8 @@ components:
         - appearance
         - personality
         - distinctiveFeatures
+
+    # ─── Story Layer Schemas ───────────────────────────────────────────────────
     InternalThought:
       type: object
       properties:
@@ -111,37 +131,240 @@ components:
       required:
         - character
         - thought
+
+    DialogueLine:
+      type: object
+      properties:
+        character:
+          type: string
+          description: Exact character name from profile
+        line:
+          type: string
+          description: Spoken words only, no quotation marks
+      required:
+        - character
+        - line
+
+    InternalMonologueLine:
+      type: object
+      properties:
+        character:
+          type: string
+          description: Exact character name from profile
+        monologue:
+          type: string
+          description: Extended inner voice passage, may be fragmented
+      required:
+        - character
+        - monologue
+
+    CharacterAction:
+      type: object
+      properties:
+        character:
+          type: string
+          description: Named character only — never "Narrator"
+        action:
+          type: string
+          description: Concise present-tense physical action
+      required:
+        - character
+        - action
+
+    CharacterEmotion:
+      type: object
+      properties:
+        character:
+          type: string
+          description: Exact character name from profile
+        emotion:
+          type: string
+          description: Short, precise emotional state label
+        confidence:
+          type: number
+          minimum: 0
+          maximum: 1
+          description: "Float 0.00–1.00: 0.90–1.00 explicit, 0.60–0.89 implied, 0.30–0.59 inferred"
+      required:
+        - character
+        - emotion
+        - confidence
+
+    # ─── Audio Schema ──────────────────────────────────────────────────────────
+    SceneAudio:
+      type: object
+      properties:
+        backgroundAmbience:
+          type: array
+          items:
+            type: string
+          description: 2-5 continuous environmental sound descriptions (English only)
+        backgroundMusic:
+          type: string
+          description: Tempo, instrumentation, emotional tone, genre reference (English only)
+        soundEffects:
+          type: array
+          items:
+            type: string
+          description: 1-6 event-triggered sound effects (English only)
+      required:
+        - backgroundAmbience
+        - backgroundMusic
+        - soundEffects
+
+    # ─── Continuity Schema ─────────────────────────────────────────────────────
+    ContinuityStatus:
+      type: string
+      enum: [Pass, Warning, Fail]
+
+    SceneContinuityCheck:
+      type: object
+      properties:
+        status:
+          $ref: "#/components/schemas/ContinuityStatus"
+        issues:
+          type: array
+          items:
+            type: string
+          description: List of continuity issues. Empty if status is Pass.
+      required:
+        - status
+        - issues
+
+    # ─── Production Assessment Schemas ────────────────────────────────────────
+    MovieReadinessReport:
+      type: object
+      properties:
+        strengths:
+          type: array
+          items:
+            type: string
+          description: 2-5 specific strengths of this story as a film project
+        weaknesses:
+          type: array
+          items:
+            type: string
+          description: 1-4 specific weaknesses or underdeveloped elements
+        missingElements:
+          type: array
+          items:
+            type: string
+          description: 0-3 story elements that would strengthen the film but are absent
+        productionNotes:
+          type: string
+          description: English only. 2-4 sentence paragraph of practical production advice.
+      required:
+        - strengths
+        - weaknesses
+        - missingElements
+        - productionNotes
+
+    # ─── Scene Schema ──────────────────────────────────────────────────────────
     Scene:
       type: object
       properties:
         sceneNumber:
           type: integer
+          description: Sequential scene number starting from 1
+        sceneType:
+          $ref: "#/components/schemas/SceneType"
+          default: Present
         title:
           type: string
+          description: Short scene title in output language
         description:
           type: string
+          description: 2-3 sentence scene description in output language
         characters:
           type: array
           items:
             type: string
+          description: Character names exactly as in their profiles
         visualPrompt:
           type: string
+          description: "English only. 40-80 words. Vivid 3D cartoon production prompt referencing distinctiveFeatures."
+        narration:
+          type: array
+          items:
+            type: string
+          default: []
+          description: External narrator passages in output language
+        dialogue:
+          type: array
+          items:
+            $ref: "#/components/schemas/DialogueLine"
+          default: []
+          description: Audible spoken dialogue only
         thoughts:
           type: array
           items:
             $ref: "#/components/schemas/InternalThought"
+          default: []
+          description: Brief reactive private reflections
+        internalMonologue:
+          type: array
+          items:
+            $ref: "#/components/schemas/InternalMonologueLine"
+          default: []
+          description: Extended inner voice stream-of-consciousness passages
+        actions:
+          type: array
+          items:
+            $ref: "#/components/schemas/CharacterAction"
+          default: []
+          description: Physical actions by named characters only
+        emotions:
+          type: array
+          items:
+            $ref: "#/components/schemas/CharacterEmotion"
+          default: []
+          description: Detected emotional states with confidence scores
+        audio:
+          $ref: "#/components/schemas/SceneAudio"
+        continuityCheck:
+          $ref: "#/components/schemas/SceneContinuityCheck"
+        flashbackVisualStyle:
+          type: string
+          description: "Flashback scenes only. English only. Color grade, film treatment, camera characteristics."
+        flashbackAudioStyle:
+          type: string
+          description: "Flashback scenes only. English only. Audio treatment suggesting memory."
+        dreamVisualStyle:
+          type: string
+          description: "Dream scenes only. English only. Visual treatment distinguishing dream from reality."
+        dreamAudioStyle:
+          type: string
+          description: "Dream scenes only. English only. Audio treatment inside the dream."
+        flashbackIndicator:
+          type: string
+          description: "Flashback/Dream/Imagination only. English on-screen text card. Under 6 words."
+        transitionInstructions:
+          type: string
+          description: "Flashback/Dream/Imagination only. English only. Cinematic entry technique."
+        returnToPresentInstructions:
+          type: string
+          description: "Flashback/Dream/Imagination only. English only. Cinematic exit technique."
       required:
         - sceneNumber
+        - sceneType
         - title
         - description
         - characters
         - visualPrompt
+        - narration
+        - dialogue
         - thoughts
+        - internalMonologue
+        - actions
+        - emotions
+
+    # ─── Storyboard Schema ─────────────────────────────────────────────────────
     Storyboard:
       type: object
       properties:
         title:
           type: string
+          description: Short cinematic title in output language
         characters:
           type: array
           items:
@@ -150,10 +373,18 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/Scene"
+        productionReadinessScore:
+          type: integer
+          minimum: 0
+          maximum: 100
+          description: "Overall production readiness: 90-100 festival-ready, 70-89 solid draft, 50-69 promising, <50 needs development"
+        movieReadinessReport:
+          $ref: "#/components/schemas/MovieReadinessReport"
       required:
         - title
         - characters
         - scenes
+
     ApiError:
       type: object
       properties:

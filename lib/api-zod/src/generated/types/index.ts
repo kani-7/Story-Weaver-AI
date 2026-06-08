@@ -7,10 +7,19 @@
  */
 
 export * from './apiError';
+export * from './characterAction';
+export * from './characterEmotion';
 export * from './characterProfile';
+export * from './continuityStatus';
+export * from './dialogueLine';
 export * from './healthStatus';
+export * from './internalMonologueLine';
 export * from './internalThought';
+export * from './movieReadinessReport';
 export * from './scene';
+export * from './sceneAudio';
+export * from './sceneContinuityCheck';
+export * from './sceneType';
 export * from './storyboard';
 export * from './storyInput';
 export * from './storyInputOutputLanguage';

@@ -7,11 +7,20 @@
  */
 
 export interface CharacterProfile {
+  /** English lowercase hyphenated slug, unique across all characters */
   characterId: string;
+  /** Character name in the output language */
   name: string;
+  /** Species or archetype in the output language */
   species: string;
+  /** 3-4 sentences describing the character visually */
   appearance: string;
+  /** Garments, accessories, footwear in the output language. "—" if none. */
   clothing?: string;
+  /** 2-3 sentences covering motivation, baseline, and behavioral tell */
   personality: string;
+  /** 2-4 precise, artist-reproducible visual markers */
   distinctiveFeatures: string;
+  /** English only. One sentence: pitch, tempo, texture, accent, delivery style. */
+  voiceStyle?: string;
 }
