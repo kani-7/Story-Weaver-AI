@@ -20,13 +20,16 @@ import {
   type TensionAnalysis,
   type SceneContinuityMemory,
   type ExportReadiness,
+  type SceneImagePrompt,
+  type StoryboardFrameMetadata,
+  type VisualProductionReport,
 } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { motion, AnimatePresence } from "framer-motion";
-import { Film, Sparkles, User, Clapperboard, RotateCcw, Video, Brain, Settings2, ChevronDown, Eye, Zap, Fingerprint, Clock, Moon, Lightbulb, ArrowLeftRight, BookOpen, MessageSquare, Swords, Heart, Music, Volume2, Waves, Mic2, Palette, CheckCircle2, AlertTriangle, XCircle, Trophy, ScrollText, Radio } from "lucide-react";
+import { Film, Sparkles, User, Clapperboard, RotateCcw, Video, Brain, Settings2, ChevronDown, Eye, Zap, Fingerprint, Clock, Moon, Lightbulb, ArrowLeftRight, BookOpen, MessageSquare, Swords, Heart, Music, Volume2, Waves, Mic2, Palette, CheckCircle2, AlertTriangle, XCircle, Trophy, ScrollText, Radio, Camera, Layers, BarChart3, Star, TrendingDown } from "lucide-react";
 
 const queryClient = new QueryClient();
 
@@ -141,6 +144,32 @@ const translations: Record<UILang, Record<string, string>> = {
     editingReady: "Editing",
     ready: "Ready",
     notReady: "Not Ready",
+    imageGeneration: "Image Generation",
+    sceneImagePromptLabel: "Scene Image Prompt",
+    colorPaletteLabel: "Color Palette",
+    environmentDetailLabel: "Environment",
+    charPositioningLabel: "Character Positioning",
+    facialExpressionsLabel: "Facial Expressions",
+    cinematicMoodLabel: "Cinematic Mood",
+    visualEffectsLabel: "Visual Effects",
+    renderStyleLabel: "Render Style",
+    animationStyleLabel: "Animation Style",
+    visualEngineLabel: "Visual Engine",
+    charVisualContinuityLabel: "Visual Continuity",
+    frameMetadataLabel: "Frame Metadata",
+    aspectRatioLabel: "Aspect Ratio",
+    focalLengthLabel: "Focal Length",
+    depthOfFieldLabel: "Depth of Field",
+    lensStyleFrameLabel: "Lens Style",
+    compositionNotesLabel: "Composition Notes",
+    imageGenScoreLabel: "Image Generation Score",
+    visualProductionReportLabel: "Visual Production Report",
+    strongestScenesLabel: "Strongest Visual Scenes",
+    weakestScenesLabel: "Weakest Visual Scenes",
+    consistencyRisksLabel: "Consistency Risks",
+    animationComplexityLabel: "Animation Complexity",
+    renderingDifficultyLabel: "Rendering Difficulty",
+    cinematicStrengthsLabel: "Cinematic Strengths",
   },
   si: {
     subtitle: "අධ්‍යක්ෂකගේ පුටුවට ඇතුළු වන්න. ඔබේ කතාව ඇතුළු කර ක්ෂණිකව ස්ටෝරිබෝර්ඩ් එකක් ලබා ගන්න.",
@@ -239,6 +268,32 @@ const translations: Record<UILang, Record<string, string>> = {
     editingReady: "සංස්කරණය",
     ready: "සූදානම්",
     notReady: "සූදානම් නැත",
+    imageGeneration: "රූප නිෂ්පාදනය",
+    sceneImagePromptLabel: "දර්ශන රූප ප්‍රොම්ට්",
+    colorPaletteLabel: "වර්ණ පාලිත්‍රය",
+    environmentDetailLabel: "පරිසරය",
+    charPositioningLabel: "චරිත ස්ථාන",
+    facialExpressionsLabel: "මුහුණු ප්‍රකාශනය",
+    cinematicMoodLabel: "චිත්‍රමය හැඟීම",
+    visualEffectsLabel: "දෘශ්‍ය ප්‍රභාව",
+    renderStyleLabel: "රෙන්ඩර් ශෛලිය",
+    animationStyleLabel: "ඇනිමේෂන් ශෛලිය",
+    visualEngineLabel: "දෘශ්‍ය එන්ජිම",
+    charVisualContinuityLabel: "දෘශ්‍ය අඛණ්ඩතාව",
+    frameMetadataLabel: "රාමු පාර-දත්ත",
+    aspectRatioLabel: "අස්පෙක්ට් රේෂ්යෝ",
+    focalLengthLabel: "ෆෝකල් දිග",
+    depthOfFieldLabel: "ක්ෂේත්‍ර ගැඹුර",
+    lensStyleFrameLabel: "ලෙන්ස් ශෛලිය",
+    compositionNotesLabel: "රචනා සටහන්",
+    imageGenScoreLabel: "රූප නිෂ්පාදන ලකුණ",
+    visualProductionReportLabel: "දෘශ්‍ය නිෂ්පාදන වාර්තාව",
+    strongestScenesLabel: "ශක්තිමත් දෘශ්‍ය දර්ශන",
+    weakestScenesLabel: "දුර්වල දෘශ්‍ය දර්ශන",
+    consistencyRisksLabel: "ස්ථාවරතා අවදානම්",
+    animationComplexityLabel: "ඇනිමේෂන් සංකීර්ණතාව",
+    renderingDifficultyLabel: "රෙන්ඩරිං දුෂ්කරතාව",
+    cinematicStrengthsLabel: "චිත්‍රමය ශක්තීන්",
   },
   ta: {
     subtitle: "இயக்குனரின் இருக்கையில் அமருங்கள். உங்கள் கதையை ஒட்டவும், நொடியில் திரைக்கதை உருவாகும்.",
@@ -337,6 +392,32 @@ const translations: Record<UILang, Record<string, string>> = {
     editingReady: "திருத்தம்",
     ready: "தயார்",
     notReady: "தயாரில்லை",
+    imageGeneration: "படப்பிடிப்பு",
+    sceneImagePromptLabel: "காட்சி படம் புரோம்ட்",
+    colorPaletteLabel: "வண்ண தட்டு",
+    environmentDetailLabel: "சூழல்",
+    charPositioningLabel: "கதாபாத்திர நிலை",
+    facialExpressionsLabel: "முக வெளிப்பாடுகள்",
+    cinematicMoodLabel: "திரையரங்க மனநிலை",
+    visualEffectsLabel: "காட்சி விளைவுகள்",
+    renderStyleLabel: "ரெண்டர் நடை",
+    animationStyleLabel: "அனிமேஷன் நடை",
+    visualEngineLabel: "காட்சி இயந்திரம்",
+    charVisualContinuityLabel: "காட்சி தொடர்ச்சி",
+    frameMetadataLabel: "சட்ட மேப்-பட்டியல்",
+    aspectRatioLabel: "விகிதாசாரம்",
+    focalLengthLabel: "குவிய நீளம்",
+    depthOfFieldLabel: "புல ஆழம்",
+    lensStyleFrameLabel: "லென்ஸ் நடை",
+    compositionNotesLabel: "அமைப்பு குறிப்புகள்",
+    imageGenScoreLabel: "படப்பிடிப்பு மதிப்பெண்",
+    visualProductionReportLabel: "காட்சி தயாரிப்பு அறிக்கை",
+    strongestScenesLabel: "வலுவான காட்சிகள்",
+    weakestScenesLabel: "பலவீனமான காட்சிகள்",
+    consistencyRisksLabel: "நிலைத்தன்மை அபாயங்கள்",
+    animationComplexityLabel: "அனிமேஷன் சிக்கல்",
+    renderingDifficultyLabel: "ரெண்டரிங் சிரமம்",
+    cinematicStrengthsLabel: "திரையரங்க வலிமைகள்",
   },
 };
 
@@ -1204,6 +1285,124 @@ function Home() {
                         </div>
                       )}
 
+                      {/* Image Generation */}
+                      {scene.imagePrompt && (() => {
+                        const ip: SceneImagePrompt = scene.imagePrompt;
+                        const engineColors: Record<string, { bg: string; text: string; border: string; dot: string }> = {
+                          PresentEngine:    { bg: "bg-emerald-950/25", text: "text-emerald-300", border: "border-emerald-400/20", dot: "bg-emerald-400" },
+                          FlashbackEngine:  { bg: "bg-amber-950/25",   text: "text-amber-300",   border: "border-amber-400/20",   dot: "bg-amber-400" },
+                          DreamEngine:      { bg: "bg-violet-950/25",  text: "text-violet-300",  border: "border-violet-400/20",  dot: "bg-violet-400" },
+                          ImaginationEngine:{ bg: "bg-sky-950/25",     text: "text-sky-300",     border: "border-sky-400/20",     dot: "bg-sky-400" },
+                        };
+                        const ec = engineColors[ip.visualEngine] ?? engineColors.PresentEngine;
+                        return (
+                          <div className="px-6 py-4 border-t border-white/5">
+                            <div className="flex items-center justify-between gap-2 mb-3">
+                              <div className="flex items-center gap-2">
+                                <Camera className="w-3.5 h-3.5 text-fuchsia-400" />
+                                <span className="text-[10px] font-bold uppercase tracking-widest text-fuchsia-400">{t.imageGeneration}</span>
+                              </div>
+                              <div className={`flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border ${ec.border} ${ec.bg}`}>
+                                <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${ec.dot}`} />
+                                <span className={`text-[9px] font-bold uppercase tracking-wider ${ec.text}`}>{ip.visualEngine}</span>
+                              </div>
+                            </div>
+
+                            {/* Main prompt box */}
+                            <div className="mb-3 rounded-lg bg-fuchsia-950/15 border border-fuchsia-400/10 p-3">
+                              <div className="text-[8px] font-bold uppercase tracking-wider text-fuchsia-500/55 mb-1.5">{t.sceneImagePromptLabel}</div>
+                              <p className="text-xs text-fuchsia-100/75 leading-relaxed font-mono">{ip.sceneImagePrompt}</p>
+                            </div>
+
+                            {/* Color Palette + Cinematic Mood */}
+                            <div className="grid grid-cols-2 gap-2 mb-2">
+                              <div className="rounded-md bg-fuchsia-950/15 border border-fuchsia-400/10 px-2.5 py-1.5">
+                                <div className="text-[8px] font-bold uppercase tracking-wider text-fuchsia-500/55 mb-0.5">{t.colorPaletteLabel}</div>
+                                <div className="text-[11px] text-fuchsia-100/70 leading-tight">{ip.colorPalette}</div>
+                              </div>
+                              <div className="rounded-md bg-fuchsia-950/15 border border-fuchsia-400/10 px-2.5 py-1.5">
+                                <div className="text-[8px] font-bold uppercase tracking-wider text-fuchsia-500/55 mb-0.5">{t.cinematicMoodLabel}</div>
+                                <div className="text-[11px] text-fuchsia-100/70 leading-tight italic">{ip.cinematicMood}</div>
+                              </div>
+                            </div>
+
+                            {/* Detail fields */}
+                            <div className="space-y-1.5 mb-2">
+                              {([
+                                { label: t.environmentDetailLabel, value: ip.environmentDetail },
+                                { label: t.charPositioningLabel, value: ip.characterPositioning },
+                                { label: t.facialExpressionsLabel, value: ip.facialExpressionDetail },
+                                { label: t.charVisualContinuityLabel, value: ip.characterVisualContinuity },
+                              ] as { label: string; value: string }[]).filter(item => item.value).map((item, idx) => (
+                                <div key={idx} className="rounded-md bg-fuchsia-950/10 border border-fuchsia-400/8 px-2.5 py-1.5">
+                                  <div className="text-[8px] font-bold uppercase tracking-wider text-fuchsia-500/45 mb-0.5">{item.label}</div>
+                                  <div className="text-[11px] text-fuchsia-100/60 leading-relaxed">{item.value}</div>
+                                </div>
+                              ))}
+                            </div>
+
+                            {/* Render + Animation Style */}
+                            <div className="grid grid-cols-2 gap-2 mb-2">
+                              {ip.renderStyle && (
+                                <div className="rounded-md bg-fuchsia-950/10 border border-fuchsia-400/8 px-2.5 py-1.5">
+                                  <div className="text-[8px] font-bold uppercase tracking-wider text-fuchsia-500/45 mb-0.5">{t.renderStyleLabel}</div>
+                                  <div className="text-[11px] text-fuchsia-100/60 leading-tight">{ip.renderStyle}</div>
+                                </div>
+                              )}
+                              {ip.animationStyle && (
+                                <div className="rounded-md bg-fuchsia-950/10 border border-fuchsia-400/8 px-2.5 py-1.5">
+                                  <div className="text-[8px] font-bold uppercase tracking-wider text-fuchsia-500/45 mb-0.5">{t.animationStyleLabel}</div>
+                                  <div className="text-[11px] text-fuchsia-100/60 leading-tight">{ip.animationStyle}</div>
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Visual Effects chips */}
+                            {ip.visualEffects && ip.visualEffects.length > 0 && (
+                              <div>
+                                <div className="text-[8px] font-bold uppercase tracking-wider text-fuchsia-500/45 mb-1.5">{t.visualEffectsLabel}</div>
+                                <div className="flex flex-wrap gap-1.5">
+                                  {ip.visualEffects.map((fx: string, fxi: number) => (
+                                    <span key={fxi} className="inline-flex items-center gap-1 text-[9px] font-medium text-fuchsia-300/65 bg-fuchsia-950/20 border border-fuchsia-400/12 px-2 py-0.5 rounded-full">
+                                      ✦ {fx}
+                                    </span>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })()}
+
+                      {/* Storyboard Frame Metadata */}
+                      {scene.storyboardFrameMetadata && (() => {
+                        const fm: StoryboardFrameMetadata = scene.storyboardFrameMetadata;
+                        return (
+                          <div className="px-6 py-4 border-t border-white/5">
+                            <div className="flex items-center gap-2 mb-3">
+                              <Layers className="w-3.5 h-3.5 text-rose-400" />
+                              <span className="text-[10px] font-bold uppercase tracking-widest text-rose-400">{t.frameMetadataLabel}</span>
+                            </div>
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-2">
+                              {([
+                                { label: t.aspectRatioLabel, value: fm.aspectRatio },
+                                { label: t.focalLengthLabel, value: fm.focalLength },
+                                { label: t.depthOfFieldLabel, value: fm.depthOfField },
+                                { label: t.lensStyleFrameLabel, value: fm.lensStyle },
+                              ] as { label: string; value: string }[]).map((item, idx) => (
+                                <div key={idx} className="rounded-md bg-rose-950/15 border border-rose-400/10 px-2.5 py-1.5">
+                                  <div className="text-[8px] font-bold uppercase tracking-wider text-rose-500/55 mb-0.5">{item.label}</div>
+                                  <div className="text-[11px] text-rose-100/70 leading-tight">{item.value}</div>
+                                </div>
+                              ))}
+                            </div>
+                            {fm.cinematicCompositionNotes && (
+                              <p className="text-xs text-rose-200/50 italic leading-relaxed pl-3 border-l border-rose-400/15">{fm.cinematicCompositionNotes}</p>
+                            )}
+                          </div>
+                        );
+                      })()}
+
                       {/* Director's Note */}
                       <div className="p-6 bg-black/40 relative">
                         <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-primary/50 to-transparent" />
@@ -1352,6 +1551,134 @@ function Home() {
                       </CardContent>
                     </Card>
                   ))}
+                </div>
+              </motion.div>
+            )}
+
+            {/* Visual Production Report */}
+            {(storyboard.imageGenerationScore !== undefined || storyboard.visualProductionReport) && (
+              <motion.div variants={itemVariants} className="space-y-6">
+                <div className="flex items-center gap-3">
+                  <BarChart3 className="w-6 h-6 text-fuchsia-400" />
+                  <h3 className="text-2xl font-semibold">{t.visualProductionReportLabel}</h3>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                  {/* Image Generation Score */}
+                  {storyboard.imageGenerationScore !== undefined && (
+                    <Card className="bg-card/60 backdrop-blur-md border-fuchsia-400/15 overflow-hidden flex flex-col items-center justify-center p-8 text-center">
+                      <div className="mb-3">
+                        <Camera className="w-8 h-8 text-fuchsia-400 mx-auto mb-2" />
+                        <div className="text-[10px] font-bold uppercase tracking-widest text-fuchsia-400/70">{t.imageGenScoreLabel}</div>
+                      </div>
+                      <div className="flex items-end gap-1">
+                        <span className="text-7xl font-black text-fuchsia-300 tabular-nums leading-none">{storyboard.imageGenerationScore as number}</span>
+                        <span className="text-2xl font-bold text-fuchsia-400/50 mb-2">{t.outOf100}</span>
+                      </div>
+                      <div className="w-full mt-4 h-2 rounded-full bg-fuchsia-950/40 overflow-hidden">
+                        <div
+                          className="h-full rounded-full bg-gradient-to-r from-fuchsia-600 to-fuchsia-300"
+                          style={{ width: `${storyboard.imageGenerationScore as number}%` }}
+                        />
+                      </div>
+                      <div className="mt-3 text-xs text-fuchsia-400/50">
+                        {(storyboard.imageGenerationScore as number) >= 90 ? "Paste-Ready" :
+                          (storyboard.imageGenerationScore as number) >= 70 ? "Minor Gaps" :
+                          (storyboard.imageGenerationScore as number) >= 50 ? "Moderate" : "Needs Refinement"}
+                      </div>
+                    </Card>
+                  )}
+
+                  {/* Visual Production Report detail */}
+                  {storyboard.visualProductionReport && (() => {
+                    const vpr: VisualProductionReport = storyboard.visualProductionReport as VisualProductionReport;
+                    return (
+                      <div className={`${storyboard.imageGenerationScore !== undefined ? "lg:col-span-2" : "lg:col-span-3"} space-y-4`}>
+                        <Card className="bg-card/60 backdrop-blur-md border-white/5 overflow-hidden">
+                          <CardContent className="p-5 space-y-5">
+                            {vpr.strongestVisualScenes && vpr.strongestVisualScenes.length > 0 && (
+                              <div className="space-y-2">
+                                <div className="flex items-center gap-2">
+                                  <Star className="w-3.5 h-3.5 text-emerald-400" />
+                                  <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-400">{t.strongestScenesLabel}</span>
+                                </div>
+                                <ul className="space-y-1 pl-5">
+                                  {vpr.strongestVisualScenes.map((s: string, si: number) => (
+                                    <li key={si} className="text-sm text-emerald-200/65 list-disc leading-relaxed">{s}</li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+                            {vpr.weakestVisualScenes && vpr.weakestVisualScenes.length > 0 && (
+                              <div className="space-y-2">
+                                <div className="flex items-center gap-2">
+                                  <TrendingDown className="w-3.5 h-3.5 text-yellow-400" />
+                                  <span className="text-[10px] font-bold uppercase tracking-widest text-yellow-400">{t.weakestScenesLabel}</span>
+                                </div>
+                                <ul className="space-y-1 pl-5">
+                                  {vpr.weakestVisualScenes.map((w: string, wi: number) => (
+                                    <li key={wi} className="text-sm text-yellow-200/65 list-disc leading-relaxed">{w}</li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+                            {vpr.consistencyRisks && vpr.consistencyRisks.length > 0 && (
+                              <div className="space-y-2">
+                                <div className="flex items-center gap-2">
+                                  <AlertTriangle className="w-3.5 h-3.5 text-orange-400" />
+                                  <span className="text-[10px] font-bold uppercase tracking-widest text-orange-400">{t.consistencyRisksLabel}</span>
+                                </div>
+                                <ul className="space-y-1 pl-5">
+                                  {vpr.consistencyRisks.map((r: string, ri: number) => (
+                                    <li key={ri} className="text-sm text-orange-200/65 list-disc leading-relaxed">{r}</li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+                            {vpr.animationComplexityNotes && vpr.animationComplexityNotes.length > 0 && (
+                              <div className="space-y-2">
+                                <div className="flex items-center gap-2">
+                                  <Layers className="w-3.5 h-3.5 text-indigo-400" />
+                                  <span className="text-[10px] font-bold uppercase tracking-widest text-indigo-400">{t.animationComplexityLabel}</span>
+                                </div>
+                                <ul className="space-y-1 pl-5">
+                                  {vpr.animationComplexityNotes.map((n: string, ni: number) => (
+                                    <li key={ni} className="text-sm text-indigo-200/65 list-disc leading-relaxed">{n}</li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+                            {vpr.renderingDifficultyNotes && vpr.renderingDifficultyNotes.length > 0 && (
+                              <div className="space-y-2">
+                                <div className="flex items-center gap-2">
+                                  <Zap className="w-3.5 h-3.5 text-red-400" />
+                                  <span className="text-[10px] font-bold uppercase tracking-widest text-red-400">{t.renderingDifficultyLabel}</span>
+                                </div>
+                                <ul className="space-y-1 pl-5">
+                                  {vpr.renderingDifficultyNotes.map((d: string, di: number) => (
+                                    <li key={di} className="text-sm text-red-200/65 list-disc leading-relaxed">{d}</li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+                            {vpr.cinematicStrengths && vpr.cinematicStrengths.length > 0 && (
+                              <div className="space-y-2">
+                                <div className="flex items-center gap-2">
+                                  <Film className="w-3.5 h-3.5 text-fuchsia-400" />
+                                  <span className="text-[10px] font-bold uppercase tracking-widest text-fuchsia-400">{t.cinematicStrengthsLabel}</span>
+                                </div>
+                                <ul className="space-y-1 pl-5">
+                                  {vpr.cinematicStrengths.map((cs: string, csi: number) => (
+                                    <li key={csi} className="text-sm text-fuchsia-200/65 list-disc leading-relaxed">{cs}</li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+                          </CardContent>
+                        </Card>
+                      </div>
+                    );
+                  })()}
                 </div>
               </motion.div>
             )}

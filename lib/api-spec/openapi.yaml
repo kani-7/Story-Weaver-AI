@@ -450,6 +450,130 @@ components:
         - voicePipelineReady
         - editingPipelineReady
 
+    # ─── Scene Image Prompt ────────────────────────────────────────────────────
+    SceneImagePrompt:
+      type: object
+      description: Platform-neutral image generation prompt for this scene (all fields English only)
+      properties:
+        sceneImagePrompt:
+          type: string
+          description: "English only. Full platform-neutral image prompt (80-150 words) compatible with Midjourney, Stable Diffusion, DALL-E, Flux, Leonardo AI, Runway, Kling, Veo."
+        colorPalette:
+          type: string
+          description: "English only. Specific color palette for this scene"
+        environmentDetail:
+          type: string
+          description: "English only. Detailed environment and setting description"
+        characterPositioning:
+          type: string
+          description: "English only. Exact character positions, poses, and spatial relationships"
+        facialExpressionDetail:
+          type: string
+          description: "English only. Per-character facial expression descriptions"
+        cinematicMood:
+          type: string
+          description: "English only. Overall emotional and visual mood compound phrase"
+        visualEffects:
+          type: array
+          items:
+            type: string
+          description: "English only. Specific visual effects to apply in image generation"
+        renderStyle:
+          type: string
+          description: "English only. Render style specification"
+        animationStyle:
+          type: string
+          description: "English only. Animation movement and style guidance"
+        visualEngine:
+          type: string
+          enum: [PresentEngine, FlashbackEngine, DreamEngine, ImaginationEngine]
+          description: Scene-type visual engine applied
+        characterVisualContinuity:
+          type: string
+          description: "English only. Per-character visual continuity state (clothing condition, injury, wetness, emotional carry-over from previous scene)"
+      required:
+        - sceneImagePrompt
+        - colorPalette
+        - environmentDetail
+        - characterPositioning
+        - facialExpressionDetail
+        - cinematicMood
+        - visualEffects
+        - renderStyle
+        - animationStyle
+        - visualEngine
+        - characterVisualContinuity
+
+    # ─── Storyboard Frame Metadata ─────────────────────────────────────────────
+    StoryboardFrameMetadata:
+      type: object
+      description: Technical frame metadata for storyboard rendering (all fields English only)
+      properties:
+        aspectRatio:
+          type: string
+          description: "English only. Suggested aspect ratio (e.g. '2.39:1 CinemaScope', '16:9 Widescreen', '1.85:1 Theatrical')"
+        focalLength:
+          type: string
+          description: "English only. Suggested focal length (e.g. '28mm ultra wide', '85mm portrait', '200mm telephoto compression')"
+        depthOfField:
+          type: string
+          description: "English only. Depth of field specification (e.g. 'shallow — subject sharp, background soft bokeh at f/1.8')"
+        lensStyle:
+          type: string
+          description: "English only. Lens rendering style (e.g. 'anamorphic — oval bokeh and horizontal flares', 'vintage — edge softness and vignette')"
+        cinematicCompositionNotes:
+          type: string
+          description: "English only. Specific composition instructions for the image artist"
+      required:
+        - aspectRatio
+        - focalLength
+        - depthOfField
+        - lensStyle
+        - cinematicCompositionNotes
+
+    # ─── Visual Production Report ─────────────────────────────────────────────
+    VisualProductionReport:
+      type: object
+      description: Visual production assessment and recommendations (all fields English only)
+      properties:
+        strongestVisualScenes:
+          type: array
+          items:
+            type: string
+          description: "English only. Scene identifiers with strongest visual generation potential"
+        weakestVisualScenes:
+          type: array
+          items:
+            type: string
+          description: "English only. Scene identifiers with weakest visual execution or lowest generation confidence"
+        consistencyRisks:
+          type: array
+          items:
+            type: string
+          description: "English only. Specific visual consistency risks across scenes"
+        animationComplexityNotes:
+          type: array
+          items:
+            type: string
+          description: "English only. Per-scene or per-character animation complexity notes"
+        renderingDifficultyNotes:
+          type: array
+          items:
+            type: string
+          description: "English only. Rendering difficulty and resource intensity notes per scene"
+        cinematicStrengths:
+          type: array
+          items:
+            type: string
+          description: "English only. Overall cinematic strengths for visual production"
+      required:
+        - strongestVisualScenes
+        - weakestVisualScenes
+        - consistencyRisks
+        - animationComplexityNotes
+        - renderingDifficultyNotes
+        - cinematicStrengths
+
     # ─── Scene Schema ──────────────────────────────────────────────────────────
     Scene:
       type: object
@@ -525,6 +649,10 @@ components:
           description: Production-ready shotlist for the scene (English only)
         tensionAnalysis:
           $ref: "#/components/schemas/TensionAnalysis"
+        imagePrompt:
+          $ref: "#/components/schemas/SceneImagePrompt"
+        storyboardFrameMetadata:
+          $ref: "#/components/schemas/StoryboardFrameMetadata"
         flashbackVisualStyle:
           type: string
           description: "Flashback scenes only. English only. Color grade, film treatment, camera characteristics."
@@ -584,6 +712,13 @@ components:
           $ref: "#/components/schemas/MovieReadinessReport"
         exportReadiness:
           $ref: "#/components/schemas/ExportReadiness"
+        imageGenerationScore:
+          type: integer
+          minimum: 0
+          maximum: 100
+          description: "Overall image generation readiness score 0-100. 90-100: all scenes fully prompt-ready; 70-89: minor gaps; 50-69: moderate; <50: significant gaps"
+        visualProductionReport:
+          $ref: "#/components/schemas/VisualProductionReport"
       required:
         - title
         - characters

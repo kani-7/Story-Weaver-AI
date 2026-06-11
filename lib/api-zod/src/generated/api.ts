@@ -48,6 +48,9 @@ export const analyzeStoryResponseScenesItemTensionAnalysisEmotionalIntensityMax 
 export const analyzeStoryResponseProductionReadinessScoreMin = 0;
 export const analyzeStoryResponseProductionReadinessScoreMax = 100;
 
+export const analyzeStoryResponseImageGenerationScoreMin = 0;
+export const analyzeStoryResponseImageGenerationScoreMax = 100;
+
 
 
 export const AnalyzeStoryResponse = zod.object({
@@ -139,6 +142,26 @@ export const AnalyzeStoryResponse = zod.object({
   "emotionalIntensity": zod.number().min(analyzeStoryResponseScenesItemTensionAnalysisEmotionalIntensityMin).max(analyzeStoryResponseScenesItemTensionAnalysisEmotionalIntensityMax).describe('Float 0.00–1.00. Overall emotional intensity of the scene relative to the full story'),
   "pacingBalance": zod.string().describe('English only. Editorial pacing assessment (e.g. well-balanced, front-loaded tension, needs breathing room)')
 }).optional().describe('Emotional and cinematic tension tracking for the scene (English only)'),
+  "imagePrompt": zod.object({
+  "sceneImagePrompt": zod.string().describe('English only. Full platform-neutral image prompt (80-150 words) compatible with Midjourney, Stable Diffusion, DALL-E, Flux, Leonardo AI, Runway, Kling, Veo.'),
+  "colorPalette": zod.string().describe('English only. Specific color palette for this scene'),
+  "environmentDetail": zod.string().describe('English only. Detailed environment and setting description'),
+  "characterPositioning": zod.string().describe('English only. Exact character positions, poses, and spatial relationships'),
+  "facialExpressionDetail": zod.string().describe('English only. Per-character facial expression descriptions'),
+  "cinematicMood": zod.string().describe('English only. Overall emotional and visual mood compound phrase'),
+  "visualEffects": zod.array(zod.string()).describe('English only. Specific visual effects to apply in image generation'),
+  "renderStyle": zod.string().describe('English only. Render style specification'),
+  "animationStyle": zod.string().describe('English only. Animation movement and style guidance'),
+  "visualEngine": zod.enum(['PresentEngine', 'FlashbackEngine', 'DreamEngine', 'ImaginationEngine']).describe('Scene-type visual engine applied'),
+  "characterVisualContinuity": zod.string().describe('English only. Per-character visual continuity state (clothing condition, injury, wetness, emotional carry-over from previous scene)')
+}).optional().describe('Platform-neutral image generation prompt for this scene (all fields English only)'),
+  "storyboardFrameMetadata": zod.object({
+  "aspectRatio": zod.string().describe('English only. Suggested aspect ratio (e.g. \'2.39:1 CinemaScope\', \'16:9 Widescreen\', \'1.85:1 Theatrical\')'),
+  "focalLength": zod.string().describe('English only. Suggested focal length (e.g. \'28mm ultra wide\', \'85mm portrait\', \'200mm telephoto compression\')'),
+  "depthOfField": zod.string().describe('English only. Depth of field specification (e.g. \'shallow — subject sharp, background soft bokeh at f\/1.8\')'),
+  "lensStyle": zod.string().describe('English only. Lens rendering style (e.g. \'anamorphic — oval bokeh and horizontal flares\', \'vintage — edge softness and vignette\')'),
+  "cinematicCompositionNotes": zod.string().describe('English only. Specific composition instructions for the image artist')
+}).optional().describe('Technical frame metadata for storyboard rendering (all fields English only)'),
   "flashbackVisualStyle": zod.string().optional().describe('Flashback scenes only. English only. Color grade, film treatment, camera characteristics.'),
   "flashbackAudioStyle": zod.string().optional().describe('Flashback scenes only. English only. Audio treatment suggesting memory.'),
   "dreamVisualStyle": zod.string().optional().describe('Dream scenes only. English only. Visual treatment distinguishing dream from reality.'),
@@ -160,7 +183,16 @@ export const AnalyzeStoryResponse = zod.object({
   "animationPipelineReady": zod.boolean().describe('True if character profiles and visual prompts meet animation pre-production standards'),
   "voicePipelineReady": zod.boolean().describe('True if dialogue and voice metadata are complete enough for voice direction and dubbing'),
   "editingPipelineReady": zod.boolean().describe('True if shotlists and transition types are complete enough for editorial planning')
-}).optional().describe('Pipeline readiness assessment for downstream production export')
+}).optional().describe('Pipeline readiness assessment for downstream production export'),
+  "imageGenerationScore": zod.number().min(analyzeStoryResponseImageGenerationScoreMin).max(analyzeStoryResponseImageGenerationScoreMax).optional().describe('Overall image generation readiness score 0-100. 90-100: all scenes fully prompt-ready; 70-89: minor gaps; 50-69: moderate; <50: significant gaps'),
+  "visualProductionReport": zod.object({
+  "strongestVisualScenes": zod.array(zod.string()).describe('English only. Scene identifiers with strongest visual generation potential'),
+  "weakestVisualScenes": zod.array(zod.string()).describe('English only. Scene identifiers with weakest visual execution or lowest generation confidence'),
+  "consistencyRisks": zod.array(zod.string()).describe('English only. Specific visual consistency risks across scenes'),
+  "animationComplexityNotes": zod.array(zod.string()).describe('English only. Per-scene or per-character animation complexity notes'),
+  "renderingDifficultyNotes": zod.array(zod.string()).describe('English only. Rendering difficulty and resource intensity notes per scene'),
+  "cinematicStrengths": zod.array(zod.string()).describe('English only. Overall cinematic strengths for visual production')
+}).optional().describe('Visual production assessment and recommendations (all fields English only)')
 })
 
 

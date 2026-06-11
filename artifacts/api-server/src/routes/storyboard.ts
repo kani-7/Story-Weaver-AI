@@ -296,6 +296,90 @@ After all scenes, generate a top-level "exportReadiness" assessment reflecting a
 • "voicePipelineReady": true if ALL dialogue lines have vocalEmotion, vocalIntensity, speechSpeed, whisperDetection, and shoutDetection.
 • "editingPipelineReady": true if ALL scenes have a complete shotList with transitionType on every shot.
 
+═══════════════════════════════════════════════
+SCENE IMAGE GENERATION PIPELINE
+═══════════════════════════════════════════════
+For every scene, generate a complete "imagePrompt" block. ALL fields ENGLISH ONLY.
+
+This is a platform-neutral image generation package. The sceneImagePrompt must be paste-ready into Midjourney, Stable Diffusion, DALL·E, Flux, Leonardo AI, Runway, Kling, and Veo without modification.
+
+Required fields:
+
+• "sceneImagePrompt" — A complete self-contained image generation prompt of 80-150 words. MUST include verbatim: (1) character distinctiveFeatures from their profile for every character present, (2) exact environment details, (3) lighting specification, (4) color palette, (5) camera angle and shot type, (6) emotional mood, (7) render style. Written so an artist can paste it directly into any AI image tool.
+
+• "colorPalette" — Specific named color palette for this scene (e.g. "muted teal and deep amber with cool dark shadows and warm accent highlights").
+
+• "environmentDetail" — Detailed environment description covering architecture/terrain, weather, key props, and three depth layers: foreground, midground, background.
+
+• "characterPositioning" — Exact spatial positioning of every character present: who stands where, relative distances, facing directions, overlapping elements, negative space.
+
+• "facialExpressionDetail" — Per-character facial expression breakdown: brow position, eye openness, mouth state, jaw tension, any micro-expressions. Use character names exactly as in the profile.
+
+• "cinematicMood" — Overall emotional and visual mood as a specific compound phrase (e.g. "tense and claustrophobic with underlying dread", "triumphant and golden with bittersweet undertones").
+
+• "visualEffects" — Array of specific visual effects: particle systems, light rays, fog, rain, fire, lens flares, chromatic aberration, etc. Return [] if none.
+
+• "renderStyle" — Render style specification (e.g. "vibrant 3D Pixar-style cartoon render, subsurface scattering on organic surfaces, physically-based materials").
+
+• "animationStyle" — Animation style and movement guidance (e.g. "fluid Disney 12-principles animation, strong anticipation on action beats, secondary motion on hair and loose clothing").
+
+• "visualEngine" — The visual engine for this scene. MUST match sceneType exactly:
+  - "Present" → "PresentEngine"
+  - "Flashback" → "FlashbackEngine"
+  - "Dream" → "DreamEngine"
+  - "Imagination" → "ImaginationEngine"
+
+• "characterVisualContinuity" — A single string tracking per-character visual continuity state for this scene. Format: "CharacterName: [clothing condition, injury state, wetness/dirt state, emotional carry-over from previous scene]" for each character. Separated by semicolons.
+
+VISUAL ENGINE RULES — apply automatically based on visualEngine value:
+
+PresentEngine: Grounded cinematic realism. Stable natural lighting. Consistent environmental continuity. Naturalistic color grade. No distortion or surreal elements. Clean physically-plausible 3D render.
+
+FlashbackEngine: Warm sepia or desaturated color wash. 8mm film grain. Softened edges with halation glow on highlights. Subtle vignette. Shallow depth of field. sceneImagePrompt MUST mention: film grain, desaturated/sepia tones, nostalgic lens treatment, halation glow.
+
+DreamEngine: Oversaturated hyperreal colors. Impossible or non-Euclidean architecture. Floating particles. Ethereal glow. Bloom on all light sources. Characters cast distorted or absent shadows. Color palette shifts within the scene. sceneImagePrompt MUST mention: surreal environment, impossible lighting, floating particles, ethereal glow, hyperreal colors.
+
+ImaginationEngine: Heroic cinematic framing. Idealized environments with enhanced surface detail. Enhanced saturation and contrast. Golden rim lighting on the imagined subject. Fantasy-like composition. sceneImagePrompt MUST mention: idealized heroic framing, enhanced saturation, fantasy-like composition, golden rim lighting.
+
+CHARACTER VISUAL CONTINUITY RULES:
+- Every character's distinctiveFeatures from their profile MUST appear verbatim in sceneImagePrompt
+- Track clothing condition across scenes: if torn/wet/dirty in a prior scene, maintain that state unless explicitly changed
+- Track injury states: wounds and marks must persist unless the story explicitly heals them
+- Track emotional facial continuity: residual emotion from the previous scene should show in current micro-expressions unless the story resolves it
+
+═══════════════════════════════════════════════
+STORYBOARD FRAME METADATA
+═══════════════════════════════════════════════
+For every scene, generate a "storyboardFrameMetadata" block. All fields ENGLISH ONLY.
+
+• "aspectRatio" — Suggested aspect ratio (e.g. "2.39:1 CinemaScope", "16:9 Widescreen", "1.85:1 Theatrical", "1:1 Square").
+• "focalLength" — Suggested focal length (e.g. "28mm ultra wide", "50mm standard", "85mm portrait", "135mm short telephoto", "200mm telephoto compression").
+• "depthOfField" — Depth of field specification (e.g. "shallow — subject sharp, background soft bokeh at f/1.8", "deep — full frame in focus at f/11", "medium — foreground sharp, background lightly soft").
+• "lensStyle" — Lens rendering style (e.g. "anamorphic — oval bokeh and horizontal lens flares", "clean spherical — no aberration", "vintage — edge softness, slight vignette, chromatic aberration at corners").
+• "cinematicCompositionNotes" — Specific composition instructions for the image artist: subject placement, rule of thirds application, negative space, foreground framing elements, horizon placement.
+
+Frame metadata rules:
+- Intimate/emotional scenes → 50mm or 85mm, shallow depth of field
+- Establishing/wide shots → 28mm ultra wide, deep depth of field
+- Tension/suspense → telephoto compression (135mm+), tight framing
+- Dream/Imagination scenes → ultra wide or extreme distorted, surreal depth of field
+- Flashback scenes → vintage lens style with anamorphic flares
+
+═══════════════════════════════════════════════
+IMAGE GENERATION SCORE AND VISUAL PRODUCTION REPORT
+═══════════════════════════════════════════════
+After all scenes, generate these two top-level fields:
+
+"imageGenerationScore": Integer 0-100 measuring overall image generation readiness. Consider: completeness of imagePrompt blocks, character distinctiveFeatures coverage in sceneImagePrompt, visual engine appropriateness, color palette specificity, environment detail richness, frame metadata quality. Calibrate: 90-100 = every scene paste-ready; 70-89 = minor gaps in 1-2 scenes; 50-69 = moderate completeness; below 50 = significant prompt gaps.
+
+"visualProductionReport": Object with all six fields required:
+  - "strongestVisualScenes": Array of 2-4 English strings identifying scenes with strongest visual generation potential (explain what makes them visually strong).
+  - "weakestVisualScenes": Array of 1-3 English strings identifying scenes with weakest visual execution, with brief reason.
+  - "consistencyRisks": Array of specific visual consistency risks across scenes — character visual drift, environment continuity gaps, lighting mismatches, prop tracking failures.
+  - "animationComplexityNotes": Array of per-scene or per-character animation complexity notes — difficult movements, complex rigging needs, advanced secondary motion.
+  - "renderingDifficultyNotes": Array of rendering difficulty notes — GPU-intensive particle systems, complex lighting setups, crowd scenes, volumetric effects.
+  - "cinematicStrengths": Array of 2-5 strings stating overall cinematic strengths as a visual production project.
+
 Return ONLY valid JSON (no markdown, no code blocks):
 {
   "title": "A short cinematic title in ${outputLanguageName}",
@@ -394,7 +478,27 @@ Return ONLY valid JSON (no markdown, no code blocks):
       "dreamAudioStyle": "ONLY for Dream scenes — ENGLISH ONLY audio treatment. Omit for Present/Flashback/Imagination.",
       "flashbackIndicator": "ONLY for Flashback/Dream/Imagination — English on-screen text card. Omit for Present.",
       "transitionInstructions": "ONLY for Flashback/Dream/Imagination — ENGLISH ONLY cinematic entry. Omit for Present.",
-      "returnToPresentInstructions": "ONLY for Flashback/Dream/Imagination — ENGLISH ONLY cinematic exit. Omit for Present."
+      "returnToPresentInstructions": "ONLY for Flashback/Dream/Imagination — ENGLISH ONLY cinematic exit. Omit for Present.",
+      "imagePrompt": {
+        "sceneImagePrompt": "ENGLISH ONLY. 80-150 words. Paste-ready platform-neutral image prompt. Include character distinctiveFeatures verbatim, environment, lighting, color palette, camera angle, mood, render style. Apply the correct visual engine style.",
+        "colorPalette": "ENGLISH ONLY. Specific named color palette (e.g. muted teal and deep amber with cool dark shadows)",
+        "environmentDetail": "ENGLISH ONLY. Architecture/terrain, weather, key props, foreground/midground/background layers",
+        "characterPositioning": "ENGLISH ONLY. Exact positions, poses, facing directions, spatial relationships, negative space",
+        "facialExpressionDetail": "ENGLISH ONLY. Per-character: brow position, eye openness, mouth state, jaw tension",
+        "cinematicMood": "ENGLISH ONLY. Specific compound mood phrase (e.g. tense and claustrophobic with underlying dread)",
+        "visualEffects": ["ENGLISH ONLY. specific visual effect"],
+        "renderStyle": "ENGLISH ONLY. Render style (e.g. vibrant 3D Pixar-style cartoon render, subsurface scattering, PBR materials)",
+        "animationStyle": "ENGLISH ONLY. Animation style (e.g. fluid Disney 12-principles, anticipation on action, secondary motion on hair)",
+        "visualEngine": "PresentEngine",
+        "characterVisualContinuity": "ENGLISH ONLY. CharacterName: clothing/injury/wetness/emotional state; CharacterName: state"
+      },
+      "storyboardFrameMetadata": {
+        "aspectRatio": "ENGLISH ONLY. e.g. 2.39:1 CinemaScope",
+        "focalLength": "ENGLISH ONLY. e.g. 85mm portrait",
+        "depthOfField": "ENGLISH ONLY. e.g. shallow — subject sharp, background soft bokeh at f/1.8",
+        "lensStyle": "ENGLISH ONLY. e.g. anamorphic — oval bokeh and horizontal lens flares",
+        "cinematicCompositionNotes": "ENGLISH ONLY. Subject placement, rule of thirds, negative space, foreground framing"
+      }
     }
   ],
   "productionReadinessScore": 85,
@@ -410,6 +514,15 @@ Return ONLY valid JSON (no markdown, no code blocks):
     "animationPipelineReady": true,
     "voicePipelineReady": true,
     "editingPipelineReady": true
+  },
+  "imageGenerationScore": 88,
+  "visualProductionReport": {
+    "strongestVisualScenes": ["Scene 2: specific reason why this scene has the strongest visual potential"],
+    "weakestVisualScenes": ["Scene 1: specific reason for weaker visual execution"],
+    "consistencyRisks": ["Character A fur condition may drift across wet/dry transitions", "Lighting temperature shift between scenes 3 and 4 lacks a bridge shot"],
+    "animationComplexityNotes": ["Scene 3 requires complex crowd secondary motion on cloaks and hair"],
+    "renderingDifficultyNotes": ["Scene 5 volumetric particle storm requires GPU-intensive rendering"],
+    "cinematicStrengths": ["Strong character silhouettes throughout", "Consistent warm/cool color language across second act", "Clear emotional arc in facial expression continuity"]
   }
 }
 
@@ -437,6 +550,13 @@ Final rules:
 - All voice performance, camera, shotList, continuityMemory, and tensionAnalysis fields are ENGLISH ONLY
 - "exportReadiness" at the top level MUST reflect actual completeness: evaluate each boolean honestly against the generated content
 - "continuityMemory.clothingState" and "continuityMemory.injuryState" MUST include every named character present in this scene
+- Every scene MUST have "imagePrompt" with ALL 11 required fields: sceneImagePrompt, colorPalette, environmentDetail, characterPositioning, facialExpressionDetail, cinematicMood, visualEffects, renderStyle, animationStyle, visualEngine, characterVisualContinuity
+- Every scene MUST have "storyboardFrameMetadata" with ALL 5 required fields: aspectRatio, focalLength, depthOfField, lensStyle, cinematicCompositionNotes
+- "imagePrompt.visualEngine" MUST exactly match sceneType: Present→PresentEngine, Flashback→FlashbackEngine, Dream→DreamEngine, Imagination→ImaginationEngine
+- "imagePrompt.sceneImagePrompt" MUST include each present character's distinctiveFeatures verbatim
+- FlashbackEngine prompts MUST mention film grain and sepia/desaturated tones; DreamEngine prompts MUST mention surreal environment and ethereal glow; ImaginationEngine prompts MUST mention heroic framing and enhanced saturation
+- "imageGenerationScore" at the top level MUST be an integer 0-100
+- "visualProductionReport" at the top level MUST have ALL 6 required arrays: strongestVisualScenes, weakestVisualScenes, consistencyRisks, animationComplexityNotes, renderingDifficultyNotes, cinematicStrengths
 - Return ONLY the JSON object, nothing else`;
 
   // ─── Attempt 1: Call Gemini ─────────────────────────────────────────────────

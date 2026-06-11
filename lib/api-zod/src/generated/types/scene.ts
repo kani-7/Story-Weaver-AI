@@ -14,8 +14,10 @@ import type { InternalThought } from './internalThought';
 import type { SceneAudio } from './sceneAudio';
 import type { SceneContinuityCheck } from './sceneContinuityCheck';
 import type { SceneContinuityMemory } from './sceneContinuityMemory';
+import type { SceneImagePrompt } from './sceneImagePrompt';
 import type { SceneType } from './sceneType';
 import type { ShotListItem } from './shotListItem';
+import type { StoryboardFrameMetadata } from './storyboardFrameMetadata';
 import type { TensionAnalysis } from './tensionAnalysis';
 
 export interface Scene {
@@ -49,6 +51,8 @@ export interface Scene {
   /** Production-ready shotlist for the scene (English only) */
   shotList?: ShotListItem[];
   tensionAnalysis?: TensionAnalysis;
+  imagePrompt?: SceneImagePrompt;
+  storyboardFrameMetadata?: StoryboardFrameMetadata;
   /** Flashback scenes only. English only. Color grade, film treatment, camera characteristics. */
   flashbackVisualStyle?: string;
   /** Flashback scenes only. English only. Audio treatment suggesting memory. */

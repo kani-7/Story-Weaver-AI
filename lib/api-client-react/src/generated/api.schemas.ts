@@ -252,6 +252,81 @@ export interface ExportReadiness {
   editingPipelineReady: boolean;
 }
 
+/**
+ * Scene-type visual engine applied
+ */
+export type SceneImagePromptVisualEngine = typeof SceneImagePromptVisualEngine[keyof typeof SceneImagePromptVisualEngine];
+
+
+export const SceneImagePromptVisualEngine = {
+  PresentEngine: 'PresentEngine',
+  FlashbackEngine: 'FlashbackEngine',
+  DreamEngine: 'DreamEngine',
+  ImaginationEngine: 'ImaginationEngine',
+} as const;
+
+/**
+ * Platform-neutral image generation prompt for this scene (all fields English only)
+ */
+export interface SceneImagePrompt {
+  /** English only. Full platform-neutral image prompt (80-150 words) compatible with Midjourney, Stable Diffusion, DALL-E, Flux, Leonardo AI, Runway, Kling, Veo. */
+  sceneImagePrompt: string;
+  /** English only. Specific color palette for this scene */
+  colorPalette: string;
+  /** English only. Detailed environment and setting description */
+  environmentDetail: string;
+  /** English only. Exact character positions, poses, and spatial relationships */
+  characterPositioning: string;
+  /** English only. Per-character facial expression descriptions */
+  facialExpressionDetail: string;
+  /** English only. Overall emotional and visual mood compound phrase */
+  cinematicMood: string;
+  /** English only. Specific visual effects to apply in image generation */
+  visualEffects: string[];
+  /** English only. Render style specification */
+  renderStyle: string;
+  /** English only. Animation movement and style guidance */
+  animationStyle: string;
+  /** Scene-type visual engine applied */
+  visualEngine: SceneImagePromptVisualEngine;
+  /** English only. Per-character visual continuity state (clothing condition, injury, wetness, emotional carry-over from previous scene) */
+  characterVisualContinuity: string;
+}
+
+/**
+ * Technical frame metadata for storyboard rendering (all fields English only)
+ */
+export interface StoryboardFrameMetadata {
+  /** English only. Suggested aspect ratio (e.g. '2.39:1 CinemaScope', '16:9 Widescreen', '1.85:1 Theatrical') */
+  aspectRatio: string;
+  /** English only. Suggested focal length (e.g. '28mm ultra wide', '85mm portrait', '200mm telephoto compression') */
+  focalLength: string;
+  /** English only. Depth of field specification (e.g. 'shallow — subject sharp, background soft bokeh at f/1.8') */
+  depthOfField: string;
+  /** English only. Lens rendering style (e.g. 'anamorphic — oval bokeh and horizontal flares', 'vintage — edge softness and vignette') */
+  lensStyle: string;
+  /** English only. Specific composition instructions for the image artist */
+  cinematicCompositionNotes: string;
+}
+
+/**
+ * Visual production assessment and recommendations (all fields English only)
+ */
+export interface VisualProductionReport {
+  /** English only. Scene identifiers with strongest visual generation potential */
+  strongestVisualScenes: string[];
+  /** English only. Scene identifiers with weakest visual execution or lowest generation confidence */
+  weakestVisualScenes: string[];
+  /** English only. Specific visual consistency risks across scenes */
+  consistencyRisks: string[];
+  /** English only. Per-scene or per-character animation complexity notes */
+  animationComplexityNotes: string[];
+  /** English only. Rendering difficulty and resource intensity notes per scene */
+  renderingDifficultyNotes: string[];
+  /** English only. Overall cinematic strengths for visual production */
+  cinematicStrengths: string[];
+}
+
 export interface Scene {
   /** Sequential scene number starting from 1 */
   sceneNumber: number;
@@ -283,6 +358,8 @@ export interface Scene {
   /** Production-ready shotlist for the scene (English only) */
   shotList?: ShotListItem[];
   tensionAnalysis?: TensionAnalysis;
+  imagePrompt?: SceneImagePrompt;
+  storyboardFrameMetadata?: StoryboardFrameMetadata;
   /** Flashback scenes only. English only. Color grade, film treatment, camera characteristics. */
   flashbackVisualStyle?: string;
   /** Flashback scenes only. English only. Audio treatment suggesting memory. */
@@ -312,6 +389,13 @@ export interface Storyboard {
   productionReadinessScore?: number;
   movieReadinessReport?: MovieReadinessReport;
   exportReadiness?: ExportReadiness;
+  /**
+     * Overall image generation readiness score 0-100. 90-100: all scenes fully prompt-ready; 70-89: minor gaps; 50-69: moderate; <50: significant gaps
+     * @minimum 0
+     * @maximum 100
+     */
+  imageGenerationScore?: number;
+  visualProductionReport?: VisualProductionReport;
 }
 
 export interface ApiError {

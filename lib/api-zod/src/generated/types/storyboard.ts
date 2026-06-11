@@ -9,6 +9,7 @@ import type { CharacterProfile } from './characterProfile';
 import type { ExportReadiness } from './exportReadiness';
 import type { MovieReadinessReport } from './movieReadinessReport';
 import type { Scene } from './scene';
+import type { VisualProductionReport } from './visualProductionReport';
 
 export interface Storyboard {
   /** Short cinematic title in output language */
@@ -23,4 +24,11 @@ export interface Storyboard {
   productionReadinessScore?: number;
   movieReadinessReport?: MovieReadinessReport;
   exportReadiness?: ExportReadiness;
+  /**
+     * Overall image generation readiness score 0-100. 90-100: all scenes fully prompt-ready; 70-89: minor gaps; 50-69: moderate; <50: significant gaps
+     * @minimum 0
+     * @maximum 100
+     */
+  imageGenerationScore?: number;
+  visualProductionReport?: VisualProductionReport;
 }
