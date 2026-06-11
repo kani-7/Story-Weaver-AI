@@ -1,0 +1,134 @@
+:::writing{variant="standard" id="48271"} Continue from the current implementation.
+IMPORTANT:
+Do not rebuild the application.
+Do not remove existing functionality.
+Keep:
+Story Analysis
+Character Profiles
+Character Consistency
+Scene Generation
+Flashback Intelligence
+Dream Intelligence
+Imagination Detection
+Audio Intelligence
+Voice Style System
+Production Readiness System
+Movie Readiness Report
+Runtime Validation
+OpenAPI/Zod synchronization
+Now add:
+Scene Image Generation Pipeline
+Generate a dedicated cinematic image prompt for every scene.
+The image prompt must:
+Be written in English only
+Be platform-neutral
+Work with:
+Midjourney
+Stable Diffusion
+DALL·E
+Flux
+Leonardo AI
+Runway
+Kling
+Veo
+For every scene generate:
+Scene Image Prompt
+Camera Shot Type
+Camera Movement
+Lighting Style
+Color Palette
+Environment Detail
+Character Positioning
+Facial Expression Detail
+Cinematic Mood
+Visual Effects
+Render Style
+Animation Style
+Rules:
+Maintain strict character consistency
+Reuse character appearance traits automatically
+Prevent visual drift between scenes
+Maintain scene continuity
+Preserve scene type styling:
+Present
+Flashback
+Dream
+Imagination
+Add specialized visual systems:
+Flashback Visual Engine
+Generate:
+sepia tones
+film grain
+faded contrast
+nostalgic lens behavior
+Dream Visual Engine
+Generate:
+surreal environments
+impossible lighting
+floating particles
+ethereal glow
+hyperreal colors
+Imagination Visual Engine
+Generate:
+heroic cinematic framing
+idealized environments
+enhanced saturation
+fantasy-like composition
+Present Scene Visual Engine
+Generate:
+grounded cinematic realism
+stable lighting
+natural environmental continuity
+Add:
+Shot Planning System
+Generate:
+wide shot
+medium shot
+close-up
+over-the-shoulder
+tracking shot
+crane shot
+dolly shot
+cinematic framing suggestions
+Add:
+Character Visual Continuity System
+Track:
+fur/clothing condition
+wet/dry state
+injuries
+dirt
+emotional facial continuity
+lighting continuity
+environmental continuity
+Add:
+Storyboard Frame Metadata
+For every scene generate:
+aspect ratio suggestion
+focal length suggestion
+depth of field suggestion
+lens style suggestion
+cinematic composition notes
+Add:
+Image Generation Readiness Score
+Generate:
+imageGenerationScore (0-100)
+Add:
+Visual Production Report
+Generate:
+strongest visual scenes
+weakest visual scenes
+consistency risks
+animation complexity notes
+rendering difficulty notes
+cinematic strengths
+Maintain:
+Director Notes in English only
+Visual prompts in English only
+Character consistency across all scenes
+Runtime-safe structured JSON output
+OpenAPI compatibility
+Zod validation compatibility
+Do not break existing frontend rendering.
+Extend existing schema safely.
+Do not use any "any" TypeScript types.
+Maintain complete type safety. :::
