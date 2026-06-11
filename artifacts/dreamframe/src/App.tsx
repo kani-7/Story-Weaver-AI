@@ -507,6 +507,9 @@ function Home() {
   const [uiLanguage, setUiLanguage] = useState<UILang>("en");
   const [outputLanguage, setOutputLanguage] = useState<OutputLang>("en");
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [expandedSceneSections, setExpandedSceneSections] = useState<Record<string, boolean>>({});
+  const toggleSceneSection = (key: string) =>
+    setExpandedSceneSections(prev => ({ ...prev, [key]: !prev[key] }));
 
   const t = translations[uiLanguage];
 
@@ -1285,9 +1288,11 @@ function Home() {
                         </div>
                       )}
 
-                      {/* Image Generation */}
+                      {/* Image Generation — collapsible, open by default */}
                       {scene.imagePrompt && (() => {
                         const ip: SceneImagePrompt = scene.imagePrompt;
+                        const imgKey = `img-${i}`;
+                        const isOpen = expandedSceneSections[imgKey] !== false;
                         const engineColors: Record<string, { bg: string; text: string; border: string; dot: string }> = {
                           PresentEngine:    { bg: "bg-emerald-950/25", text: "text-emerald-300", border: "border-emerald-400/20", dot: "bg-emerald-400" },
                           FlashbackEngine:  { bg: "bg-amber-950/25",   text: "text-amber-300",   border: "border-amber-400/20",   dot: "bg-amber-400" },
@@ -1296,108 +1301,155 @@ function Home() {
                         };
                         const ec = engineColors[ip.visualEngine] ?? engineColors.PresentEngine;
                         return (
-                          <div className="px-6 py-4 border-t border-white/5">
-                            <div className="flex items-center justify-between gap-2 mb-3">
-                              <div className="flex items-center gap-2">
-                                <Camera className="w-3.5 h-3.5 text-fuchsia-400" />
+                          <div className="border-t border-white/5">
+                            {/* Toggle header */}
+                            <button
+                              onClick={() => toggleSceneSection(imgKey)}
+                              className="w-full px-6 py-3.5 flex items-center justify-between gap-2 hover:bg-white/[0.02] transition-colors"
+                            >
+                              <div className="flex items-center gap-2.5 min-w-0">
+                                <Camera className="w-3.5 h-3.5 text-fuchsia-400 shrink-0" />
                                 <span className="text-[10px] font-bold uppercase tracking-widest text-fuchsia-400">{t.imageGeneration}</span>
-                              </div>
-                              <div className={`flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border ${ec.border} ${ec.bg}`}>
-                                <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${ec.dot}`} />
-                                <span className={`text-[9px] font-bold uppercase tracking-wider ${ec.text}`}>{ip.visualEngine}</span>
-                              </div>
-                            </div>
-
-                            {/* Main prompt box */}
-                            <div className="mb-3 rounded-lg bg-fuchsia-950/15 border border-fuchsia-400/10 p-3">
-                              <div className="text-[8px] font-bold uppercase tracking-wider text-fuchsia-500/55 mb-1.5">{t.sceneImagePromptLabel}</div>
-                              <p className="text-xs text-fuchsia-100/75 leading-relaxed font-mono">{ip.sceneImagePrompt}</p>
-                            </div>
-
-                            {/* Color Palette + Cinematic Mood */}
-                            <div className="grid grid-cols-2 gap-2 mb-2">
-                              <div className="rounded-md bg-fuchsia-950/15 border border-fuchsia-400/10 px-2.5 py-1.5">
-                                <div className="text-[8px] font-bold uppercase tracking-wider text-fuchsia-500/55 mb-0.5">{t.colorPaletteLabel}</div>
-                                <div className="text-[11px] text-fuchsia-100/70 leading-tight">{ip.colorPalette}</div>
-                              </div>
-                              <div className="rounded-md bg-fuchsia-950/15 border border-fuchsia-400/10 px-2.5 py-1.5">
-                                <div className="text-[8px] font-bold uppercase tracking-wider text-fuchsia-500/55 mb-0.5">{t.cinematicMoodLabel}</div>
-                                <div className="text-[11px] text-fuchsia-100/70 leading-tight italic">{ip.cinematicMood}</div>
-                              </div>
-                            </div>
-
-                            {/* Detail fields */}
-                            <div className="space-y-1.5 mb-2">
-                              {([
-                                { label: t.environmentDetailLabel, value: ip.environmentDetail },
-                                { label: t.charPositioningLabel, value: ip.characterPositioning },
-                                { label: t.facialExpressionsLabel, value: ip.facialExpressionDetail },
-                                { label: t.charVisualContinuityLabel, value: ip.characterVisualContinuity },
-                              ] as { label: string; value: string }[]).filter(item => item.value).map((item, idx) => (
-                                <div key={idx} className="rounded-md bg-fuchsia-950/10 border border-fuchsia-400/8 px-2.5 py-1.5">
-                                  <div className="text-[8px] font-bold uppercase tracking-wider text-fuchsia-500/45 mb-0.5">{item.label}</div>
-                                  <div className="text-[11px] text-fuchsia-100/60 leading-relaxed">{item.value}</div>
+                                <div className={`hidden sm:flex items-center gap-1.5 px-2 py-0.5 rounded-full border ${ec.border} ${ec.bg}`}>
+                                  <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${ec.dot}`} />
+                                  <span className={`text-[9px] font-bold uppercase tracking-wider ${ec.text}`}>{ip.visualEngine}</span>
                                 </div>
-                              ))}
-                            </div>
+                              </div>
+                              <ChevronDown className={`w-3.5 h-3.5 text-fuchsia-400/50 shrink-0 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`} />
+                            </button>
 
-                            {/* Render + Animation Style */}
-                            <div className="grid grid-cols-2 gap-2 mb-2">
-                              {ip.renderStyle && (
-                                <div className="rounded-md bg-fuchsia-950/10 border border-fuchsia-400/8 px-2.5 py-1.5">
-                                  <div className="text-[8px] font-bold uppercase tracking-wider text-fuchsia-500/45 mb-0.5">{t.renderStyleLabel}</div>
-                                  <div className="text-[11px] text-fuchsia-100/60 leading-tight">{ip.renderStyle}</div>
+                            {/* Expanded content */}
+                            {isOpen && (
+                              <div className="px-6 pb-5 space-y-3">
+                                {/* Engine badge (mobile fallback) */}
+                                <div className={`sm:hidden inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full border ${ec.border} ${ec.bg}`}>
+                                  <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${ec.dot}`} />
+                                  <span className={`text-[9px] font-bold uppercase tracking-wider ${ec.text}`}>{ip.visualEngine}</span>
                                 </div>
-                              )}
-                              {ip.animationStyle && (
-                                <div className="rounded-md bg-fuchsia-950/10 border border-fuchsia-400/8 px-2.5 py-1.5">
-                                  <div className="text-[8px] font-bold uppercase tracking-wider text-fuchsia-500/45 mb-0.5">{t.animationStyleLabel}</div>
-                                  <div className="text-[11px] text-fuchsia-100/60 leading-tight">{ip.animationStyle}</div>
-                                </div>
-                              )}
-                            </div>
 
-                            {/* Visual Effects chips */}
-                            {ip.visualEffects && ip.visualEffects.length > 0 && (
-                              <div>
-                                <div className="text-[8px] font-bold uppercase tracking-wider text-fuchsia-500/45 mb-1.5">{t.visualEffectsLabel}</div>
-                                <div className="flex flex-wrap gap-1.5">
-                                  {ip.visualEffects.map((fx: string, fxi: number) => (
-                                    <span key={fxi} className="inline-flex items-center gap-1 text-[9px] font-medium text-fuchsia-300/65 bg-fuchsia-950/20 border border-fuchsia-400/12 px-2 py-0.5 rounded-full">
-                                      ✦ {fx}
-                                    </span>
+                                {/* Main prompt */}
+                                <div className="rounded-lg bg-fuchsia-950/15 border border-fuchsia-400/10 p-3">
+                                  <div className="text-[8px] font-bold uppercase tracking-wider text-fuchsia-500/55 mb-1.5">{t.sceneImagePromptLabel}</div>
+                                  <p className="text-xs text-fuchsia-100/75 leading-relaxed font-mono">{ip.sceneImagePrompt}</p>
+                                </div>
+
+                                {/* Camera Shot · Movement · Lighting (from cinematicCamera) */}
+                                {(scene.cinematicCamera?.shotType || scene.cinematicCamera?.cameraMovement || scene.cinematicCamera?.lightingStyle) && (
+                                  <div className="grid grid-cols-3 gap-2">
+                                    {([
+                                      { label: t.shotType, value: scene.cinematicCamera?.shotType },
+                                      { label: t.cameraMovement, value: scene.cinematicCamera?.cameraMovement },
+                                      { label: t.lightingStyle, value: scene.cinematicCamera?.lightingStyle },
+                                    ] as { label: string; value: string | undefined }[]).filter(item => item.value).map((item, idx) => (
+                                      <div key={idx} className="rounded-md bg-fuchsia-950/10 border border-fuchsia-400/8 px-2.5 py-1.5">
+                                        <div className="text-[8px] font-bold uppercase tracking-wider text-fuchsia-500/45 mb-0.5">{item.label}</div>
+                                        <div className="text-[11px] text-fuchsia-100/65 leading-tight">{item.value}</div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+
+                                {/* Color Palette · Cinematic Mood */}
+                                <div className="grid grid-cols-2 gap-2">
+                                  <div className="rounded-md bg-fuchsia-950/15 border border-fuchsia-400/10 px-2.5 py-1.5">
+                                    <div className="text-[8px] font-bold uppercase tracking-wider text-fuchsia-500/55 mb-0.5">{t.colorPaletteLabel}</div>
+                                    <div className="text-[11px] text-fuchsia-100/70 leading-tight">{ip.colorPalette}</div>
+                                  </div>
+                                  <div className="rounded-md bg-fuchsia-950/15 border border-fuchsia-400/10 px-2.5 py-1.5">
+                                    <div className="text-[8px] font-bold uppercase tracking-wider text-fuchsia-500/55 mb-0.5">{t.cinematicMoodLabel}</div>
+                                    <div className="text-[11px] text-fuchsia-100/70 leading-tight italic">{ip.cinematicMood}</div>
+                                  </div>
+                                </div>
+
+                                {/* Render Style · Animation Style */}
+                                <div className="grid grid-cols-2 gap-2">
+                                  {ip.renderStyle && (
+                                    <div className="rounded-md bg-fuchsia-950/10 border border-fuchsia-400/8 px-2.5 py-1.5">
+                                      <div className="text-[8px] font-bold uppercase tracking-wider text-fuchsia-500/45 mb-0.5">{t.renderStyleLabel}</div>
+                                      <div className="text-[11px] text-fuchsia-100/60 leading-tight">{ip.renderStyle}</div>
+                                    </div>
+                                  )}
+                                  {ip.animationStyle && (
+                                    <div className="rounded-md bg-fuchsia-950/10 border border-fuchsia-400/8 px-2.5 py-1.5">
+                                      <div className="text-[8px] font-bold uppercase tracking-wider text-fuchsia-500/45 mb-0.5">{t.animationStyleLabel}</div>
+                                      <div className="text-[11px] text-fuchsia-100/60 leading-tight">{ip.animationStyle}</div>
+                                    </div>
+                                  )}
+                                </div>
+
+                                {/* Detail fields */}
+                                <div className="space-y-1.5">
+                                  {([
+                                    { label: t.environmentDetailLabel, value: ip.environmentDetail },
+                                    { label: t.charPositioningLabel, value: ip.characterPositioning },
+                                    { label: t.facialExpressionsLabel, value: ip.facialExpressionDetail },
+                                    { label: t.charVisualContinuityLabel, value: ip.characterVisualContinuity },
+                                  ] as { label: string; value: string }[]).filter(item => item.value).map((item, idx) => (
+                                    <div key={idx} className="rounded-md bg-fuchsia-950/10 border border-fuchsia-400/8 px-2.5 py-1.5">
+                                      <div className="text-[8px] font-bold uppercase tracking-wider text-fuchsia-500/45 mb-0.5">{item.label}</div>
+                                      <div className="text-[11px] text-fuchsia-100/60 leading-relaxed">{item.value}</div>
+                                    </div>
                                   ))}
                                 </div>
+
+                                {/* Visual Effects chips */}
+                                {ip.visualEffects && ip.visualEffects.length > 0 && (
+                                  <div>
+                                    <div className="text-[8px] font-bold uppercase tracking-wider text-fuchsia-500/45 mb-1.5">{t.visualEffectsLabel}</div>
+                                    <div className="flex flex-wrap gap-1.5">
+                                      {ip.visualEffects.map((fx: string, fxi: number) => (
+                                        <span key={fxi} className="inline-flex items-center gap-1 text-[9px] font-medium text-fuchsia-300/65 bg-fuchsia-950/20 border border-fuchsia-400/12 px-2 py-0.5 rounded-full">
+                                          ✦ {fx}
+                                        </span>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
                               </div>
                             )}
                           </div>
                         );
                       })()}
 
-                      {/* Storyboard Frame Metadata */}
+                      {/* Storyboard Frame Metadata — collapsible, closed by default */}
                       {scene.storyboardFrameMetadata && (() => {
                         const fm: StoryboardFrameMetadata = scene.storyboardFrameMetadata;
+                        const frameKey = `frame-${i}`;
+                        const isOpen = !!expandedSceneSections[frameKey];
                         return (
-                          <div className="px-6 py-4 border-t border-white/5">
-                            <div className="flex items-center gap-2 mb-3">
-                              <Layers className="w-3.5 h-3.5 text-rose-400" />
-                              <span className="text-[10px] font-bold uppercase tracking-widest text-rose-400">{t.frameMetadataLabel}</span>
-                            </div>
-                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-2">
-                              {([
-                                { label: t.aspectRatioLabel, value: fm.aspectRatio },
-                                { label: t.focalLengthLabel, value: fm.focalLength },
-                                { label: t.depthOfFieldLabel, value: fm.depthOfField },
-                                { label: t.lensStyleFrameLabel, value: fm.lensStyle },
-                              ] as { label: string; value: string }[]).map((item, idx) => (
-                                <div key={idx} className="rounded-md bg-rose-950/15 border border-rose-400/10 px-2.5 py-1.5">
-                                  <div className="text-[8px] font-bold uppercase tracking-wider text-rose-500/55 mb-0.5">{item.label}</div>
-                                  <div className="text-[11px] text-rose-100/70 leading-tight">{item.value}</div>
+                          <div className="border-t border-white/5">
+                            <button
+                              onClick={() => toggleSceneSection(frameKey)}
+                              className="w-full px-6 py-3.5 flex items-center justify-between gap-2 hover:bg-white/[0.02] transition-colors"
+                            >
+                              <div className="flex items-center gap-2.5">
+                                <Layers className="w-3.5 h-3.5 text-rose-400 shrink-0" />
+                                <span className="text-[10px] font-bold uppercase tracking-widest text-rose-400">{t.frameMetadataLabel}</span>
+                                {!isOpen && fm.aspectRatio && (
+                                  <span className="hidden sm:inline text-[9px] text-rose-400/40 font-mono">{fm.aspectRatio}</span>
+                                )}
+                              </div>
+                              <ChevronDown className={`w-3.5 h-3.5 text-rose-400/50 shrink-0 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`} />
+                            </button>
+                            {isOpen && (
+                              <div className="px-6 pb-4 space-y-2">
+                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                                  {([
+                                    { label: t.aspectRatioLabel, value: fm.aspectRatio },
+                                    { label: t.focalLengthLabel, value: fm.focalLength },
+                                    { label: t.depthOfFieldLabel, value: fm.depthOfField },
+                                    { label: t.lensStyleFrameLabel, value: fm.lensStyle },
+                                  ] as { label: string; value: string }[]).map((item, idx) => (
+                                    <div key={idx} className="rounded-md bg-rose-950/15 border border-rose-400/10 px-2.5 py-1.5">
+                                      <div className="text-[8px] font-bold uppercase tracking-wider text-rose-500/55 mb-0.5">{item.label}</div>
+                                      <div className="text-[11px] text-rose-100/70 leading-tight">{item.value}</div>
+                                    </div>
+                                  ))}
                                 </div>
-                              ))}
-                            </div>
-                            {fm.cinematicCompositionNotes && (
-                              <p className="text-xs text-rose-200/50 italic leading-relaxed pl-3 border-l border-rose-400/15">{fm.cinematicCompositionNotes}</p>
+                                {fm.cinematicCompositionNotes && (
+                                  <p className="text-xs text-rose-200/50 italic leading-relaxed pl-3 border-l border-rose-400/15">{fm.cinematicCompositionNotes}</p>
+                                )}
+                              </div>
                             )}
                           </div>
                         );
