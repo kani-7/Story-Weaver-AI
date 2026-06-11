@@ -1,2 +1,3 @@
 - [v2.0 schema architecture](v2-schema.md) — All new AI fields go in openapi.yaml first, then pnpm codegen; never edit lib/api-zod or lib/api-client-react/generated directly.
 - [Prompt engine location](prompt-engine.md) — Full Gemini prompt lives in artifacts/api-server/src/routes/storyboard.ts; maxOutputTokens is 32768 (bumped from 16384 for v2.0 field count).
+- [Image generation system](image-generation.md) — Modular multi-provider image gen in artifacts/api-server/src/routes/imageGeneration.ts; dedup via in-memory Map keyed by sceneNumber+provider; character ref locking builds enhanced prompts; Pollinations is free/no-key; others need secrets.
