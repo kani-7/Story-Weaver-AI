@@ -1,0 +1,376 @@
+:::writing{variant="document" id="73184"}
+Story-Weaver-AI Ultimate Master Prompt v2.0
+Continue from the current implementation.
+IMPORTANT:
+Do NOT rebuild the application.
+Do NOT remove existing functionality.
+Do NOT replace the architecture.
+Maintain backward compatibility.
+Keep ALL existing systems fully operational.
+CORE SYSTEMS TO KEEP
+Keep fully functional:
+Story Analysis
+Character Extraction
+Character Profiles
+Character Consistency
+Scene Generation
+Flashback Intelligence
+Dream Detection
+Imagination Detection
+Internal Thoughts
+Internal Monologue
+Audio Intelligence
+Director Notes
+Production Readiness
+Movie Readiness
+Runtime Zod Validation
+Retry Validation System
+OpenAPI Schema Synchronization
+Multi-language Support
+English/Sinhala/Tamil Output
+Type-safe frontend rendering
+Android compatibility
+STORY INTELLIGENCE ENGINE
+For every scene generate and separate:
+Narration
+Dialogue
+Internal Thoughts
+Internal Monologue
+Actions
+Emotions
+Rules:
+Narration:
+Third-person storytelling only
+Never spoken aloud
+Cinematic storytelling tone
+Dialogue:
+Spoken words only
+No narration inside dialogue
+No internal thoughts inside dialogue
+Thoughts:
+Short silent thoughts
+Internal reaction only
+Internal Monologue:
+Extended emotional reasoning
+Internal self-reflection
+Not spoken aloud
+Actions:
+Physical actions only
+No narrator actions
+No emotional descriptions
+No dialogue
+Emotions:
+Character emotional state
+Include confidence score
+Float range: 0.00–1.00
+Prevent:
+Duplicate dialogue
+Duplicate emotions
+Narrator appearing inside Actions
+Empty arrays
+Undefined fields
+SCENE TYPE INTELLIGENCE
+Maintain explicit scene type detection.
+Supported types:
+Present
+Flashback
+Dream
+Imagination
+Rules:
+Flashback:
+Memory of past events
+Must include transition instructions
+Must include return-to-present instructions
+Must include flashback visual style
+Must include flashback audio style
+Dream:
+Sleep-based surreal sequence
+Must include dream visual style
+Must include dream audio style
+Imagination:
+Character imagining while awake
+Distinct from dreams
+Maintain partial connection to reality
+Present:
+Default timeline
+Grounded continuity
+FLASHBACK VISUAL STYLE
+Generate cinematic flashback styling:
+sepia wash
+soft focus
+film grain
+faded saturation
+memory flicker
+warm nostalgic lighting
+FLASHBACK AUDIO STYLE
+Generate flashback audio styling:
+slight reverb
+muffled ambience
+reduced bass
+nostalgic tone
+subtle tape hiss
+DREAM VISUAL STYLE
+Generate surreal dream styling:
+exaggerated colors
+glowing highlights
+impossible architecture
+floating particles
+distorted physics
+soft bloom lighting
+DREAM AUDIO STYLE
+Generate surreal dream audio:
+delayed dialogue
+pitch-shifted ambience
+ethereal echoes
+atonal transitions
+floating sound textures
+SCENE MEMORY ENGINE
+Add persistent continuity memory across all scenes.
+Track:
+clothing continuity
+fur continuity
+weather continuity
+object continuity
+injury continuity
+emotional carry-over
+environment state
+lighting consistency
+time-of-day continuity
+Generate:
+continuityMemory
+continuityWarnings
+continuityResolutionSuggestions
+Rules: Scenes cannot contradict previous scenes unless explicitly explained.
+CHARACTER CONSISTENCY SYSTEM
+Maintain full character consistency across all scenes.
+Each character must maintain:
+appearance
+fur color
+clothing
+personality
+voice style
+distinctive features
+emotional behavior patterns
+Generate:
+name
+species
+appearance
+clothing
+personality
+distinctiveFeatures
+voiceStyle
+characterId
+Voice Style must include:
+pitch
+tempo
+vocal texture
+delivery style
+emotional tone
+ADVANCED VOICE PERFORMANCE SYSTEM
+Generate emotional voice acting metadata.
+Per dialogue line generate:
+vocalEmotion
+vocalIntensity
+speechSpeed
+pauseTiming
+whisperDetection
+shoutDetection
+Example: Voice:
+vocalEmotion:sadness
+vocalIntensity:0.62
+speechSpeed:slow
+pauseTiming:dramatic pause
+whisperDetection:true
+shoutDetection:false
+CINEMATIC CAMERA SYSTEM
+Generate structured cinematic direction.
+Per scene generate:
+shotType
+cameraAngle
+cameraMovement
+lensStyle
+framingStyle
+lightingStyle
+pacingStyle
+Shot Types:
+Close-up
+Medium Shot
+Wide Shot
+Extreme Wide Shot
+POV Shot
+Tracking Shot
+Camera Angles:
+Low Angle
+High Angle
+Eye Level
+Dutch Angle
+Over-the-Shoulder
+Camera Movement:
+Static
+Dolly In
+Dolly Out
+Crane Up
+Handheld
+Tracking
+Orbit
+Lens Styles:
+35mm cinematic
+50mm portrait
+ultra wide
+telephoto compression
+Lighting:
+cinematic glow
+storm shadows
+warm sunrise
+moody contrast
+Pacing:
+emotional slow pacing
+tension pacing
+dream pacing
+AUDIO INTELLIGENCE ENGINE
+Generate:
+Background Ambience:
+environmental ambience list
+Background Music:
+cinematic music direction
+Sound Effects:
+detailed cinematic sound design
+Audio must reflect:
+scene type
+emotional intensity
+pacing
+environmental conditions
+STORYBOARD SHOTLIST ENGINE
+Generate production-ready shotlists.
+Per scene generate:
+shotNumber
+shotDescription
+shotPurpose
+estimatedDuration
+transitionType
+Transition Types:
+Fade In
+Fade Out
+Dissolve
+Match Cut
+Hard Cut
+Iris Transition
+Dream Ripple
+VISUAL CONTINUITY PROTECTION
+Verify:
+same fur colors
+same clothing
+same accessories
+same weather state
+same environment state
+same lighting logic
+Generate: Visual Continuity Check:
+Pass
+Warning
+Fail
+CINEMATIC TENSION ANALYSIS
+Track emotional escalation.
+Generate:
+tensionCurve
+emotionalIntensity
+pacingBalance
+Analyze:
+emotional rise
+emotional fall
+climax pacing
+resolution pacing
+PRODUCTION READINESS ENGINE
+Generate:
+Production Readiness Score: 0–100
+Movie Readiness Report:
+strengths
+weaknesses
+missingElements
+productionNotes
+Production Notes must remain:
+cinematic
+professional
+English only
+EXPORT PREPARATION SYSTEM
+Generate:
+exportReadiness:
+screenplayReady
+storyboardReady
+animationPipelineReady
+voicePipelineReady
+editingPipelineReady
+Prepare output for:
+PDF storyboard export
+screenplay export
+animation pipeline
+dubbing pipeline
+cinematic editing
+ANDROID PERFORMANCE MODE
+Optimize payloads for Android devices.
+Implement:
+lightweightMode
+progressiveSceneLoading
+lazyAssetGeneration
+memory-safe rendering
+Prevent:
+UI freezing
+oversized payload rendering
+excessive image generation loops
+STRICT VALIDATION RULES
+All generated data MUST pass:
+AnalyzeStoryResponse.safeParse()
+Prevent:
+malformed JSON
+invalid confidence values
+invalid scene types
+undefined fields
+missing arrays
+invalid continuity structures
+invalid voice metadata
+DIRECTOR NOTES RULES
+Director Notes MUST:
+remain English only
+remain platform-neutral
+remain cinematic
+remain animation-ready
+remain visually consistent
+remain production-quality
+Do NOT mention:
+Midjourney
+Leonardo AI
+Stable Diffusion
+DALL·E
+specific generation platforms
+VISUAL PROMPT RULES
+All visual prompts must:
+remain English only
+remain platform-neutral
+remain cinematic
+remain production-quality
+remain animation-ready
+maintain visual continuity
+IMPORTANT FINAL RULES
+Do NOT:
+remove features
+simplify schemas
+reduce cinematic detail
+break frontend rendering
+remove validation
+rebuild architecture
+Maintain:
+full backward compatibility
+type safety
+OpenAPI sync
+Zod validation
+runtime validation
+Android compatibility
+cinematic consistency
+The system should now behave like:
+AI Story Engine
+AI Director
+AI Storyboard Generator
+AI Cinematic Planner
+AI Animation Pre-production System
+AI Voice Direction System
+AI Movie Planning Engine
+Generate production-grade cinematic storyboards. :::

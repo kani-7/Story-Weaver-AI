@@ -31,6 +31,9 @@ export const AnalyzeStoryBody = zod.object({
 
 export const analyzeStoryResponseScenesItemSceneTypeDefault = `Present`;
 export const analyzeStoryResponseScenesItemNarrationDefault = [];
+export const analyzeStoryResponseScenesItemDialogueItemVocalIntensityMin = 0;
+export const analyzeStoryResponseScenesItemDialogueItemVocalIntensityMax = 1;
+
 export const analyzeStoryResponseScenesItemDialogueDefault = [];
 export const analyzeStoryResponseScenesItemThoughtsDefault = [];
 export const analyzeStoryResponseScenesItemInternalMonologueDefault = [];
@@ -39,6 +42,9 @@ export const analyzeStoryResponseScenesItemEmotionsItemConfidenceMin = 0;
 export const analyzeStoryResponseScenesItemEmotionsItemConfidenceMax = 1;
 
 export const analyzeStoryResponseScenesItemEmotionsDefault = [];
+export const analyzeStoryResponseScenesItemTensionAnalysisEmotionalIntensityMin = 0;
+export const analyzeStoryResponseScenesItemTensionAnalysisEmotionalIntensityMax = 1;
+
 export const analyzeStoryResponseProductionReadinessScoreMin = 0;
 export const analyzeStoryResponseProductionReadinessScoreMax = 100;
 
@@ -66,8 +72,14 @@ export const AnalyzeStoryResponse = zod.object({
   "narration": zod.array(zod.string()).default(analyzeStoryResponseScenesItemNarrationDefault).describe('External narrator passages in output language'),
   "dialogue": zod.array(zod.object({
   "character": zod.string().describe('Exact character name from profile'),
-  "line": zod.string().describe('Spoken words only, no quotation marks')
-})).default(analyzeStoryResponseScenesItemDialogueDefault).describe('Audible spoken dialogue only'),
+  "line": zod.string().describe('Spoken words only, no quotation marks'),
+  "vocalEmotion": zod.string().optional().describe('English only. The emotional quality of the voice delivery (e.g. sadness, joy, anger, fear, contempt, relief, determination)'),
+  "vocalIntensity": zod.number().min(analyzeStoryResponseScenesItemDialogueItemVocalIntensityMin).max(analyzeStoryResponseScenesItemDialogueItemVocalIntensityMax).optional().describe('Float 0.00–1.00. 0.90–1.00 = peak intensity, 0.60–0.89 = elevated, 0.30–0.59 = moderate, 0.00–0.29 = subdued'),
+  "speechSpeed": zod.enum(['slow', 'normal', 'fast']).optional().describe('English only. Pace of delivery.'),
+  "pauseTiming": zod.string().optional().describe('English only. Pause quality before or within the line (e.g. dramatic pause, hesitant, no pause, long silence before)'),
+  "whisperDetection": zod.boolean().optional().describe('True if the line is delivered as a whisper'),
+  "shoutDetection": zod.boolean().optional().describe('True if the line is delivered as a shout or raised voice')
+}).describe('A single spoken line with full voice performance metadata')).default(analyzeStoryResponseScenesItemDialogueDefault).describe('Audible spoken dialogue with full voice performance metadata'),
   "thoughts": zod.array(zod.object({
   "character": zod.string(),
   "thought": zod.string()
@@ -94,6 +106,39 @@ export const AnalyzeStoryResponse = zod.object({
   "status": zod.enum(['Pass', 'Warning', 'Fail']),
   "issues": zod.array(zod.string()).describe('List of continuity issues. Empty if status is Pass.')
 }).optional(),
+  "continuityMemory": zod.object({
+  "clothingState": zod.array(zod.string()).describe('English only. Current clothing\/costume state of each character present (e.g. \'Kael: torn jacket, missing left glove\')'),
+  "weatherState": zod.string().describe('English only. Current weather conditions carried from previous scenes'),
+  "environmentState": zod.string().describe('English only. Current environment and location state'),
+  "objectsPresent": zod.array(zod.string()).describe('English only. Key props and objects present and their state'),
+  "injuryState": zod.array(zod.string()).describe('English only. Any injuries or physical damage carried from prior scenes'),
+  "emotionalCarryOver": zod.array(zod.string()).describe('English only. Emotional states or unresolved tensions carried into this scene'),
+  "lightingState": zod.string().describe('English only. Current ambient lighting conditions'),
+  "timeOfDay": zod.string().describe('English only. Time of day continuity (e.g. dusk, night, early morning)'),
+  "continuityWarnings": zod.array(zod.string()).describe('English only. Specific continuity violations or risks detected in this scene'),
+  "continuityResolutionSuggestions": zod.array(zod.string()).describe('English only. Director suggestions to resolve or address continuity warnings')
+}).optional().describe('Persistent state memory tracked from previous scenes for continuity enforcement'),
+  "cinematicCamera": zod.object({
+  "shotType": zod.string().describe('Primary shot type: Close-up | Medium Shot | Wide Shot | Extreme Wide Shot | POV Shot | Tracking Shot'),
+  "cameraAngle": zod.string().describe('Camera angle: Low Angle | High Angle | Eye Level | Dutch Angle | Over-the-Shoulder'),
+  "cameraMovement": zod.string().describe('Camera movement: Static | Dolly In | Dolly Out | Crane Up | Handheld | Tracking | Orbit'),
+  "lensStyle": zod.string().describe('Lens style: 35mm cinematic | 50mm portrait | ultra wide | telephoto compression'),
+  "framingStyle": zod.string().describe('English only. Framing composition note (e.g. rule of thirds, centered symmetry, negative space)'),
+  "lightingStyle": zod.string().describe('English only. Lighting mood and direction (e.g. cinematic glow, storm shadows, warm sunrise, moody contrast)'),
+  "pacingStyle": zod.string().describe('English only. Editorial pacing feel (e.g. emotional slow pacing, tension pacing, dream pacing)')
+}).optional().describe('Structured cinematic camera direction for the scene (English only)'),
+  "shotList": zod.array(zod.object({
+  "shotNumber": zod.number().describe('Shot number within the scene, starting from 1'),
+  "shotDescription": zod.string().describe('English only. Concise visual description of what the camera captures'),
+  "shotPurpose": zod.string().describe('English only. Narrative or emotional purpose of this shot'),
+  "estimatedDuration": zod.string().describe('English only. Estimated screen time (e.g. 3 seconds, 8–12 seconds)'),
+  "transitionType": zod.string().describe('Transition into the next shot: Fade In | Fade Out | Dissolve | Match Cut | Hard Cut | Iris Transition | Dream Ripple')
+}).describe('A single production shot entry in the scene shotlist (English only)')).optional().describe('Production-ready shotlist for the scene (English only)'),
+  "tensionAnalysis": zod.object({
+  "tensionCurve": zod.string().describe('English only. Description of the tension arc within this scene (e.g. builds steadily, sharp spike at midpoint, slow release)'),
+  "emotionalIntensity": zod.number().min(analyzeStoryResponseScenesItemTensionAnalysisEmotionalIntensityMin).max(analyzeStoryResponseScenesItemTensionAnalysisEmotionalIntensityMax).describe('Float 0.00–1.00. Overall emotional intensity of the scene relative to the full story'),
+  "pacingBalance": zod.string().describe('English only. Editorial pacing assessment (e.g. well-balanced, front-loaded tension, needs breathing room)')
+}).optional().describe('Emotional and cinematic tension tracking for the scene (English only)'),
   "flashbackVisualStyle": zod.string().optional().describe('Flashback scenes only. English only. Color grade, film treatment, camera characteristics.'),
   "flashbackAudioStyle": zod.string().optional().describe('Flashback scenes only. English only. Audio treatment suggesting memory.'),
   "dreamVisualStyle": zod.string().optional().describe('Dream scenes only. English only. Visual treatment distinguishing dream from reality.'),
@@ -108,7 +153,14 @@ export const AnalyzeStoryResponse = zod.object({
   "weaknesses": zod.array(zod.string()).describe('1-4 specific weaknesses or underdeveloped elements'),
   "missingElements": zod.array(zod.string()).describe('0-3 story elements that would strengthen the film but are absent'),
   "productionNotes": zod.string().describe('English only. 2-4 sentence paragraph of practical production advice.')
-}).optional()
+}).optional(),
+  "exportReadiness": zod.object({
+  "screenplayReady": zod.boolean().describe('True if dialogue, narration, and scene structure are complete enough for screenplay formatting'),
+  "storyboardReady": zod.boolean().describe('True if visual prompts and shot lists are complete enough for storyboard rendering'),
+  "animationPipelineReady": zod.boolean().describe('True if character profiles and visual prompts meet animation pre-production standards'),
+  "voicePipelineReady": zod.boolean().describe('True if dialogue and voice metadata are complete enough for voice direction and dubbing'),
+  "editingPipelineReady": zod.boolean().describe('True if shotlists and transition types are complete enough for editorial planning')
+}).optional().describe('Pipeline readiness assessment for downstream production export')
 })
 
 

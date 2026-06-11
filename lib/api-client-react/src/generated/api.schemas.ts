@@ -58,11 +58,42 @@ export interface InternalThought {
   thought: string;
 }
 
+/**
+ * English only. Pace of delivery.
+ */
+export type DialogueLineSpeechSpeed = typeof DialogueLineSpeechSpeed[keyof typeof DialogueLineSpeechSpeed];
+
+
+export const DialogueLineSpeechSpeed = {
+  slow: 'slow',
+  normal: 'normal',
+  fast: 'fast',
+} as const;
+
+/**
+ * A single spoken line with full voice performance metadata
+ */
 export interface DialogueLine {
   /** Exact character name from profile */
   character: string;
   /** Spoken words only, no quotation marks */
   line: string;
+  /** English only. The emotional quality of the voice delivery (e.g. sadness, joy, anger, fear, contempt, relief, determination) */
+  vocalEmotion?: string;
+  /**
+     * Float 0.00–1.00. 0.90–1.00 = peak intensity, 0.60–0.89 = elevated, 0.30–0.59 = moderate, 0.00–0.29 = subdued
+     * @minimum 0
+     * @maximum 1
+     */
+  vocalIntensity?: number;
+  /** English only. Pace of delivery. */
+  speechSpeed?: DialogueLineSpeechSpeed;
+  /** English only. Pause quality before or within the line (e.g. dramatic pause, hesitant, no pause, long silence before) */
+  pauseTiming?: string;
+  /** True if the line is delivered as a whisper */
+  whisperDetection?: boolean;
+  /** True if the line is delivered as a shout or raised voice */
+  shoutDetection?: boolean;
 }
 
 export interface InternalMonologueLine {
@@ -116,6 +147,84 @@ export interface SceneContinuityCheck {
   issues: string[];
 }
 
+/**
+ * Persistent state memory tracked from previous scenes for continuity enforcement
+ */
+export interface SceneContinuityMemory {
+  /** English only. Current clothing/costume state of each character present (e.g. 'Kael: torn jacket, missing left glove') */
+  clothingState: string[];
+  /** English only. Current weather conditions carried from previous scenes */
+  weatherState: string;
+  /** English only. Current environment and location state */
+  environmentState: string;
+  /** English only. Key props and objects present and their state */
+  objectsPresent: string[];
+  /** English only. Any injuries or physical damage carried from prior scenes */
+  injuryState: string[];
+  /** English only. Emotional states or unresolved tensions carried into this scene */
+  emotionalCarryOver: string[];
+  /** English only. Current ambient lighting conditions */
+  lightingState: string;
+  /** English only. Time of day continuity (e.g. dusk, night, early morning) */
+  timeOfDay: string;
+  /** English only. Specific continuity violations or risks detected in this scene */
+  continuityWarnings: string[];
+  /** English only. Director suggestions to resolve or address continuity warnings */
+  continuityResolutionSuggestions: string[];
+}
+
+/**
+ * Structured cinematic camera direction for the scene (English only)
+ */
+export interface CinematicCamera {
+  /** Primary shot type: Close-up | Medium Shot | Wide Shot | Extreme Wide Shot | POV Shot | Tracking Shot */
+  shotType: string;
+  /** Camera angle: Low Angle | High Angle | Eye Level | Dutch Angle | Over-the-Shoulder */
+  cameraAngle: string;
+  /** Camera movement: Static | Dolly In | Dolly Out | Crane Up | Handheld | Tracking | Orbit */
+  cameraMovement: string;
+  /** Lens style: 35mm cinematic | 50mm portrait | ultra wide | telephoto compression */
+  lensStyle: string;
+  /** English only. Framing composition note (e.g. rule of thirds, centered symmetry, negative space) */
+  framingStyle: string;
+  /** English only. Lighting mood and direction (e.g. cinematic glow, storm shadows, warm sunrise, moody contrast) */
+  lightingStyle: string;
+  /** English only. Editorial pacing feel (e.g. emotional slow pacing, tension pacing, dream pacing) */
+  pacingStyle: string;
+}
+
+/**
+ * A single production shot entry in the scene shotlist (English only)
+ */
+export interface ShotListItem {
+  /** Shot number within the scene, starting from 1 */
+  shotNumber: number;
+  /** English only. Concise visual description of what the camera captures */
+  shotDescription: string;
+  /** English only. Narrative or emotional purpose of this shot */
+  shotPurpose: string;
+  /** English only. Estimated screen time (e.g. 3 seconds, 8–12 seconds) */
+  estimatedDuration: string;
+  /** Transition into the next shot: Fade In | Fade Out | Dissolve | Match Cut | Hard Cut | Iris Transition | Dream Ripple */
+  transitionType: string;
+}
+
+/**
+ * Emotional and cinematic tension tracking for the scene (English only)
+ */
+export interface TensionAnalysis {
+  /** English only. Description of the tension arc within this scene (e.g. builds steadily, sharp spike at midpoint, slow release) */
+  tensionCurve: string;
+  /**
+     * Float 0.00–1.00. Overall emotional intensity of the scene relative to the full story
+     * @minimum 0
+     * @maximum 1
+     */
+  emotionalIntensity: number;
+  /** English only. Editorial pacing assessment (e.g. well-balanced, front-loaded tension, needs breathing room) */
+  pacingBalance: string;
+}
+
 export interface MovieReadinessReport {
   /** 2-5 specific strengths of this story as a film project */
   strengths: string[];
@@ -125,6 +234,22 @@ export interface MovieReadinessReport {
   missingElements: string[];
   /** English only. 2-4 sentence paragraph of practical production advice. */
   productionNotes: string;
+}
+
+/**
+ * Pipeline readiness assessment for downstream production export
+ */
+export interface ExportReadiness {
+  /** True if dialogue, narration, and scene structure are complete enough for screenplay formatting */
+  screenplayReady: boolean;
+  /** True if visual prompts and shot lists are complete enough for storyboard rendering */
+  storyboardReady: boolean;
+  /** True if character profiles and visual prompts meet animation pre-production standards */
+  animationPipelineReady: boolean;
+  /** True if dialogue and voice metadata are complete enough for voice direction and dubbing */
+  voicePipelineReady: boolean;
+  /** True if shotlists and transition types are complete enough for editorial planning */
+  editingPipelineReady: boolean;
 }
 
 export interface Scene {
@@ -141,7 +266,7 @@ export interface Scene {
   visualPrompt: string;
   /** External narrator passages in output language */
   narration: string[];
-  /** Audible spoken dialogue only */
+  /** Audible spoken dialogue with full voice performance metadata */
   dialogue: DialogueLine[];
   /** Brief reactive private reflections */
   thoughts: InternalThought[];
@@ -153,6 +278,11 @@ export interface Scene {
   emotions: CharacterEmotion[];
   audio?: SceneAudio;
   continuityCheck?: SceneContinuityCheck;
+  continuityMemory?: SceneContinuityMemory;
+  cinematicCamera?: CinematicCamera;
+  /** Production-ready shotlist for the scene (English only) */
+  shotList?: ShotListItem[];
+  tensionAnalysis?: TensionAnalysis;
   /** Flashback scenes only. English only. Color grade, film treatment, camera characteristics. */
   flashbackVisualStyle?: string;
   /** Flashback scenes only. English only. Audio treatment suggesting memory. */
@@ -181,6 +311,7 @@ export interface Storyboard {
      */
   productionReadinessScore?: number;
   movieReadinessReport?: MovieReadinessReport;
+  exportReadiness?: ExportReadiness;
 }
 
 export interface ApiError {

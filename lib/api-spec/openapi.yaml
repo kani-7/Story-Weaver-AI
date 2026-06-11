@@ -134,6 +134,7 @@ components:
 
     DialogueLine:
       type: object
+      description: A single spoken line with full voice performance metadata
       properties:
         character:
           type: string
@@ -141,6 +142,27 @@ components:
         line:
           type: string
           description: Spoken words only, no quotation marks
+        vocalEmotion:
+          type: string
+          description: "English only. The emotional quality of the voice delivery (e.g. sadness, joy, anger, fear, contempt, relief, determination)"
+        vocalIntensity:
+          type: number
+          minimum: 0
+          maximum: 1
+          description: "Float 0.00–1.00. 0.90–1.00 = peak intensity, 0.60–0.89 = elevated, 0.30–0.59 = moderate, 0.00–0.29 = subdued"
+        speechSpeed:
+          type: string
+          enum: [slow, normal, fast]
+          description: "English only. Pace of delivery."
+        pauseTiming:
+          type: string
+          description: "English only. Pause quality before or within the line (e.g. dramatic pause, hesitant, no pause, long silence before)"
+        whisperDetection:
+          type: boolean
+          description: True if the line is delivered as a whisper
+        shoutDetection:
+          type: boolean
+          description: True if the line is delivered as a shout or raised voice
       required:
         - character
         - line
@@ -231,6 +253,148 @@ components:
         - status
         - issues
 
+    # ─── Scene Memory Engine ───────────────────────────────────────────────────
+    SceneContinuityMemory:
+      type: object
+      description: Persistent state memory tracked from previous scenes for continuity enforcement
+      properties:
+        clothingState:
+          type: array
+          items:
+            type: string
+          description: "English only. Current clothing/costume state of each character present (e.g. 'Kael: torn jacket, missing left glove')"
+        weatherState:
+          type: string
+          description: "English only. Current weather conditions carried from previous scenes"
+        environmentState:
+          type: string
+          description: "English only. Current environment and location state"
+        objectsPresent:
+          type: array
+          items:
+            type: string
+          description: "English only. Key props and objects present and their state"
+        injuryState:
+          type: array
+          items:
+            type: string
+          description: "English only. Any injuries or physical damage carried from prior scenes"
+        emotionalCarryOver:
+          type: array
+          items:
+            type: string
+          description: "English only. Emotional states or unresolved tensions carried into this scene"
+        lightingState:
+          type: string
+          description: "English only. Current ambient lighting conditions"
+        timeOfDay:
+          type: string
+          description: "English only. Time of day continuity (e.g. dusk, night, early morning)"
+        continuityWarnings:
+          type: array
+          items:
+            type: string
+          description: "English only. Specific continuity violations or risks detected in this scene"
+        continuityResolutionSuggestions:
+          type: array
+          items:
+            type: string
+          description: "English only. Director suggestions to resolve or address continuity warnings"
+      required:
+        - clothingState
+        - weatherState
+        - environmentState
+        - objectsPresent
+        - injuryState
+        - emotionalCarryOver
+        - lightingState
+        - timeOfDay
+        - continuityWarnings
+        - continuityResolutionSuggestions
+
+    # ─── Cinematic Camera System ───────────────────────────────────────────────
+    CinematicCamera:
+      type: object
+      description: Structured cinematic camera direction for the scene (English only)
+      properties:
+        shotType:
+          type: string
+          description: "Primary shot type: Close-up | Medium Shot | Wide Shot | Extreme Wide Shot | POV Shot | Tracking Shot"
+        cameraAngle:
+          type: string
+          description: "Camera angle: Low Angle | High Angle | Eye Level | Dutch Angle | Over-the-Shoulder"
+        cameraMovement:
+          type: string
+          description: "Camera movement: Static | Dolly In | Dolly Out | Crane Up | Handheld | Tracking | Orbit"
+        lensStyle:
+          type: string
+          description: "Lens style: 35mm cinematic | 50mm portrait | ultra wide | telephoto compression"
+        framingStyle:
+          type: string
+          description: "English only. Framing composition note (e.g. rule of thirds, centered symmetry, negative space)"
+        lightingStyle:
+          type: string
+          description: "English only. Lighting mood and direction (e.g. cinematic glow, storm shadows, warm sunrise, moody contrast)"
+        pacingStyle:
+          type: string
+          description: "English only. Editorial pacing feel (e.g. emotional slow pacing, tension pacing, dream pacing)"
+      required:
+        - shotType
+        - cameraAngle
+        - cameraMovement
+        - lensStyle
+        - framingStyle
+        - lightingStyle
+        - pacingStyle
+
+    # ─── Storyboard Shotlist Engine ────────────────────────────────────────────
+    ShotListItem:
+      type: object
+      description: A single production shot entry in the scene shotlist (English only)
+      properties:
+        shotNumber:
+          type: integer
+          description: Shot number within the scene, starting from 1
+        shotDescription:
+          type: string
+          description: "English only. Concise visual description of what the camera captures"
+        shotPurpose:
+          type: string
+          description: "English only. Narrative or emotional purpose of this shot"
+        estimatedDuration:
+          type: string
+          description: "English only. Estimated screen time (e.g. 3 seconds, 8–12 seconds)"
+        transitionType:
+          type: string
+          description: "Transition into the next shot: Fade In | Fade Out | Dissolve | Match Cut | Hard Cut | Iris Transition | Dream Ripple"
+      required:
+        - shotNumber
+        - shotDescription
+        - shotPurpose
+        - estimatedDuration
+        - transitionType
+
+    # ─── Cinematic Tension Analysis ────────────────────────────────────────────
+    TensionAnalysis:
+      type: object
+      description: Emotional and cinematic tension tracking for the scene (English only)
+      properties:
+        tensionCurve:
+          type: string
+          description: "English only. Description of the tension arc within this scene (e.g. builds steadily, sharp spike at midpoint, slow release)"
+        emotionalIntensity:
+          type: number
+          minimum: 0
+          maximum: 1
+          description: "Float 0.00–1.00. Overall emotional intensity of the scene relative to the full story"
+        pacingBalance:
+          type: string
+          description: "English only. Editorial pacing assessment (e.g. well-balanced, front-loaded tension, needs breathing room)"
+      required:
+        - tensionCurve
+        - emotionalIntensity
+        - pacingBalance
+
     # ─── Production Assessment Schemas ────────────────────────────────────────
     MovieReadinessReport:
       type: object
@@ -258,6 +422,33 @@ components:
         - weaknesses
         - missingElements
         - productionNotes
+
+    # ─── Export Preparation System ─────────────────────────────────────────────
+    ExportReadiness:
+      type: object
+      description: Pipeline readiness assessment for downstream production export
+      properties:
+        screenplayReady:
+          type: boolean
+          description: True if dialogue, narration, and scene structure are complete enough for screenplay formatting
+        storyboardReady:
+          type: boolean
+          description: True if visual prompts and shot lists are complete enough for storyboard rendering
+        animationPipelineReady:
+          type: boolean
+          description: True if character profiles and visual prompts meet animation pre-production standards
+        voicePipelineReady:
+          type: boolean
+          description: True if dialogue and voice metadata are complete enough for voice direction and dubbing
+        editingPipelineReady:
+          type: boolean
+          description: True if shotlists and transition types are complete enough for editorial planning
+      required:
+        - screenplayReady
+        - storyboardReady
+        - animationPipelineReady
+        - voicePipelineReady
+        - editingPipelineReady
 
     # ─── Scene Schema ──────────────────────────────────────────────────────────
     Scene:
@@ -294,7 +485,7 @@ components:
           items:
             $ref: "#/components/schemas/DialogueLine"
           default: []
-          description: Audible spoken dialogue only
+          description: Audible spoken dialogue with full voice performance metadata
         thoughts:
           type: array
           items:
@@ -323,6 +514,17 @@ components:
           $ref: "#/components/schemas/SceneAudio"
         continuityCheck:
           $ref: "#/components/schemas/SceneContinuityCheck"
+        continuityMemory:
+          $ref: "#/components/schemas/SceneContinuityMemory"
+        cinematicCamera:
+          $ref: "#/components/schemas/CinematicCamera"
+        shotList:
+          type: array
+          items:
+            $ref: "#/components/schemas/ShotListItem"
+          description: Production-ready shotlist for the scene (English only)
+        tensionAnalysis:
+          $ref: "#/components/schemas/TensionAnalysis"
         flashbackVisualStyle:
           type: string
           description: "Flashback scenes only. English only. Color grade, film treatment, camera characteristics."
@@ -380,6 +582,8 @@ components:
           description: "Overall production readiness: 90-100 festival-ready, 70-89 solid draft, 50-69 promising, <50 needs development"
         movieReadinessReport:
           $ref: "#/components/schemas/MovieReadinessReport"
+        exportReadiness:
+          $ref: "#/components/schemas/ExportReadiness"
       required:
         - title
         - characters

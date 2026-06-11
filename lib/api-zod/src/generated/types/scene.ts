@@ -7,12 +7,16 @@
  */
 import type { CharacterAction } from './characterAction';
 import type { CharacterEmotion } from './characterEmotion';
+import type { CinematicCamera } from './cinematicCamera';
 import type { DialogueLine } from './dialogueLine';
 import type { InternalMonologueLine } from './internalMonologueLine';
 import type { InternalThought } from './internalThought';
 import type { SceneAudio } from './sceneAudio';
 import type { SceneContinuityCheck } from './sceneContinuityCheck';
+import type { SceneContinuityMemory } from './sceneContinuityMemory';
 import type { SceneType } from './sceneType';
+import type { ShotListItem } from './shotListItem';
+import type { TensionAnalysis } from './tensionAnalysis';
 
 export interface Scene {
   /** Sequential scene number starting from 1 */
@@ -28,7 +32,7 @@ export interface Scene {
   visualPrompt: string;
   /** External narrator passages in output language */
   narration: string[];
-  /** Audible spoken dialogue only */
+  /** Audible spoken dialogue with full voice performance metadata */
   dialogue: DialogueLine[];
   /** Brief reactive private reflections */
   thoughts: InternalThought[];
@@ -40,6 +44,11 @@ export interface Scene {
   emotions: CharacterEmotion[];
   audio?: SceneAudio;
   continuityCheck?: SceneContinuityCheck;
+  continuityMemory?: SceneContinuityMemory;
+  cinematicCamera?: CinematicCamera;
+  /** Production-ready shotlist for the scene (English only) */
+  shotList?: ShotListItem[];
+  tensionAnalysis?: TensionAnalysis;
   /** Flashback scenes only. English only. Color grade, film treatment, camera characteristics. */
   flashbackVisualStyle?: string;
   /** Flashback scenes only. English only. Audio treatment suggesting memory. */

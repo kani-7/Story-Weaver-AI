@@ -5,10 +5,30 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { DialogueLineSpeechSpeed } from './dialogueLineSpeechSpeed';
 
+/**
+ * A single spoken line with full voice performance metadata
+ */
 export interface DialogueLine {
   /** Exact character name from profile */
   character: string;
   /** Spoken words only, no quotation marks */
   line: string;
+  /** English only. The emotional quality of the voice delivery (e.g. sadness, joy, anger, fear, contempt, relief, determination) */
+  vocalEmotion?: string;
+  /**
+     * Float 0.00–1.00. 0.90–1.00 = peak intensity, 0.60–0.89 = elevated, 0.30–0.59 = moderate, 0.00–0.29 = subdued
+     * @minimum 0
+     * @maximum 1
+     */
+  vocalIntensity?: number;
+  /** English only. Pace of delivery. */
+  speechSpeed?: DialogueLineSpeechSpeed;
+  /** English only. Pause quality before or within the line (e.g. dramatic pause, hesitant, no pause, long silence before) */
+  pauseTiming?: string;
+  /** True if the line is delivered as a whisper */
+  whisperDetection?: boolean;
+  /** True if the line is delivered as a shout or raised voice */
+  shoutDetection?: boolean;
 }

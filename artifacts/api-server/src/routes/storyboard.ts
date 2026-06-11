@@ -23,7 +23,7 @@ async function callGemini(prompt: string): Promise<unknown> {
   const response = await ai.models.generateContent({
     model: "gemini-2.5-flash",
     contents: [{ role: "user", parts: [{ text: prompt }] }],
-    config: { maxOutputTokens: 16384, responseMimeType: "application/json" },
+    config: { maxOutputTokens: 32768, responseMimeType: "application/json" },
   });
 
   const text = response.text;
@@ -200,7 +200,101 @@ After analyzing all scenes, generate two top-level assessment fields:
   - "strengths": Array of 2–5 English strings, each naming one specific strength of this story as a film project.
   - "weaknesses": Array of 1–4 English strings, each naming one specific weakness or underdeveloped element.
   - "missingElements": Array of 0–3 English strings naming specific story elements that would strengthen the film but are absent (e.g. "antagonist motivation", "second-act midpoint reversal").
-  - "productionNotes": Single English paragraph (2–4 sentences) of practical production advice — budget implications, visual style recommendations, tone guidance, or casting considerations.
+  - "productionNotes": Single English paragraph (2–4 sentences) of practical production advice — budget implications, visual style recommendations, tone guidance, or casting considerations. Do NOT mention specific AI image generation platforms.
+
+═══════════════════════════════════════════════
+ADVANCED VOICE PERFORMANCE SYSTEM
+═══════════════════════════════════════════════
+For every entry in the "dialogue" array, add complete voice acting metadata. All voice fields ENGLISH ONLY.
+
+Required additional fields per dialogue line:
+• "vocalEmotion" (ENGLISH ONLY): The emotional quality of the voice delivery — one precise word or short phrase (e.g. "grief-stricken", "defiant", "tender", "barely controlled rage", "hollow numbness").
+• "vocalIntensity": Float 0.00–1.00. Peak delivery intensity. 0.90–1.00 = maximum intensity; 0.60–0.89 = elevated; 0.30–0.59 = moderate; 0.00–0.29 = subdued.
+• "speechSpeed": Exactly one of "slow" | "normal" | "fast".
+• "pauseTiming" (ENGLISH ONLY): Pause quality before or within the line (e.g. "no pause", "dramatic pause before line", "mid-line hesitation", "long silence before").
+• "whisperDetection": true if the line is physically whispered; false otherwise.
+• "shoutDetection": true if the line is shouted or forcefully raised; false otherwise.
+
+Voice rules:
+- whisperDetection and shoutDetection cannot both be true.
+- vocalIntensity must align with the scene's emotions for that character.
+- speechSpeed must reflect emotional state: grief/shock → slow; urgency/anger → fast.
+
+═══════════════════════════════════════════════
+CINEMATIC CAMERA SYSTEM
+═══════════════════════════════════════════════
+For every scene, generate a complete "cinematicCamera" block. All fields ENGLISH ONLY.
+
+Required fields:
+• "shotType": Exactly one of "Close-up" | "Medium Shot" | "Wide Shot" | "Extreme Wide Shot" | "POV Shot" | "Tracking Shot"
+• "cameraAngle": Exactly one of "Low Angle" | "High Angle" | "Eye Level" | "Dutch Angle" | "Over-the-Shoulder"
+• "cameraMovement": Exactly one of "Static" | "Dolly In" | "Dolly Out" | "Crane Up" | "Handheld" | "Tracking" | "Orbit"
+• "lensStyle": Exactly one of "35mm cinematic" | "50mm portrait" | "ultra wide" | "telephoto compression"
+• "framingStyle": One concise composition phrase (e.g. "rule of thirds — subject left", "centered symmetry", "foreground obstruction with depth")
+• "lightingStyle": One concise lighting phrase (e.g. "cinematic glow from below", "storm shadow backlight", "warm golden sunrise fill", "moody high-contrast side fill")
+• "pacingStyle": One editorial pacing phrase (e.g. "emotional slow pacing — linger on face", "tension pacing — rapid cut-ready", "dream pacing — weightless and drifting")
+
+Camera rules: intimate/emotional moments → Close-up or Medium Shot; establishing shots → Wide Shot or Extreme Wide Shot; Flashback → prefer "35mm cinematic"; Dream → prefer "Handheld" or "Orbit" with "ultra wide"; Imagination → prefer "Dutch Angle".
+
+═══════════════════════════════════════════════
+STORYBOARD SHOTLIST ENGINE
+═══════════════════════════════════════════════
+For every scene, generate a production-ready "shotList" array with 2–5 shot entries. All fields ENGLISH ONLY.
+
+Each shot entry fields:
+• "shotNumber": Integer starting from 1 within this scene
+• "shotDescription": Concise description of what the camera captures — subject, action, background
+• "shotPurpose": The specific narrative or emotional purpose of this shot
+• "estimatedDuration": Estimated screen time (e.g. "3 seconds", "8–12 seconds", "1.5 seconds")
+• "transitionType": Exactly one of "Fade In" | "Fade Out" | "Dissolve" | "Match Cut" | "Hard Cut" | "Iris Transition" | "Dream Ripple"
+
+Shot rules:
+- First shot of scene 1 of the entire storyboard → use "Fade In" for its transitionType.
+- Last shot of an emotional scene → "Fade Out" or "Dissolve".
+- Action/tension scene exits → "Hard Cut".
+- Dream/Imagination scene exits → "Dream Ripple".
+- estimatedDuration must reflect pacing: slow emotional shots → longer; action → shorter.
+
+═══════════════════════════════════════════════
+SCENE MEMORY ENGINE
+═══════════════════════════════════════════════
+For every scene, generate a "continuityMemory" block tracking the accumulated world state. All fields ENGLISH ONLY.
+
+Required fields:
+• "clothingState": Array — one entry per named character in this scene with their exact current clothing state (e.g. "Kael: torn black jacket, missing left glove")
+• "weatherState": Current weather conditions visible in this scene
+• "environmentState": Current location and environment state with any changes from previous scenes noted
+• "objectsPresent": Array of key props present and their current state
+• "injuryState": Array — one entry per named character noting any injuries, or "uninjured"
+• "emotionalCarryOver": Array of emotional states or unresolved tensions carried into this scene from prior events
+• "lightingState": Current ambient lighting conditions
+• "timeOfDay": Current time of day
+• "continuityWarnings": Array of specific continuity violations or risks. Return [] if none.
+• "continuityResolutionSuggestions": Array of director suggestions to resolve each warning. Return [] if no warnings.
+
+Memory rules: clothingState and injuryState MUST include every named character present. Flashback scenes: clothingState must reflect the flashback era. Flag warnings if: clothing changes without explanation, weather shifts without transition, props appear/disappear, injuries heal too quickly.
+
+═══════════════════════════════════════════════
+CINEMATIC TENSION ANALYSIS
+═══════════════════════════════════════════════
+For every scene, generate a "tensionAnalysis" block. All fields ENGLISH ONLY.
+
+Required fields:
+• "tensionCurve": One specific sentence describing the tension arc within this scene (e.g. "builds steadily toward the confrontation then releases sharply at the reveal")
+• "emotionalIntensity": Float 0.00–1.00. Calibrate: climax scene = 0.85–1.00; establishing scene = 0.10–0.35; rising action = 0.40–0.70.
+• "pacingBalance": One phrase assessing the editorial pacing (e.g. "well-balanced", "front-loaded — needs breathing room", "too compressed")
+
+Tension rules: emotionalIntensity must align with the emotions array confidence scores. tensionCurve must be specific to this scene's actual events, never generic.
+
+═══════════════════════════════════════════════
+EXPORT PREPARATION SYSTEM
+═══════════════════════════════════════════════
+After all scenes, generate a top-level "exportReadiness" assessment reflecting actual completeness:
+• "screenplayReady": true if ALL scenes have narration, complete dialogue, and full scene descriptions.
+• "storyboardReady": true if ALL scenes have a visualPrompt of 40+ words AND a complete shotList.
+• "animationPipelineReady": true if ALL characters have distinctiveFeatures AND voiceStyle AND ALL scenes have cinematicCamera AND visualPrompt.
+• "voicePipelineReady": true if ALL dialogue lines have vocalEmotion, vocalIntensity, speechSpeed, whisperDetection, and shoutDetection.
+• "editingPipelineReady": true if ALL scenes have a complete shotList with transitionType on every shot.
 
 Return ONLY valid JSON (no markdown, no code blocks):
 {
@@ -227,7 +321,16 @@ Return ONLY valid JSON (no markdown, no code blocks):
       "visualPrompt": "ENGLISH ONLY. 40-80 words. Vivid 3D cartoon production prompt referencing each present character's distinctiveFeatures. Include lighting, camera angle, environment, poses, mood, color palette. Non-Present scenes include temporal/mental visual language. Style: vibrant 3D cartoon render, Pixar-inspired, cinematic composition.",
       "narration": ["Narrator passage in ${outputLanguageName}"],
       "dialogue": [
-        { "character": "Exact name from profile", "line": "Spoken words in ${outputLanguageName}, no quotation marks" }
+        {
+          "character": "Exact name from profile",
+          "line": "Spoken words in ${outputLanguageName}, no quotation marks",
+          "vocalEmotion": "ENGLISH ONLY. Emotional quality of delivery (e.g. grief-stricken, defiant, tender)",
+          "vocalIntensity": 0.72,
+          "speechSpeed": "slow",
+          "pauseTiming": "ENGLISH ONLY. e.g. dramatic pause before line",
+          "whisperDetection": false,
+          "shoutDetection": false
+        }
       ],
       "thoughts": [
         { "character": "Exact name from profile", "thought": "Brief internal reflection in ${outputLanguageName}, no quotation marks" }
@@ -250,6 +353,41 @@ Return ONLY valid JSON (no markdown, no code blocks):
         "status": "Pass",
         "issues": []
       },
+      "continuityMemory": {
+        "clothingState": ["Character A: current clothing state"],
+        "weatherState": "ENGLISH ONLY. Current weather conditions",
+        "environmentState": "ENGLISH ONLY. Current location and environment state",
+        "objectsPresent": ["Key prop and state"],
+        "injuryState": ["Character A: uninjured"],
+        "emotionalCarryOver": ["Emotion or tension carried from previous scene, or leave empty"],
+        "lightingState": "ENGLISH ONLY. Current ambient lighting",
+        "timeOfDay": "ENGLISH ONLY. Current time of day",
+        "continuityWarnings": [],
+        "continuityResolutionSuggestions": []
+      },
+      "cinematicCamera": {
+        "shotType": "Medium Shot",
+        "cameraAngle": "Eye Level",
+        "cameraMovement": "Static",
+        "lensStyle": "35mm cinematic",
+        "framingStyle": "ENGLISH ONLY. Composition note (e.g. rule of thirds — subject left)",
+        "lightingStyle": "ENGLISH ONLY. Lighting mood (e.g. cinematic glow from below)",
+        "pacingStyle": "ENGLISH ONLY. Editorial pacing feel (e.g. emotional slow pacing)"
+      },
+      "shotList": [
+        {
+          "shotNumber": 1,
+          "shotDescription": "ENGLISH ONLY. What the camera captures",
+          "shotPurpose": "ENGLISH ONLY. Narrative or emotional purpose",
+          "estimatedDuration": "ENGLISH ONLY. e.g. 3 seconds",
+          "transitionType": "Hard Cut"
+        }
+      ],
+      "tensionAnalysis": {
+        "tensionCurve": "ENGLISH ONLY. Specific sentence describing tension arc in this scene",
+        "emotionalIntensity": 0.65,
+        "pacingBalance": "ENGLISH ONLY. Editorial pacing assessment"
+      },
       "flashbackVisualStyle": "ONLY for Flashback scenes — ENGLISH ONLY color grade, film treatment, camera characteristics. Omit for Present/Dream/Imagination.",
       "flashbackAudioStyle": "ONLY for Flashback scenes — ENGLISH ONLY audio treatment. Omit for Present/Dream/Imagination.",
       "dreamVisualStyle": "ONLY for Dream scenes — ENGLISH ONLY visual treatment. Omit for Present/Flashback/Imagination.",
@@ -265,6 +403,13 @@ Return ONLY valid JSON (no markdown, no code blocks):
     "weaknesses": ["Specific weakness 1"],
     "missingElements": ["Missing element if any"],
     "productionNotes": "ENGLISH ONLY. 2-4 sentence paragraph of practical production advice."
+  },
+  "exportReadiness": {
+    "screenplayReady": true,
+    "storyboardReady": true,
+    "animationPipelineReady": true,
+    "voicePipelineReady": true,
+    "editingPipelineReady": true
   }
 }
 
@@ -287,6 +432,11 @@ Final rules:
 - Each visualPrompt: English only, 40-80 words, vivid, references character distinctiveFeatures
 - Scene "characters" arrays MUST use the EXACT same name as in the character profile
 - Output language Unicode must be preserved exactly — never escape, romanize, or drop characters
+- Every scene MUST have "continuityMemory" (with all 10 required fields), "cinematicCamera" (with all 7 fields), "shotList" (2–5 entries each with all 5 fields), and "tensionAnalysis" (with all 3 fields)
+- Every dialogue line MUST have "vocalEmotion", "vocalIntensity", "speechSpeed", "pauseTiming", "whisperDetection", "shoutDetection"
+- All voice performance, camera, shotList, continuityMemory, and tensionAnalysis fields are ENGLISH ONLY
+- "exportReadiness" at the top level MUST reflect actual completeness: evaluate each boolean honestly against the generated content
+- "continuityMemory.clothingState" and "continuityMemory.injuryState" MUST include every named character present in this scene
 - Return ONLY the JSON object, nothing else`;
 
   // ─── Attempt 1: Call Gemini ─────────────────────────────────────────────────

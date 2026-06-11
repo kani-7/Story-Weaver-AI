@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { CharacterProfile } from './characterProfile';
+import type { ExportReadiness } from './exportReadiness';
 import type { MovieReadinessReport } from './movieReadinessReport';
 import type { Scene } from './scene';
 
@@ -21,4 +22,5 @@ export interface Storyboard {
      */
   productionReadinessScore?: number;
   movieReadinessReport?: MovieReadinessReport;
+  exportReadiness?: ExportReadiness;
 }

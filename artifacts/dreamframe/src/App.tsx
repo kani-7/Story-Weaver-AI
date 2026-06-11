@@ -15,6 +15,11 @@ import {
   type InternalMonologueLine,
   type CharacterAction,
   type CharacterEmotion,
+  type CinematicCamera,
+  type ShotListItem,
+  type TensionAnalysis,
+  type SceneContinuityMemory,
+  type ExportReadiness,
 } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -108,6 +113,34 @@ const translations: Record<UILang, Record<string, string>> = {
     reportMissing: "Missing Elements",
     reportNotes: "Production Notes",
     outOf100: "/ 100",
+    voicePerformance: "Voice Performance",
+    vocalEmotion: "Emotion",
+    vocalIntensity: "Intensity",
+    speechSpeed: "Speed",
+    pauseTiming: "Pause",
+    cinematicCamera: "Cinematic Direction",
+    shotType: "Shot Type",
+    cameraAngle: "Angle",
+    cameraMovement: "Movement",
+    lensStyle: "Lens",
+    framingStyle: "Framing",
+    lightingStyle: "Lighting",
+    pacingStyle: "Pacing",
+    shotList: "Shot List",
+    tensionAnalysis: "Tension Analysis",
+    emotionalIntensity: "Intensity",
+    tensionCurve: "Tension Curve",
+    pacingBalance: "Pacing",
+    continuityWarnings: "Continuity Warnings",
+    continuityMemoryState: "Scene Memory",
+    exportReadiness: "Export Readiness",
+    screenplayReady: "Screenplay",
+    storyboardReady: "Storyboard",
+    animationReady: "Animation",
+    voicePipelineReady: "Voice Pipeline",
+    editingReady: "Editing",
+    ready: "Ready",
+    notReady: "Not Ready",
   },
   si: {
     subtitle: "අධ්‍යක්ෂකගේ පුටුවට ඇතුළු වන්න. ඔබේ කතාව ඇතුළු කර ක්ෂණිකව ස්ටෝරිබෝර්ඩ් එකක් ලබා ගන්න.",
@@ -178,6 +211,34 @@ const translations: Record<UILang, Record<string, string>> = {
     reportMissing: "අස්ථාන අංග",
     reportNotes: "නිෂ්පාදන සටහන්",
     outOf100: "/ 100",
+    voicePerformance: "කටහඬ රූපකරණය",
+    vocalEmotion: "හැඟීම",
+    vocalIntensity: "තීව්‍රතාව",
+    speechSpeed: "වේගය",
+    pauseTiming: "විරාමය",
+    cinematicCamera: "චිත්‍රමය දිශාව",
+    shotType: "රූ වර්ගය",
+    cameraAngle: "කෝණය",
+    cameraMovement: "චලනය",
+    lensStyle: "ලෙන්ස",
+    framingStyle: "රාමුව",
+    lightingStyle: "ආලෝකය",
+    pacingStyle: "ගමන",
+    shotList: "රූ ලැයිස්තුව",
+    tensionAnalysis: "ආතතිය",
+    emotionalIntensity: "හැඟීම් තීව්‍රතාව",
+    tensionCurve: "ආතතිය රේඛාව",
+    pacingBalance: "ගමන සමතුලිතතාව",
+    continuityWarnings: "අඛණ්ඩතා අනතුරු",
+    continuityMemoryState: "දර්ශන මතකය",
+    exportReadiness: "අපනයන සූදානම",
+    screenplayReady: "තිරකතාව",
+    storyboardReady: "ස්ටෝරිබෝඩ්",
+    animationReady: "ඇනිමේෂන්",
+    voicePipelineReady: "කටහඬ",
+    editingReady: "සංස්කරණය",
+    ready: "සූදානම්",
+    notReady: "සූදානම් නැත",
   },
   ta: {
     subtitle: "இயக்குனரின் இருக்கையில் அமருங்கள். உங்கள் கதையை ஒட்டவும், நொடியில் திரைக்கதை உருவாகும்.",
@@ -248,6 +309,34 @@ const translations: Record<UILang, Record<string, string>> = {
     reportMissing: "விடுபட்ட கூறுகள்",
     reportNotes: "தயாரிப்பு குறிப்புகள்",
     outOf100: "/ 100",
+    voicePerformance: "குரல் நடிப்பு",
+    vocalEmotion: "உணர்வு",
+    vocalIntensity: "தீவிரம்",
+    speechSpeed: "வேகம்",
+    pauseTiming: "இடைவெளி",
+    cinematicCamera: "திரையரங்க திசை",
+    shotType: "ஷாட் வகை",
+    cameraAngle: "கோணம்",
+    cameraMovement: "இயக்கம்",
+    lensStyle: "லென்ஸ்",
+    framingStyle: "சட்டம்",
+    lightingStyle: "வெளிச்சம்",
+    pacingStyle: "வேகம்",
+    shotList: "ஷாட் பட்டியல்",
+    tensionAnalysis: "பதற்ற பகுப்பாய்வு",
+    emotionalIntensity: "உணர்வு தீவிரம்",
+    tensionCurve: "பதற்ற வளைவு",
+    pacingBalance: "வேக சமநிலை",
+    continuityWarnings: "தொடர்ச்சி எச்சரிக்கைகள்",
+    continuityMemoryState: "காட்சி நினைவு",
+    exportReadiness: "ஏற்றுமதி தயார்நிலை",
+    screenplayReady: "திரைக்கதை",
+    storyboardReady: "ஸ்டோரிபோர்ட்",
+    animationReady: "அனிமேஷன்",
+    voicePipelineReady: "குரல்",
+    editingReady: "திருத்தம்",
+    ready: "தயார்",
+    notReady: "தயாரில்லை",
   },
 };
 
@@ -754,6 +843,47 @@ function Home() {
                                         <span className="text-[9px] font-bold uppercase tracking-widest text-emerald-500/70 pt-0.5 shrink-0">{t.dialogueLabel}:</span>
                                         <span className="text-sm text-emerald-100/80 leading-relaxed">"{dl.line}"</span>
                                       </div>
+                                      {/* Voice Performance Metadata */}
+                                      {(dl.vocalEmotion || dl.vocalIntensity !== undefined || dl.speechSpeed || dl.whisperDetection || dl.shoutDetection) && (
+                                        <div className="flex flex-wrap items-center gap-1.5 pt-1.5 mt-0.5 border-t border-emerald-400/10">
+                                          {dl.vocalEmotion && (
+                                            <span className="text-[8px] font-semibold uppercase tracking-wider text-emerald-200/55 bg-emerald-950/50 px-1.5 py-0.5 rounded border border-emerald-400/12 italic">
+                                              {dl.vocalEmotion}
+                                            </span>
+                                          )}
+                                          {dl.vocalIntensity !== undefined && (
+                                            <div className="flex items-center gap-1">
+                                              <span className="text-[7px] text-emerald-500/40 uppercase tracking-wider">{t.vocalIntensity}</span>
+                                              <div className="w-10 h-1 bg-emerald-950/60 rounded-full overflow-hidden">
+                                                <div className="h-full bg-emerald-400/50 rounded-full" style={{ width: `${Math.round(dl.vocalIntensity * 100)}%` }} />
+                                              </div>
+                                              <span className="text-[7px] font-mono text-emerald-400/40">{Math.round(dl.vocalIntensity * 100)}%</span>
+                                            </div>
+                                          )}
+                                          {dl.speechSpeed && (
+                                            <span className={`text-[7px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded border ${
+                                              dl.speechSpeed === "slow" ? "text-sky-300/60 border-sky-400/15 bg-sky-950/20" :
+                                              dl.speechSpeed === "fast" ? "text-orange-300/60 border-orange-400/15 bg-orange-950/20" :
+                                              "text-emerald-400/40 border-emerald-400/10"
+                                            }`}>
+                                              {dl.speechSpeed}
+                                            </span>
+                                          )}
+                                          {dl.whisperDetection && (
+                                            <span className="text-[7px] font-bold uppercase tracking-wider text-sky-300/60 border-sky-400/15 bg-sky-950/20 px-1.5 py-0.5 rounded border flex items-center gap-0.5">
+                                              <Mic2 className="w-2 h-2" /> whisper
+                                            </span>
+                                          )}
+                                          {dl.shoutDetection && (
+                                            <span className="text-[7px] font-bold uppercase tracking-wider text-red-300/60 border-red-400/15 bg-red-950/20 px-1.5 py-0.5 rounded border">
+                                              shout
+                                            </span>
+                                          )}
+                                          {dl.pauseTiming && dl.pauseTiming !== "no pause" && (
+                                            <span className="text-[7px] text-emerald-500/35 italic">⏸ {dl.pauseTiming}</span>
+                                          )}
+                                        </div>
+                                      )}
                                     </div>
                                   ))}
                                 </div>
@@ -957,6 +1087,123 @@ function Home() {
                         </div>
                       )}
 
+                      {/* Continuity Memory Warnings */}
+                      {scene.continuityMemory && scene.continuityMemory.continuityWarnings && scene.continuityMemory.continuityWarnings.length > 0 && (
+                        <div className="px-6 py-4 border-t border-white/5">
+                          <div className="flex items-center gap-2 mb-3">
+                            <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
+                            <span className="text-[10px] font-bold uppercase tracking-widest text-amber-400">{t.continuityWarnings}</span>
+                          </div>
+                          <div className="space-y-1.5">
+                            {scene.continuityMemory.continuityWarnings.map((w: string, wi: number) => (
+                              <div key={wi} className="flex items-start gap-2 px-3 py-1.5 rounded bg-amber-950/20 border border-amber-400/10">
+                                <AlertTriangle className="w-2.5 h-2.5 text-amber-400/60 shrink-0 mt-0.5" />
+                                <p className="text-[11px] text-amber-100/65 leading-relaxed">{w}</p>
+                              </div>
+                            ))}
+                            {scene.continuityMemory.continuityResolutionSuggestions && scene.continuityMemory.continuityResolutionSuggestions.length > 0 && (
+                              <div className="mt-2 space-y-1 pl-1">
+                                {scene.continuityMemory.continuityResolutionSuggestions.map((s: string, sri: number) => (
+                                  <p key={sri} className="text-[10px] text-amber-300/45 italic pl-3 border-l border-amber-400/15">{s}</p>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Cinematic Camera */}
+                      {scene.cinematicCamera && (
+                        <div className="px-6 py-4 border-t border-white/5">
+                          <div className="flex items-center gap-2 mb-3">
+                            <Video className="w-3.5 h-3.5 text-cyan-400" />
+                            <span className="text-[10px] font-bold uppercase tracking-widest text-cyan-400">{t.cinematicCamera}</span>
+                          </div>
+                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                            {([
+                              { label: t.shotType, value: scene.cinematicCamera.shotType },
+                              { label: t.cameraAngle, value: scene.cinematicCamera.cameraAngle },
+                              { label: t.cameraMovement, value: scene.cinematicCamera.cameraMovement },
+                              { label: t.lensStyle, value: scene.cinematicCamera.lensStyle },
+                              { label: t.framingStyle, value: scene.cinematicCamera.framingStyle },
+                              { label: t.lightingStyle, value: scene.cinematicCamera.lightingStyle },
+                            ] as { label: string; value: string | undefined }[]).filter(item => item.value).map((item, idx) => (
+                              <div key={idx} className="rounded-md bg-cyan-950/20 border border-cyan-400/10 px-2.5 py-1.5">
+                                <div className="text-[8px] font-bold uppercase tracking-wider text-cyan-500/55 mb-0.5">{item.label}</div>
+                                <div className="text-[11px] text-cyan-100/70 leading-tight">{item.value}</div>
+                              </div>
+                            ))}
+                          </div>
+                          {scene.cinematicCamera.pacingStyle && (
+                            <p className="text-xs text-cyan-200/45 italic leading-relaxed mt-2.5 pl-3 border-l border-cyan-400/15">{scene.cinematicCamera.pacingStyle}</p>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Shot List */}
+                      {scene.shotList && scene.shotList.length > 0 && (
+                        <div className="px-6 py-4 border-t border-white/5">
+                          <div className="flex items-center gap-2 mb-3">
+                            <Clapperboard className="w-3.5 h-3.5 text-indigo-400" />
+                            <span className="text-[10px] font-bold uppercase tracking-widest text-indigo-400">{t.shotList}</span>
+                          </div>
+                          <div className="space-y-2">
+                            {(scene.shotList as ShotListItem[]).map((shot, si) => (
+                              <div key={si} className="rounded-lg bg-indigo-950/15 border border-indigo-400/10 px-3 py-2 space-y-1">
+                                <div className="flex items-center justify-between gap-2">
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-[9px] font-black text-indigo-400/70 bg-indigo-950/40 px-1.5 py-0.5 rounded border border-indigo-400/15 font-mono">
+                                      #{String(shot.shotNumber).padStart(2, "0")}
+                                    </span>
+                                    <span className="text-[9px] text-indigo-400/50 uppercase tracking-wider">{shot.estimatedDuration}</span>
+                                  </div>
+                                  <span className="text-[8px] font-bold uppercase tracking-wider text-indigo-300/45 bg-indigo-950/25 px-1.5 py-0.5 rounded border border-indigo-400/10">
+                                    → {shot.transitionType}
+                                  </span>
+                                </div>
+                                <p className="text-xs text-indigo-100/60 leading-relaxed">{shot.shotDescription}</p>
+                                <p className="text-[10px] text-indigo-300/40 italic">{shot.shotPurpose}</p>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Tension Analysis */}
+                      {scene.tensionAnalysis && (
+                        <div className="px-6 py-4 border-t border-white/5">
+                          <div className="flex items-center gap-2 mb-3">
+                            <Zap className="w-3.5 h-3.5 text-yellow-400" />
+                            <span className="text-[10px] font-bold uppercase tracking-widest text-yellow-400">{t.tensionAnalysis}</span>
+                          </div>
+                          <div className="space-y-2">
+                            <div className="flex items-center gap-2">
+                              <span className="text-[8px] font-bold uppercase tracking-wider text-yellow-500/55 w-16 shrink-0">{t.emotionalIntensity}</span>
+                              <div className="flex-1 h-1.5 bg-yellow-950/40 rounded-full overflow-hidden">
+                                <div
+                                  className="h-full rounded-full"
+                                  style={{
+                                    width: `${Math.round(scene.tensionAnalysis.emotionalIntensity * 100)}%`,
+                                    background: `hsl(${45 + (1 - scene.tensionAnalysis.emotionalIntensity) * 40}, 85%, 58%)`,
+                                  }}
+                                />
+                              </div>
+                              <span className="text-[9px] font-mono text-yellow-400/50 w-7 text-right tabular-nums">
+                                {Math.round(scene.tensionAnalysis.emotionalIntensity * 100)}%
+                              </span>
+                            </div>
+                            {scene.tensionAnalysis.tensionCurve && (
+                              <p className="text-xs text-yellow-100/55 italic leading-relaxed pl-3 border-l border-yellow-400/15">
+                                {scene.tensionAnalysis.tensionCurve}
+                              </p>
+                            )}
+                            {scene.tensionAnalysis.pacingBalance && (
+                              <p className="text-[10px] text-yellow-300/40 leading-relaxed">{scene.tensionAnalysis.pacingBalance}</p>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
                       {/* Director's Note */}
                       <div className="p-6 bg-black/40 relative">
                         <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-primary/50 to-transparent" />
@@ -1068,6 +1315,43 @@ function Home() {
                       </Card>
                     </div>
                   )}
+                </div>
+              </motion.div>
+            )}
+
+            {/* Export Readiness */}
+            {storyboard.exportReadiness && (
+              <motion.div variants={itemVariants} className="space-y-4">
+                <div className="flex items-center gap-3">
+                  <Film className="w-6 h-6 text-cyan-400" />
+                  <h3 className="text-2xl font-semibold">{t.exportReadiness}</h3>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+                  {([
+                    { label: t.screenplayReady, value: storyboard.exportReadiness.screenplayReady },
+                    { label: t.storyboardReady, value: storyboard.exportReadiness.storyboardReady },
+                    { label: t.animationReady, value: storyboard.exportReadiness.animationPipelineReady },
+                    { label: t.voicePipelineReady, value: storyboard.exportReadiness.voicePipelineReady },
+                    { label: t.editingReady, value: storyboard.exportReadiness.editingPipelineReady },
+                  ] as { label: string; value: boolean }[]).map((item, idx) => (
+                    <Card key={idx} className={`backdrop-blur-md border overflow-hidden ${item.value ? "bg-emerald-950/20 border-emerald-400/15" : "bg-red-950/10 border-red-400/10"}`}>
+                      <CardContent className="p-3 flex flex-col items-center gap-2 text-center">
+                        {item.value
+                          ? <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+                          : <XCircle className="w-5 h-5 text-red-400/55" />
+                        }
+                        <p className={`text-[9px] font-bold uppercase tracking-wider leading-tight ${item.value ? "text-emerald-300/70" : "text-red-300/45"}`}>
+                          {item.label}
+                        </p>
+                        <Badge
+                          variant="outline"
+                          className={`text-[8px] px-1.5 py-0 ${item.value ? "bg-emerald-400/15 text-emerald-300/80 border-emerald-400/20" : "bg-red-400/8 text-red-300/50 border-red-400/10"}`}
+                        >
+                          {item.value ? t.ready : t.notReady}
+                        </Badge>
+                      </CardContent>
+                    </Card>
+                  ))}
                 </div>
               </motion.div>
             )}
