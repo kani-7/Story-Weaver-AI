@@ -22,6 +22,8 @@ import type {
 import type {
   ApiError,
   HealthStatus,
+  ImageGenerationRequest,
+  ImageGenerationResult,
   StoryInput,
   Storyboard
 } from './api.schemas';
@@ -115,6 +117,77 @@ export function useHealthCheck<TData = Awaited<ReturnType<typeof healthCheck>>, 
 
 
 
+
+export const getGenerateSceneImageUrl = () => {
+
+
+
+
+  return `/api/storyboard/generate-image`
+}
+
+/**
+ * @summary Generate an AI image for a storyboard scene
+ */
+export const generateSceneImage = async (imageGenerationRequest: ImageGenerationRequest, options?: RequestInit): Promise<ImageGenerationResult> => {
+
+  return customFetch<ImageGenerationResult>(getGenerateSceneImageUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      imageGenerationRequest,)
+  }
+);}
+
+
+
+
+export const getGenerateSceneImageMutationOptions = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof generateSceneImage>>, TError,{data: BodyType<ImageGenerationRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof generateSceneImage>>, TError,{data: BodyType<ImageGenerationRequest>}, TContext> => {
+
+const mutationKey = ['generateSceneImage'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof generateSceneImage>>, {data: BodyType<ImageGenerationRequest>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  generateSceneImage(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type GenerateSceneImageMutationResult = NonNullable<Awaited<ReturnType<typeof generateSceneImage>>>
+    export type GenerateSceneImageMutationBody = BodyType<ImageGenerationRequest>
+    export type GenerateSceneImageMutationError = ErrorType<ApiError>
+
+    /**
+ * @summary Generate an AI image for a storyboard scene
+ */
+export const useGenerateSceneImage = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof generateSceneImage>>, TError,{data: BodyType<ImageGenerationRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof generateSceneImage>>,
+        TError,
+        {data: BodyType<ImageGenerationRequest>},
+        TContext
+      > => {
+      return useMutation(getGenerateSceneImageMutationOptions(options));
+    }
 
 export const getAnalyzeStoryUrl = () => {
 

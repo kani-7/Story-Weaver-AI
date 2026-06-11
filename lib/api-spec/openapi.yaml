@@ -26,6 +26,37 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /storyboard/generate-image:
+    post:
+      operationId: generateSceneImage
+      tags: [storyboard]
+      summary: Generate an AI image for a storyboard scene
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ImageGenerationRequest"
+      responses:
+        "200":
+          description: Image generation result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ImageGenerationResult"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
   /storyboard/analyze:
     post:
       operationId: analyzeStory
@@ -723,6 +754,72 @@ components:
         - title
         - characters
         - scenes
+
+    # ─── Image Generation Schemas ──────────────────────────────────────────────
+    ImageProvider:
+      type: string
+      enum: [stability, openai, replicate, fal, pollinations]
+      description: AI image generation provider
+
+    ImageGenerationRequest:
+      type: object
+      description: Request to generate an image for a scene
+      properties:
+        sceneNumber:
+          type: integer
+          description: Scene number to generate image for
+        sceneImagePrompt:
+          type: string
+          description: Main image prompt from SceneImagePrompt.sceneImagePrompt
+        provider:
+          $ref: "#/components/schemas/ImageProvider"
+        characterProfiles:
+          type: array
+          items:
+            $ref: "#/components/schemas/CharacterProfile"
+          description: Character profiles for reference locking
+        characterVisualContinuity:
+          type: string
+          description: Per-character visual continuity state from SceneImagePrompt
+        colorPalette:
+          type: string
+          description: Scene color palette
+        cinematicMood:
+          type: string
+          description: Cinematic mood compound phrase
+        renderStyle:
+          type: string
+          description: Render style specification
+        visualEngine:
+          type: string
+          description: Visual engine applied (PresentEngine, FlashbackEngine, etc.)
+      required:
+        - sceneNumber
+        - sceneImagePrompt
+
+    ImageGenerationResult:
+      type: object
+      description: Result of an image generation request
+      properties:
+        imageStatus:
+          type: string
+          enum: [success, error]
+          description: Generation status
+        imageUrl:
+          type: string
+          description: URL of the generated image (present when imageStatus is success)
+        imageProvider:
+          $ref: "#/components/schemas/ImageProvider"
+        generationTime:
+          type: number
+          description: Time taken to generate the image in seconds
+        generationError:
+          type: string
+          description: Error message (present when imageStatus is error)
+      required:
+        - imageStatus
+        - imageProvider
+        - generationTime
 
     ApiError:
       type: object

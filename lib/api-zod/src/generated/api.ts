@@ -18,6 +18,39 @@ export const HealthCheckResponse = zod.object({
 
 
 /**
+ * @summary Generate an AI image for a storyboard scene
+ */
+export const GenerateSceneImageBody = zod.object({
+  "sceneNumber": zod.number().describe('Scene number to generate image for'),
+  "sceneImagePrompt": zod.string().describe('Main image prompt from SceneImagePrompt.sceneImagePrompt'),
+  "provider": zod.enum(['stability', 'openai', 'replicate', 'fal', 'pollinations']).optional().describe('AI image generation provider'),
+  "characterProfiles": zod.array(zod.object({
+  "characterId": zod.string().describe('English lowercase hyphenated slug, unique across all characters'),
+  "name": zod.string().describe('Character name in the output language'),
+  "species": zod.string().describe('Species or archetype in the output language'),
+  "appearance": zod.string().describe('3-4 sentences describing the character visually'),
+  "clothing": zod.string().optional().describe('Garments, accessories, footwear in the output language. \"—\" if none.'),
+  "personality": zod.string().describe('2-3 sentences covering motivation, baseline, and behavioral tell'),
+  "distinctiveFeatures": zod.string().describe('2-4 precise, artist-reproducible visual markers'),
+  "voiceStyle": zod.string().optional().describe('English only. One sentence: pitch, tempo, texture, accent, delivery style.')
+})).optional().describe('Character profiles for reference locking'),
+  "characterVisualContinuity": zod.string().optional().describe('Per-character visual continuity state from SceneImagePrompt'),
+  "colorPalette": zod.string().optional().describe('Scene color palette'),
+  "cinematicMood": zod.string().optional().describe('Cinematic mood compound phrase'),
+  "renderStyle": zod.string().optional().describe('Render style specification'),
+  "visualEngine": zod.string().optional().describe('Visual engine applied (PresentEngine, FlashbackEngine, etc.)')
+}).describe('Request to generate an image for a scene')
+
+export const GenerateSceneImageResponse = zod.object({
+  "imageStatus": zod.enum(['success', 'error']).describe('Generation status'),
+  "imageUrl": zod.string().optional().describe('URL of the generated image (present when imageStatus is success)'),
+  "imageProvider": zod.enum(['stability', 'openai', 'replicate', 'fal', 'pollinations']).describe('AI image generation provider'),
+  "generationTime": zod.number().describe('Time taken to generate the image in seconds'),
+  "generationError": zod.string().optional().describe('Error message (present when imageStatus is error)')
+}).describe('Result of an image generation request')
+
+
+/**
  * @summary Analyze a story and generate storyboard scenes
  */
 export const analyzeStoryBodyStoryMin = 10;

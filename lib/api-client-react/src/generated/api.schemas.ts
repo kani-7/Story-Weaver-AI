@@ -398,6 +398,69 @@ export interface Storyboard {
   visualProductionReport?: VisualProductionReport;
 }
 
+/**
+ * AI image generation provider
+ */
+export type ImageProvider = typeof ImageProvider[keyof typeof ImageProvider];
+
+
+export const ImageProvider = {
+  stability: 'stability',
+  openai: 'openai',
+  replicate: 'replicate',
+  fal: 'fal',
+  pollinations: 'pollinations',
+} as const;
+
+/**
+ * Request to generate an image for a scene
+ */
+export interface ImageGenerationRequest {
+  /** Scene number to generate image for */
+  sceneNumber: number;
+  /** Main image prompt from SceneImagePrompt.sceneImagePrompt */
+  sceneImagePrompt: string;
+  provider?: ImageProvider;
+  /** Character profiles for reference locking */
+  characterProfiles?: CharacterProfile[];
+  /** Per-character visual continuity state from SceneImagePrompt */
+  characterVisualContinuity?: string;
+  /** Scene color palette */
+  colorPalette?: string;
+  /** Cinematic mood compound phrase */
+  cinematicMood?: string;
+  /** Render style specification */
+  renderStyle?: string;
+  /** Visual engine applied (PresentEngine, FlashbackEngine, etc.) */
+  visualEngine?: string;
+}
+
+/**
+ * Generation status
+ */
+export type ImageGenerationResultImageStatus = typeof ImageGenerationResultImageStatus[keyof typeof ImageGenerationResultImageStatus];
+
+
+export const ImageGenerationResultImageStatus = {
+  success: 'success',
+  error: 'error',
+} as const;
+
+/**
+ * Result of an image generation request
+ */
+export interface ImageGenerationResult {
+  /** Generation status */
+  imageStatus: ImageGenerationResultImageStatus;
+  /** URL of the generated image (present when imageStatus is success) */
+  imageUrl?: string;
+  imageProvider: ImageProvider;
+  /** Time taken to generate the image in seconds */
+  generationTime: number;
+  /** Error message (present when imageStatus is error) */
+  generationError?: string;
+}
+
 export interface ApiError {
   error: string;
 }

@@ -7,6 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import NotFound from "@/pages/not-found";
 import {
   useAnalyzeStory,
+  useGenerateSceneImage,
   type Storyboard,
   type CharacterProfile,
   type Scene,
@@ -23,13 +24,14 @@ import {
   type SceneImagePrompt,
   type StoryboardFrameMetadata,
   type VisualProductionReport,
+  type ImageProvider,
 } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { motion, AnimatePresence } from "framer-motion";
-import { Film, Sparkles, User, Clapperboard, RotateCcw, Video, Brain, Settings2, ChevronDown, Eye, Zap, Fingerprint, Clock, Moon, Lightbulb, ArrowLeftRight, BookOpen, MessageSquare, Swords, Heart, Music, Volume2, Waves, Mic2, Palette, CheckCircle2, AlertTriangle, XCircle, Trophy, ScrollText, Radio, Camera, Layers, BarChart3, Star, TrendingDown } from "lucide-react";
+import { Film, Sparkles, User, Clapperboard, RotateCcw, Video, Brain, Settings2, ChevronDown, Eye, Zap, Fingerprint, Clock, Moon, Lightbulb, ArrowLeftRight, BookOpen, MessageSquare, Swords, Heart, Music, Volume2, Waves, Mic2, Palette, CheckCircle2, AlertTriangle, XCircle, Trophy, ScrollText, Radio, Camera, Layers, BarChart3, Star, TrendingDown, Loader2, RefreshCw, ImageIcon, Wand2 } from "lucide-react";
 
 const queryClient = new QueryClient();
 
@@ -170,6 +172,17 @@ const translations: Record<UILang, Record<string, string>> = {
     animationComplexityLabel: "Animation Complexity",
     renderingDifficultyLabel: "Rendering Difficulty",
     cinematicStrengthsLabel: "Cinematic Strengths",
+    generateSceneImage: "Generate Scene Image",
+    generatingImage: "Generating image...",
+    regenerateImage: "Regenerate",
+    retryGeneration: "Retry",
+    generatedIn: "Generated in",
+    seconds: "s",
+    selectProvider: "Provider",
+    imageGenerationFailed: "Generation Failed",
+    generatedImage: "Generated Image",
+    providerLabel: "via",
+    characterRefLocked: "Character references locked",
   },
   si: {
     subtitle: "අධ්‍යක්ෂකගේ පුටුවට ඇතුළු වන්න. ඔබේ කතාව ඇතුළු කර ක්ෂණිකව ස්ටෝරිබෝර්ඩ් එකක් ලබා ගන්න.",
@@ -294,6 +307,17 @@ const translations: Record<UILang, Record<string, string>> = {
     animationComplexityLabel: "ඇනිමේෂන් සංකීර්ණතාව",
     renderingDifficultyLabel: "රෙන්ඩරිං දුෂ්කරතාව",
     cinematicStrengthsLabel: "චිත්‍රමය ශක්තීන්",
+    generateSceneImage: "දර්ශන රූපය සාදන්න",
+    generatingImage: "රූපය සාදමින්...",
+    regenerateImage: "නැවත සාදන්න",
+    retryGeneration: "නැවත උත්සාහ",
+    generatedIn: "සාදන ලදී",
+    seconds: "ත",
+    selectProvider: "සේවා සපයන්නා",
+    imageGenerationFailed: "රූප නිෂ්පාදනය අසාර්ථකයි",
+    generatedImage: "සාදන ලද රූපය",
+    providerLabel: "හරහා",
+    characterRefLocked: "චරිත යොමු අගුළු දමා ඇත",
   },
   ta: {
     subtitle: "இயக்குனரின் இருக்கையில் அமருங்கள். உங்கள் கதையை ஒட்டவும், நொடியில் திரைக்கதை உருவாகும்.",
@@ -418,6 +442,17 @@ const translations: Record<UILang, Record<string, string>> = {
     animationComplexityLabel: "அனிமேஷன் சிக்கல்",
     renderingDifficultyLabel: "ரெண்டரிங் சிரமம்",
     cinematicStrengthsLabel: "திரையரங்க வலிமைகள்",
+    generateSceneImage: "காட்சி படம் உருவாக்கு",
+    generatingImage: "படம் உருவாக்குகிறோம்...",
+    regenerateImage: "மீண்டும் உருவாக்கு",
+    retryGeneration: "மீண்டும் முயற்சி",
+    generatedIn: "உருவாக்கப்பட்டது",
+    seconds: "வி",
+    selectProvider: "வழங்குநர்",
+    imageGenerationFailed: "படம் உருவாக்கல் தோல்வி",
+    generatedImage: "உருவாக்கப்பட்ட படம்",
+    providerLabel: "மூலம்",
+    characterRefLocked: "கதாபாத்திர குறிப்புகள் பூட்டப்பட்டன",
   },
 };
 
@@ -498,9 +533,30 @@ function LoadingState({ t }: { t: Record<string, string> }) {
   );
 }
 
+// ─── Image Generation Types ────────────────────────────────────────────────────
+
+type SceneImageStatus = "idle" | "loading" | "success" | "error";
+
+interface SceneImageState {
+  status: SceneImageStatus;
+  imageUrl?: string;
+  imageProvider?: string;
+  generationTime?: number;
+  generationError?: string;
+}
+
+const IMAGE_PROVIDERS: { value: ImageProvider; label: string; free: boolean }[] = [
+  { value: "pollinations", label: "Pollinations (Free)", free: true },
+  { value: "openai", label: "OpenAI DALL-E 3", free: false },
+  { value: "stability", label: "Stability AI Ultra", free: false },
+  { value: "replicate", label: "Replicate FLUX", free: false },
+  { value: "fal", label: "Fal.ai FLUX", free: false },
+];
+
 function Home() {
   const { toast } = useToast();
   const analyzeMutation = useAnalyzeStory();
+  const generateImageMutation = useGenerateSceneImage();
 
   const [story, setStory] = useState("");
   const [storyboard, setStoryboard] = useState<Storyboard | null>(null);
@@ -510,6 +566,101 @@ function Home() {
   const [expandedSceneSections, setExpandedSceneSections] = useState<Record<string, boolean>>({});
   const toggleSceneSection = (key: string) =>
     setExpandedSceneSections(prev => ({ ...prev, [key]: !prev[key] }));
+
+  const [imageStates, setImageStates] = useState<Record<number, SceneImageState>>(() => {
+    try {
+      const saved = localStorage.getItem("dreamframe-image-states");
+      if (!saved) return {};
+      const parsed = JSON.parse(saved) as Record<number, SceneImageState>;
+      // Only restore successful images
+      const restored: Record<number, SceneImageState> = {};
+      for (const [key, val] of Object.entries(parsed)) {
+        if (val.status === "success" && val.imageUrl) {
+          restored[Number(key)] = val;
+        }
+      }
+      return restored;
+    } catch {
+      return {};
+    }
+  });
+
+  const [selectedProvider, setSelectedProvider] = useState<ImageProvider>("pollinations");
+
+  useEffect(() => {
+    try {
+      const toSave: Record<number, SceneImageState> = {};
+      for (const [key, val] of Object.entries(imageStates)) {
+        if (val.status === "success" && val.imageUrl) {
+          toSave[Number(key)] = val;
+        }
+      }
+      localStorage.setItem("dreamframe-image-states", JSON.stringify(toSave));
+    } catch {
+      // localStorage unavailable
+    }
+  }, [imageStates]);
+
+  const handleGenerateImage = (scene: Scene) => {
+    const sceneNum = scene.sceneNumber;
+    if (imageStates[sceneNum]?.status === "loading") return;
+    if (!scene.imagePrompt?.sceneImagePrompt) {
+      toast({ title: "No image prompt", description: "This scene has no image prompt data.", variant: "destructive" });
+      return;
+    }
+
+    setImageStates(prev => ({ ...prev, [sceneNum]: { status: "loading" } }));
+
+    generateImageMutation.mutate(
+      {
+        data: {
+          sceneNumber: sceneNum,
+          sceneImagePrompt: scene.imagePrompt.sceneImagePrompt,
+          provider: selectedProvider,
+          characterProfiles: storyboard?.characters as CharacterProfile[],
+          characterVisualContinuity: scene.imagePrompt.characterVisualContinuity,
+          colorPalette: scene.imagePrompt.colorPalette,
+          cinematicMood: scene.imagePrompt.cinematicMood,
+          renderStyle: scene.imagePrompt.renderStyle,
+          visualEngine: scene.imagePrompt.visualEngine,
+        },
+      },
+      {
+        onSuccess: (data) => {
+          if (data.imageStatus === "success" && data.imageUrl) {
+            setImageStates(prev => ({
+              ...prev,
+              [sceneNum]: {
+                status: "success",
+                imageUrl: data.imageUrl,
+                imageProvider: data.imageProvider,
+                generationTime: data.generationTime,
+              },
+            }));
+          } else {
+            setImageStates(prev => ({
+              ...prev,
+              [sceneNum]: {
+                status: "error",
+                imageProvider: data.imageProvider,
+                generationTime: data.generationTime,
+                generationError: data.generationError ?? "Generation failed",
+              },
+            }));
+          }
+        },
+        onError: (err) => {
+          setImageStates(prev => ({
+            ...prev,
+            [sceneNum]: {
+              status: "error",
+              generationError: err instanceof Error ? err.message : "Generation failed",
+            },
+          }));
+        },
+      }
+    );
+  };
 
   const t = translations[uiLanguage];
 
@@ -1287,6 +1438,156 @@ function Home() {
                           </div>
                         </div>
                       )}
+
+                      {/* ── Scene Image Generator ────────────────────────── */}
+                      {scene.imagePrompt && (() => {
+                        const sceneNum = scene.sceneNumber;
+                        const imgState = imageStates[sceneNum];
+                        const hasCharRefs = storyboard.characters && storyboard.characters.length > 0;
+
+                        return (
+                          <div className="border-t border-white/5 px-6 py-4 space-y-3">
+                            {/* Header row */}
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="flex items-center gap-2">
+                                <Wand2 className="w-3.5 h-3.5 text-fuchsia-400" />
+                                <span className="text-[10px] font-bold uppercase tracking-widest text-fuchsia-400">{t.generateSceneImage}</span>
+                                {hasCharRefs && (
+                                  <span className="hidden sm:flex items-center gap-1 text-[8px] text-emerald-400/60 bg-emerald-950/20 border border-emerald-400/15 px-1.5 py-0.5 rounded-full">
+                                    <CheckCircle2 className="w-2.5 h-2.5" />{t.characterRefLocked}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Idle / no image: show provider selector + generate button */}
+                            {(!imgState || imgState.status === "idle") && (
+                              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                                <div className="relative flex-1">
+                                  <select
+                                    value={selectedProvider}
+                                    onChange={(e) => setSelectedProvider(e.target.value as ImageProvider)}
+                                    className="w-full appearance-none bg-fuchsia-950/20 border border-fuchsia-400/20 rounded-lg px-3 py-2 text-xs text-fuchsia-200 cursor-pointer hover:border-fuchsia-400/40 focus:outline-none focus:border-fuchsia-400/60 pr-7"
+                                  >
+                                    {IMAGE_PROVIDERS.map((p) => (
+                                      <option key={p.value} value={p.value} className="bg-background text-foreground">
+                                        {p.label}
+                                      </option>
+                                    ))}
+                                  </select>
+                                  <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-fuchsia-400/50 pointer-events-none" />
+                                </div>
+                                <Button
+                                  size="sm"
+                                  onClick={() => handleGenerateImage(scene)}
+                                  className="bg-gradient-to-r from-fuchsia-700 to-fuchsia-500 hover:from-fuchsia-600 hover:to-fuchsia-400 text-white border-0 text-xs font-semibold gap-1.5 shrink-0"
+                                >
+                                  <ImageIcon className="w-3.5 h-3.5" />
+                                  {t.generateSceneImage}
+                                </Button>
+                              </div>
+                            )}
+
+                            {/* Loading state */}
+                            {imgState?.status === "loading" && (
+                              <div className="flex items-center gap-3 rounded-lg bg-fuchsia-950/20 border border-fuchsia-400/15 px-4 py-3">
+                                <Loader2 className="w-4 h-4 text-fuchsia-400 animate-spin shrink-0" />
+                                <span className="text-sm text-fuchsia-200/70">{t.generatingImage}</span>
+                              </div>
+                            )}
+
+                            {/* Success state: show image */}
+                            {imgState?.status === "success" && imgState.imageUrl && (
+                              <div className="space-y-2">
+                                <div className="relative rounded-xl overflow-hidden border border-fuchsia-400/20 bg-fuchsia-950/10 group">
+                                  <img
+                                    src={imgState.imageUrl}
+                                    alt={`Scene ${sceneNum} generated image`}
+                                    className="w-full object-cover max-h-72 rounded-xl"
+                                    loading="lazy"
+                                    crossOrigin="anonymous"
+                                  />
+                                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors" />
+                                </div>
+                                <div className="flex flex-wrap items-center justify-between gap-2">
+                                  <div className="flex items-center gap-2">
+                                    {imgState.imageProvider && (
+                                      <Badge className="text-[9px] bg-fuchsia-950/30 text-fuchsia-300/70 border-fuchsia-400/20 gap-1">
+                                        <span className="text-fuchsia-500/50">{t.providerLabel}</span> {imgState.imageProvider}
+                                      </Badge>
+                                    )}
+                                    {imgState.generationTime !== undefined && (
+                                      <span className="text-[9px] text-fuchsia-400/40">{t.generatedIn} {imgState.generationTime.toFixed(1)}{t.seconds}</span>
+                                    )}
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <div className="relative">
+                                      <select
+                                        value={selectedProvider}
+                                        onChange={(e) => setSelectedProvider(e.target.value as ImageProvider)}
+                                        className="appearance-none bg-fuchsia-950/15 border border-fuchsia-400/15 rounded-md px-2 py-1 text-[10px] text-fuchsia-200/60 cursor-pointer hover:border-fuchsia-400/30 focus:outline-none pr-5"
+                                      >
+                                        {IMAGE_PROVIDERS.map((p) => (
+                                          <option key={p.value} value={p.value} className="bg-background text-foreground">
+                                            {p.label}
+                                          </option>
+                                        ))}
+                                      </select>
+                                      <ChevronDown className="absolute right-1.5 top-1/2 -translate-y-1/2 w-2.5 h-2.5 text-fuchsia-400/40 pointer-events-none" />
+                                    </div>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => handleGenerateImage(scene)}
+                                      className="h-7 px-2 text-[10px] border-fuchsia-400/20 text-fuchsia-300/60 hover:bg-fuchsia-950/30 hover:text-fuchsia-200 gap-1"
+                                    >
+                                      <RefreshCw className="w-3 h-3" />
+                                      {t.regenerateImage}
+                                    </Button>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Error state */}
+                            {imgState?.status === "error" && (
+                              <div className="space-y-2">
+                                <div className="flex items-start gap-2 rounded-lg bg-red-950/20 border border-red-400/20 px-3 py-2.5">
+                                  <XCircle className="w-3.5 h-3.5 text-red-400 shrink-0 mt-0.5" />
+                                  <div className="flex-1 min-w-0">
+                                    <div className="text-[9px] font-bold uppercase tracking-wider text-red-400 mb-0.5">{t.imageGenerationFailed}</div>
+                                    <p className="text-xs text-red-200/60 leading-relaxed break-words">{imgState.generationError}</p>
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <div className="relative flex-1">
+                                    <select
+                                      value={selectedProvider}
+                                      onChange={(e) => setSelectedProvider(e.target.value as ImageProvider)}
+                                      className="w-full appearance-none bg-fuchsia-950/20 border border-fuchsia-400/20 rounded-lg px-3 py-2 text-xs text-fuchsia-200 cursor-pointer hover:border-fuchsia-400/40 focus:outline-none pr-7"
+                                    >
+                                      {IMAGE_PROVIDERS.map((p) => (
+                                        <option key={p.value} value={p.value} className="bg-background text-foreground">
+                                          {p.label}
+                                        </option>
+                                      ))}
+                                    </select>
+                                    <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-fuchsia-400/50 pointer-events-none" />
+                                  </div>
+                                  <Button
+                                    size="sm"
+                                    onClick={() => handleGenerateImage(scene)}
+                                    className="bg-red-900/40 hover:bg-red-800/50 text-red-200 border border-red-400/20 text-xs font-semibold gap-1.5 shrink-0"
+                                  >
+                                    <RefreshCw className="w-3.5 h-3.5" />
+                                    {t.retryGeneration}
+                                  </Button>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })()}
 
                       {/* Image Generation — collapsible, open by default */}
                       {scene.imagePrompt && (() => {
