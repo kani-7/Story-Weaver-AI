@@ -467,7 +467,7 @@ function Home() {
   };
   const itemVariants = {
     hidden: { opacity: 0, y: 20 },
-    show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 24 } },
+    show: { opacity: 1, y: 0, transition: { type: "spring" as const, stiffness: 300, damping: 24 } },
   };
 
   return (
@@ -535,13 +535,13 @@ function Home() {
                       <div className="px-5 pb-5 pt-2 grid grid-cols-1 sm:grid-cols-2 gap-4 border-t border-white/8">
                         <LangSelect
                           value={uiLanguage}
-                          onChange={setUiLanguage}
+                          onChange={(v) => setUiLanguage(v as UILang)}
                           label={t.uiLangLabel}
                           options={uiLangOptions}
                         />
                         <LangSelect
                           value={outputLanguage}
-                          onChange={setOutputLanguage}
+                          onChange={(v) => setOutputLanguage(v as OutputLang)}
                           label={t.outputLangLabel}
                           options={outputLangOptions}
                         />
@@ -1008,7 +1008,7 @@ function Home() {
                                   <span className="text-[10px] font-bold uppercase tracking-widest text-indigo-400">{t.audioIntelligence}</span>
                                 </div>
                                 <div className="space-y-3">
-                                  {scene.audio.backgroundAmbience && scene.audio.backgroundAmbience.length > 0 && (
+                                  {scene.audio?.backgroundAmbience && scene.audio.backgroundAmbience.length > 0 && (
                                     <div className="space-y-1.5">
                                       <div className="flex items-center gap-1.5">
                                         <Waves className="w-3 h-3 text-indigo-400/60" />
@@ -1023,7 +1023,7 @@ function Home() {
                                       </div>
                                     </div>
                                   )}
-                                  {scene.audio.backgroundMusic && (
+                                  {scene.audio?.backgroundMusic && (
                                     <div className="space-y-1.5">
                                       <div className="flex items-center gap-1.5">
                                         <Music className="w-3 h-3 text-indigo-400/60" />
@@ -1034,7 +1034,7 @@ function Home() {
                                       </p>
                                     </div>
                                   )}
-                                  {scene.audio.soundEffects && scene.audio.soundEffects.length > 0 && (
+                                  {scene.audio?.soundEffects && scene.audio.soundEffects.length > 0 && (
                                     <div className="space-y-1.5">
                                       <div className="flex items-center gap-1.5">
                                         <Volume2 className="w-3 h-3 text-indigo-400/60" />
