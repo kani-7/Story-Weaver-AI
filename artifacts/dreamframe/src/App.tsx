@@ -704,7 +704,7 @@ function Home() {
           sceneNumber: sceneNum,
           sceneImagePrompt: scene.imagePrompt.sceneImagePrompt,
           provider: selectedProvider,
-          characterProfiles: storyboard?.characters as CharacterProfile[],
+          characterProfiles: storyboard?.characters,
           characterVisualContinuity: scene.imagePrompt.characterVisualContinuity,
           colorPalette: scene.imagePrompt.colorPalette,
           cinematicMood: scene.imagePrompt.cinematicMood,
@@ -804,7 +804,7 @@ function Home() {
           imageUrl: imageStates[sceneNum]?.imageUrl,
           duration: videoDuration,
           // Scene intelligence
-          characterProfiles: storyboard?.characters as CharacterProfile[],
+          characterProfiles: storyboard?.characters,
           characterVisualContinuity: scene.imagePrompt?.characterVisualContinuity,
           cameraMovement: scene.cinematicCamera?.cameraMovement,
           cinematicMood: scene.imagePrompt?.cinematicMood,
@@ -1587,7 +1587,7 @@ function Home() {
                             <span className="text-[10px] font-bold uppercase tracking-widest text-indigo-400">{t.shotList}</span>
                           </div>
                           <div className="space-y-2">
-                            {(scene.shotList as ShotListItem[]).map((shot, si) => (
+                            {scene.shotList.map((shot, si) => (
                               <div key={si} className="rounded-lg bg-indigo-950/15 border border-indigo-400/10 px-3 py-2 space-y-1">
                                 <div className="flex items-center justify-between gap-2">
                                   <div className="flex items-center gap-2">
@@ -2323,26 +2323,26 @@ function Home() {
                         <div className="text-[10px] font-bold uppercase tracking-widest text-fuchsia-400/70">{t.imageGenScoreLabel}</div>
                       </div>
                       <div className="flex items-end gap-1">
-                        <span className="text-7xl font-black text-fuchsia-300 tabular-nums leading-none">{storyboard.imageGenerationScore as number}</span>
+                        <span className="text-7xl font-black text-fuchsia-300 tabular-nums leading-none">{storyboard.imageGenerationScore}</span>
                         <span className="text-2xl font-bold text-fuchsia-400/50 mb-2">{t.outOf100}</span>
                       </div>
                       <div className="w-full mt-4 h-2 rounded-full bg-fuchsia-950/40 overflow-hidden">
                         <div
                           className="h-full rounded-full bg-gradient-to-r from-fuchsia-600 to-fuchsia-300"
-                          style={{ width: `${storyboard.imageGenerationScore as number}%` }}
+                          style={{ width: `${storyboard.imageGenerationScore}%` }}
                         />
                       </div>
                       <div className="mt-3 text-xs text-fuchsia-400/50">
-                        {(storyboard.imageGenerationScore as number) >= 90 ? "Paste-Ready" :
-                          (storyboard.imageGenerationScore as number) >= 70 ? "Minor Gaps" :
-                          (storyboard.imageGenerationScore as number) >= 50 ? "Moderate" : "Needs Refinement"}
+                        {storyboard.imageGenerationScore >= 90 ? "Paste-Ready" :
+                          storyboard.imageGenerationScore >= 70 ? "Minor Gaps" :
+                          storyboard.imageGenerationScore >= 50 ? "Moderate" : "Needs Refinement"}
                       </div>
                     </Card>
                   )}
 
                   {/* Visual Production Report detail */}
                   {storyboard.visualProductionReport && (() => {
-                    const vpr: VisualProductionReport = storyboard.visualProductionReport as VisualProductionReport;
+                    const vpr = storyboard.visualProductionReport;
                     return (
                       <div className={`${storyboard.imageGenerationScore !== undefined ? "lg:col-span-2" : "lg:col-span-3"} space-y-4`}>
                         <Card className="bg-card/60 backdrop-blur-md border-white/5 overflow-hidden">
