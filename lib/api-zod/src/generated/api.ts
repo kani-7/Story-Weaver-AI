@@ -18,6 +18,64 @@ export const HealthCheckResponse = zod.object({
 
 
 /**
+ * @summary Generate an AI video clip for a storyboard scene
+ */
+export const generateSceneVideoBodyDurationDefault = 5;
+export const generateSceneVideoBodyEmotionalIntensityMin = 0;
+export const generateSceneVideoBodyEmotionalIntensityMax = 1;
+
+
+
+export const GenerateSceneVideoBody = zod.object({
+  "sceneNumber": zod.number().describe('Scene number to generate video for'),
+  "videoPrompt": zod.string().describe('Main video generation prompt'),
+  "provider": zod.enum(['runway', 'kling', 'veo', 'pika', 'luma']).optional().describe('AI video generation provider'),
+  "imageUrl": zod.string().optional().describe('Optional first-frame image URL (from image generation)'),
+  "duration": zod.union([zod.literal(5),zod.literal(10)]).default(generateSceneVideoBodyDurationDefault).describe('Clip duration in seconds'),
+  "characterProfiles": zod.array(zod.object({
+  "characterId": zod.string().describe('English lowercase hyphenated slug, unique across all characters'),
+  "name": zod.string().describe('Character name in the output language'),
+  "species": zod.string().describe('Species or archetype in the output language'),
+  "appearance": zod.string().describe('3-4 sentences describing the character visually'),
+  "clothing": zod.string().optional().describe('Garments, accessories, footwear in the output language. \"—\" if none.'),
+  "personality": zod.string().describe('2-3 sentences covering motivation, baseline, and behavioral tell'),
+  "distinctiveFeatures": zod.string().describe('2-4 precise, artist-reproducible visual markers'),
+  "voiceStyle": zod.string().optional().describe('English only. One sentence: pitch, tempo, texture, accent, delivery style.')
+})).optional().describe('Character profiles for continuity locking'),
+  "characterVisualContinuity": zod.string().optional().describe('Per-character visual continuity state'),
+  "cameraMovement": zod.string().optional().describe('Camera movement instruction from cinematicCamera'),
+  "cinematicMood": zod.string().optional().describe('Cinematic mood compound phrase'),
+  "lightingStyle": zod.string().optional().describe('Lighting mood and direction'),
+  "animationStyle": zod.string().optional().describe('Animation movement and style guidance'),
+  "dominantEmotion": zod.string().optional().describe('Primary emotional tone of the scene'),
+  "emotionalIntensity": zod.number().min(generateSceneVideoBodyEmotionalIntensityMin).max(generateSceneVideoBodyEmotionalIntensityMax).optional().describe('Emotional intensity level'),
+  "shotType": zod.string().optional().describe('Primary shot type'),
+  "pacingStyle": zod.string().optional().describe('Editorial pacing feel'),
+  "characterMovements": zod.array(zod.string()).optional().describe('Per-character action descriptions for motion direction'),
+  "environmentalMotion": zod.string().optional().describe('Environmental and weather motion description'),
+  "cinematicTransition": zod.string().optional().describe('Transition type for the clip'),
+  "clothingState": zod.array(zod.string()).optional().describe('Current clothing state per character for visual continuity'),
+  "lightingState": zod.string().optional().describe('Current lighting state carried from previous scenes'),
+  "environmentState": zod.string().optional().describe('Current environment state'),
+  "emotionalCarryOver": zod.array(zod.string()).optional().describe('Emotional states carried into this scene')
+}).describe('Request to generate a video clip for a scene')
+
+export const generateSceneVideoResponseGenerationProgressMin = 0;
+export const generateSceneVideoResponseGenerationProgressMax = 100;
+
+
+
+export const GenerateSceneVideoResponse = zod.object({
+  "videoStatus": zod.enum(['success', 'error', 'processing']).describe('Generation status'),
+  "videoUrl": zod.string().optional().describe('URL of the generated video (present when videoStatus is success)'),
+  "videoProvider": zod.enum(['runway', 'kling', 'veo', 'pika', 'luma']).describe('AI video generation provider'),
+  "videoDuration": zod.number().describe('Actual clip duration in seconds'),
+  "generationProgress": zod.number().min(generateSceneVideoResponseGenerationProgressMin).max(generateSceneVideoResponseGenerationProgressMax).describe('Generation progress percentage (0-100)'),
+  "generationError": zod.string().optional().describe('Error message (present when videoStatus is error)')
+}).describe('Result of a video generation request')
+
+
+/**
  * @summary Generate an AI image for a storyboard scene
  */
 export const GenerateSceneImageBody = zod.object({

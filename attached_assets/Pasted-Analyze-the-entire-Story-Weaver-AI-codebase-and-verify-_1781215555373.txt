@@ -1,0 +1,130 @@
+Analyze the entire Story-Weaver-AI codebase and verify that ALL previously implemented prompt systems are still fully connected and operational.
+
+IMPORTANT:
+
+Do NOT rebuild the app.
+
+Do NOT remove any functionality.
+
+Do NOT overwrite working systems.
+
+Perform a complete integration audit.
+
+Verify that ALL previously added systems are still active, connected, rendered, typed, validated, and reachable from frontend → backend → schema → AI pipeline.
+
+Audit all previously implemented features including:
+
+# Core Story Systems
+- Story Analysis
+- Character Profiles
+- Character Consistency
+- Scene Generation
+- Narration
+- Dialogue
+- Thoughts
+- Internal Monologue
+- Actions
+- Emotions
+
+# Scene Intelligence
+- Present detection
+- Flashback detection
+- Dream detection
+- Imagination detection
+- Transition In
+- Return To Present
+- Continuity Check
+
+# Audio Systems
+- Background ambience
+- Background music
+- Sound effects
+- Flashback audio style
+- Dream audio style
+
+# Visual Systems
+- Director Notes
+- Scene Image Prompt
+- Flashback visual style
+- Dream visual style
+- Imagination visual style
+- Camera shot system
+- Camera movement system
+- Lighting system
+- Color palette system
+- Visual effects system
+- Render style system
+- Animation style system
+
+# Image Generation Pipeline
+- Generate Scene Image button
+- Queue system
+- Retry system
+- localStorage persistence
+- Character reference locking
+- Provider modularity
+- Pollinations
+- OpenAI Images
+- Stability AI
+- Replicate
+- Fal.ai
+
+# Production Systems
+- Production Readiness Score
+- Movie Readiness Report
+- Image Generation Readiness Score
+- Visual Production Report
+
+# Validation + Architecture
+- OpenAPI synchronization
+- Zod validation
+- Runtime validation
+- TypeScript safety
+- React Query hooks
+- Generated schemas
+- Generated types
+- Frontend rendering safety
+
+# UI Audit
+Verify:
+- all sections render
+- no hidden disconnected fields
+- no orphan schema fields
+- no unused generated types
+- no stale OpenAPI fields
+- no broken UI rendering paths
+- no dead API routes
+- no "any" types
+
+Generate:
+
+1. Full System Connectivity Report
+2. Missing Connections Report
+3. Broken Features Report
+4. Orphan Fields Report
+5. Runtime Risk Report
+6. Type Safety Report
+7. OpenAPI Sync Report
+8. Frontend Rendering Report
+9. Backend Route Report
+10. AI Pipeline Integrity Report
+11. Image Generation Integrity Report
+12. Final Production Status Score
+
+Then:
+
+- Fix all disconnected systems
+- Fix all schema mismatches
+- Fix all rendering gaps
+- Fix all stale generated types
+- Fix all broken imports
+- Remove dead code safely
+- Preserve all working functionality
+
+After fixes:
+
+- Run codegen
+- Run full TypeScript typecheck
+- Fix all errors
+- Restart all workflows
+- Verify app visually

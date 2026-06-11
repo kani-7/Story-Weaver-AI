@@ -399,6 +399,117 @@ export interface Storyboard {
 }
 
 /**
+ * AI video generation provider
+ */
+export type VideoProvider = typeof VideoProvider[keyof typeof VideoProvider];
+
+
+export const VideoProvider = {
+  runway: 'runway',
+  kling: 'kling',
+  veo: 'veo',
+  pika: 'pika',
+  luma: 'luma',
+} as const;
+
+/**
+ * Clip duration in seconds
+ */
+export type VideoGenerationRequestDuration = typeof VideoGenerationRequestDuration[keyof typeof VideoGenerationRequestDuration];
+
+
+export const VideoGenerationRequestDuration = {
+  NUMBER_5: 5,
+  NUMBER_10: 10,
+} as const;
+
+/**
+ * Request to generate a video clip for a scene
+ */
+export interface VideoGenerationRequest {
+  /** Scene number to generate video for */
+  sceneNumber: number;
+  /** Main video generation prompt */
+  videoPrompt: string;
+  provider?: VideoProvider;
+  /** Optional first-frame image URL (from image generation) */
+  imageUrl?: string;
+  /** Clip duration in seconds */
+  duration?: VideoGenerationRequestDuration;
+  /** Character profiles for continuity locking */
+  characterProfiles?: CharacterProfile[];
+  /** Per-character visual continuity state */
+  characterVisualContinuity?: string;
+  /** Camera movement instruction from cinematicCamera */
+  cameraMovement?: string;
+  /** Cinematic mood compound phrase */
+  cinematicMood?: string;
+  /** Lighting mood and direction */
+  lightingStyle?: string;
+  /** Animation movement and style guidance */
+  animationStyle?: string;
+  /** Primary emotional tone of the scene */
+  dominantEmotion?: string;
+  /**
+     * Emotional intensity level
+     * @minimum 0
+     * @maximum 1
+     */
+  emotionalIntensity?: number;
+  /** Primary shot type */
+  shotType?: string;
+  /** Editorial pacing feel */
+  pacingStyle?: string;
+  /** Per-character action descriptions for motion direction */
+  characterMovements?: string[];
+  /** Environmental and weather motion description */
+  environmentalMotion?: string;
+  /** Transition type for the clip */
+  cinematicTransition?: string;
+  /** Current clothing state per character for visual continuity */
+  clothingState?: string[];
+  /** Current lighting state carried from previous scenes */
+  lightingState?: string;
+  /** Current environment state */
+  environmentState?: string;
+  /** Emotional states carried into this scene */
+  emotionalCarryOver?: string[];
+}
+
+/**
+ * Generation status
+ */
+export type VideoGenerationResultVideoStatus = typeof VideoGenerationResultVideoStatus[keyof typeof VideoGenerationResultVideoStatus];
+
+
+export const VideoGenerationResultVideoStatus = {
+  success: 'success',
+  error: 'error',
+  processing: 'processing',
+} as const;
+
+/**
+ * Result of a video generation request
+ */
+export interface VideoGenerationResult {
+  /** Generation status */
+  videoStatus: VideoGenerationResultVideoStatus;
+  /** URL of the generated video (present when videoStatus is success) */
+  videoUrl?: string;
+  videoProvider: VideoProvider;
+  /** Actual clip duration in seconds */
+  videoDuration: number;
+  /**
+     * Generation progress percentage (0-100)
+     * @minimum 0
+     * @maximum 100
+     */
+  generationProgress: number;
+  /** Error message (present when videoStatus is error) */
+  generationError?: string;
+}
+
+/**
  * AI image generation provider
  */
 export type ImageProvider = typeof ImageProvider[keyof typeof ImageProvider];

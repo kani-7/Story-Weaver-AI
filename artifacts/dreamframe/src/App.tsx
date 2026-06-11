@@ -8,6 +8,7 @@ import NotFound from "@/pages/not-found";
 import {
   useAnalyzeStory,
   useGenerateSceneImage,
+  useGenerateSceneVideo,
   type Storyboard,
   type CharacterProfile,
   type Scene,
@@ -25,6 +26,7 @@ import {
   type StoryboardFrameMetadata,
   type VisualProductionReport,
   type ImageProvider,
+  type VideoProvider,
 } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -183,6 +185,16 @@ const translations: Record<UILang, Record<string, string>> = {
     generatedImage: "Generated Image",
     providerLabel: "via",
     characterRefLocked: "Character references locked",
+    generateSceneVideo: "Generate Video Clip",
+    generatingVideo: "Generating video clip...",
+    videoGenerationFailed: "Video Generation Failed",
+    retryVideo: "Retry",
+    selectVideoProvider: "Video Provider",
+    generatedVideoClip: "Generated Video Clip",
+    videoDurationLabel: "Duration",
+    motionDirected: "Motion directed",
+    continuitySynced: "Continuity synced",
+    videoProgress: "Processing...",
   },
   si: {
     subtitle: "අධ්‍යක්ෂකගේ පුටුවට ඇතුළු වන්න. ඔබේ කතාව ඇතුළු කර ක්ෂණිකව ස්ටෝරිබෝර්ඩ් එකක් ලබා ගන්න.",
@@ -318,6 +330,16 @@ const translations: Record<UILang, Record<string, string>> = {
     generatedImage: "සාදන ලද රූපය",
     providerLabel: "හරහා",
     characterRefLocked: "චරිත යොමු අගුළු දමා ඇත",
+    generateSceneVideo: "වීඩියෝ ක්ලිප් සාදන්න",
+    generatingVideo: "වීඩියෝ ක්ලිප් සාදමින්...",
+    videoGenerationFailed: "වීඩියෝ නිෂ්පාදනය අසාර්ථකයි",
+    retryVideo: "නැවත උත්සාහ",
+    selectVideoProvider: "වීඩියෝ සේවා සපයන්නා",
+    generatedVideoClip: "සාදන ලද වීඩියෝ",
+    videoDurationLabel: "කාලය",
+    motionDirected: "චලනය හසුරුවා ඇත",
+    continuitySynced: "අඛණ්ඩතාව සමමුහුර්ත",
+    videoProgress: "සකස් කරමින්...",
   },
   ta: {
     subtitle: "இயக்குனரின் இருக்கையில் அமருங்கள். உங்கள் கதையை ஒட்டவும், நொடியில் திரைக்கதை உருவாகும்.",
@@ -453,6 +475,16 @@ const translations: Record<UILang, Record<string, string>> = {
     generatedImage: "உருவாக்கப்பட்ட படம்",
     providerLabel: "மூலம்",
     characterRefLocked: "கதாபாத்திர குறிப்புகள் பூட்டப்பட்டன",
+    generateSceneVideo: "வீடியோ கிளிப் உருவாக்கு",
+    generatingVideo: "வீடியோ கிளிப் உருவாக்குகிறோம்...",
+    videoGenerationFailed: "வீடியோ உருவாக்கல் தோல்வி",
+    retryVideo: "மீண்டும் முயற்சி",
+    selectVideoProvider: "வீடியோ வழங்குநர்",
+    generatedVideoClip: "உருவாக்கப்பட்ட வீடியோ",
+    videoDurationLabel: "கால அளவு",
+    motionDirected: "இயக்கம் வழிநடத்தப்பட்டது",
+    continuitySynced: "தொடர்ச்சி ஒத்திசைக்கப்பட்டது",
+    videoProgress: "செயலாக்குகிறோம்...",
   },
 };
 
@@ -536,6 +568,26 @@ function LoadingState({ t }: { t: Record<string, string> }) {
 // ─── Image Generation Types ────────────────────────────────────────────────────
 
 type SceneImageStatus = "idle" | "loading" | "success" | "error";
+// ─── Video Generation Types ────────────────────────────────────────────────────
+
+type SceneVideoStatus = "idle" | "loading" | "success" | "error";
+
+interface SceneVideoState {
+  status: SceneVideoStatus;
+  videoUrl?: string;
+  videoProvider?: string;
+  videoDuration?: number;
+  generationProgress?: number;
+  generationError?: string;
+}
+
+const VIDEO_PROVIDERS: { value: VideoProvider; label: string; description: string }[] = [
+  { value: "luma",   label: "Luma AI Dream Machine", description: "LUMAAI_API_KEY" },
+  { value: "runway", label: "Runway Gen-4 Turbo",     description: "RUNWAY_API_KEY" },
+  { value: "kling",  label: "Kling AI v1",             description: "KLING_ACCESS_KEY + KLING_SECRET_KEY" },
+  { value: "pika",   label: "Pika 1.0",                description: "PIKA_API_KEY" },
+  { value: "veo",    label: "Google Veo 2",             description: "VEO_API_KEY" },
+];
 
 interface SceneImageState {
   status: SceneImageStatus;
@@ -557,6 +609,7 @@ function Home() {
   const { toast } = useToast();
   const analyzeMutation = useAnalyzeStory();
   const generateImageMutation = useGenerateSceneImage();
+  const generateVideoMutation = useGenerateSceneVideo();
 
   const [story, setStory] = useState("");
   const [storyboard, setStoryboard] = useState<Storyboard | null>(null);
@@ -587,6 +640,26 @@ function Home() {
 
   const [selectedProvider, setSelectedProvider] = useState<ImageProvider>("pollinations");
 
+  const [videoStates, setVideoStates] = useState<Record<number, SceneVideoState>>(() => {
+    try {
+      const saved = localStorage.getItem("dreamframe-video-states");
+      if (!saved) return {};
+      const parsed = JSON.parse(saved) as Record<number, SceneVideoState>;
+      const restored: Record<number, SceneVideoState> = {};
+      for (const [key, val] of Object.entries(parsed)) {
+        if (val.status === "success" && val.videoUrl) {
+          restored[Number(key)] = val;
+        }
+      }
+      return restored;
+    } catch {
+      return {};
+    }
+  });
+
+  const [selectedVideoProvider, setSelectedVideoProvider] = useState<VideoProvider>("luma");
+  const [videoDuration, setVideoDuration] = useState<5 | 10>(5);
+
   useEffect(() => {
     try {
       const toSave: Record<number, SceneImageState> = {};
@@ -600,6 +673,20 @@ function Home() {
       // localStorage unavailable
     }
   }, [imageStates]);
+
+  useEffect(() => {
+    try {
+      const toSave: Record<number, SceneVideoState> = {};
+      for (const [key, val] of Object.entries(videoStates)) {
+        if (val.status === "success" && val.videoUrl) {
+          toSave[Number(key)] = val;
+        }
+      }
+      localStorage.setItem("dreamframe-video-states", JSON.stringify(toSave));
+    } catch {
+      // localStorage unavailable
+    }
+  }, [videoStates]);
 
   const handleGenerateImage = (scene: Scene) => {
     const sceneNum = scene.sceneNumber;
@@ -655,6 +742,123 @@ function Home() {
             [sceneNum]: {
               status: "error",
               generationError: err instanceof Error ? err.message : "Generation failed",
+            },
+          }));
+        },
+      }
+    );
+  };
+
+  const handleGenerateVideo = (scene: Scene) => {
+    const sceneNum = scene.sceneNumber;
+    if (videoStates[sceneNum]?.status === "loading") return;
+
+    const videoPrompt = scene.imagePrompt?.sceneImagePrompt ?? scene.description ?? `Scene ${sceneNum}`;
+
+    // Scene-to-Video Intelligence: extract dominant emotion
+    let dominantEmotion: string | undefined;
+    let emotionalIntensity: number | undefined;
+    if (scene.emotions && scene.emotions.length > 0) {
+      const sorted = [...scene.emotions].sort((a, b) => (b.confidence ?? 0) - (a.confidence ?? 0));
+      dominantEmotion = sorted[0]?.emotion;
+      emotionalIntensity = sorted[0]?.confidence;
+    }
+
+    // Motion Direction: character movements from actions
+    const characterMovements: string[] = (scene.actions ?? []).map(
+      (a: CharacterAction) => `${a.character}: ${a.action}`
+    );
+
+    // Environmental motion from continuity state
+    const environmentalMotion = scene.continuityMemory?.weatherState;
+
+    // Cinematic transition from last shot
+    const lastShot = scene.shotList?.[scene.shotList.length - 1];
+    const cinematicTransition = lastShot?.transitionType;
+
+    // Video Continuity: carry state from continuity memory
+    const mem = scene.continuityMemory;
+    const clothingState = mem?.clothingState;
+
+    setVideoStates(prev => ({ ...prev, [sceneNum]: { status: "loading", generationProgress: 0 } }));
+
+    // Start client-side progress ticker
+    let progressTick = 0;
+    const progressInterval = setInterval(() => {
+      progressTick = Math.min(progressTick + 2, 90);
+      setVideoStates(prev => {
+        if (prev[sceneNum]?.status !== "loading") {
+          clearInterval(progressInterval);
+          return prev;
+        }
+        return { ...prev, [sceneNum]: { ...prev[sceneNum], generationProgress: progressTick } };
+      });
+    }, 3000);
+
+    generateVideoMutation.mutate(
+      {
+        data: {
+          sceneNumber: sceneNum,
+          videoPrompt,
+          provider: selectedVideoProvider,
+          imageUrl: imageStates[sceneNum]?.imageUrl,
+          duration: videoDuration,
+          // Scene intelligence
+          characterProfiles: storyboard?.characters as CharacterProfile[],
+          characterVisualContinuity: scene.imagePrompt?.characterVisualContinuity,
+          cameraMovement: scene.cinematicCamera?.cameraMovement,
+          cinematicMood: scene.imagePrompt?.cinematicMood,
+          lightingStyle: scene.cinematicCamera?.lightingStyle,
+          animationStyle: scene.imagePrompt?.animationStyle,
+          dominantEmotion,
+          emotionalIntensity,
+          shotType: scene.cinematicCamera?.shotType,
+          pacingStyle: scene.cinematicCamera?.pacingStyle,
+          // Motion direction
+          characterMovements,
+          environmentalMotion,
+          cinematicTransition,
+          // Video continuity
+          clothingState,
+          lightingState: mem?.lightingState,
+          environmentState: mem?.environmentState,
+          emotionalCarryOver: mem?.emotionalCarryOver,
+        },
+      },
+      {
+        onSuccess: (data) => {
+          clearInterval(progressInterval);
+          if (data.videoStatus === "success" && data.videoUrl) {
+            setVideoStates(prev => ({
+              ...prev,
+              [sceneNum]: {
+                status: "success",
+                videoUrl: data.videoUrl,
+                videoProvider: data.videoProvider,
+                videoDuration: data.videoDuration,
+                generationProgress: 100,
+              },
+            }));
+          } else {
+            setVideoStates(prev => ({
+              ...prev,
+              [sceneNum]: {
+                status: "error",
+                videoProvider: data.videoProvider,
+                generationProgress: 0,
+                generationError: data.generationError ?? "Video generation failed",
+              },
+            }));
+          }
+        },
+        onError: (err) => {
+          clearInterval(progressInterval);
+          setVideoStates(prev => ({
+            ...prev,
+            [sceneNum]: {
+              status: "error",
+              generationProgress: 0,
+              generationError: err instanceof Error ? err.message : "Video generation failed",
             },
           }));
         },
@@ -1504,8 +1708,12 @@ function Home() {
                                     src={imgState.imageUrl}
                                     alt={`Scene ${sceneNum} generated image`}
                                     className="w-full object-cover max-h-72 rounded-xl"
-                                    loading="lazy"
-                                    crossOrigin="anonymous"
+                                    loading="eager"
+                                    onError={(e) => {
+                                      const el = e.currentTarget;
+                                      el.style.opacity = "0.3";
+                                      el.title = "Image failed to load — try regenerating";
+                                    }}
                                   />
                                   <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors" />
                                 </div>
@@ -1581,6 +1789,196 @@ function Home() {
                                   >
                                     <RefreshCw className="w-3.5 h-3.5" />
                                     {t.retryGeneration}
+                                  </Button>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })()}
+
+                      {/* ── Scene Video Generator ────────────────────────── */}
+                      {(() => {
+                        const sceneNum = scene.sceneNumber;
+                        const vidState = videoStates[sceneNum];
+                        const hasMotion = !!(scene.cinematicCamera?.cameraMovement);
+                        const hasContinuity = !!(scene.continuityMemory);
+                        const hasFirstFrame = !!(imageStates[sceneNum]?.imageUrl);
+
+                        return (
+                          <div className="border-t border-white/5 px-6 py-4 space-y-3">
+                            {/* Header row */}
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="flex items-center gap-2">
+                                <Video className="w-3.5 h-3.5 text-cyan-400" />
+                                <span className="text-[10px] font-bold uppercase tracking-widest text-cyan-400">{t.generateSceneVideo}</span>
+                              </div>
+                              <div className="flex items-center gap-1.5">
+                                {hasMotion && (
+                                  <span className="hidden sm:flex items-center gap-1 text-[8px] text-indigo-400/60 bg-indigo-950/20 border border-indigo-400/15 px-1.5 py-0.5 rounded-full">
+                                    <Zap className="w-2.5 h-2.5" />{t.motionDirected}
+                                  </span>
+                                )}
+                                {hasContinuity && (
+                                  <span className="hidden sm:flex items-center gap-1 text-[8px] text-emerald-400/60 bg-emerald-950/20 border border-emerald-400/15 px-1.5 py-0.5 rounded-full">
+                                    <CheckCircle2 className="w-2.5 h-2.5" />{t.continuitySynced}
+                                  </span>
+                                )}
+                                {hasFirstFrame && (
+                                  <span className="hidden sm:flex items-center gap-1 text-[8px] text-fuchsia-400/60 bg-fuchsia-950/20 border border-fuchsia-400/15 px-1.5 py-0.5 rounded-full">
+                                    <ImageIcon className="w-2.5 h-2.5" />first frame
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Idle: show controls */}
+                            {(!vidState || vidState.status === "idle") && (
+                              <div className="flex flex-col gap-2">
+                                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                                  <div className="relative flex-1">
+                                    <select
+                                      value={selectedVideoProvider}
+                                      onChange={(e) => setSelectedVideoProvider(e.target.value as VideoProvider)}
+                                      className="w-full appearance-none bg-cyan-950/20 border border-cyan-400/20 rounded-lg px-3 py-2 text-xs text-cyan-200 cursor-pointer hover:border-cyan-400/40 focus:outline-none focus:border-cyan-400/60 pr-7"
+                                    >
+                                      {VIDEO_PROVIDERS.map((p) => (
+                                        <option key={p.value} value={p.value} className="bg-background text-foreground">
+                                          {p.label}
+                                        </option>
+                                      ))}
+                                    </select>
+                                    <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-cyan-400/50 pointer-events-none" />
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <div className="flex items-center gap-1 bg-cyan-950/15 border border-cyan-400/15 rounded-lg p-0.5">
+                                      {([5, 10] as const).map((d) => (
+                                        <button
+                                          key={d}
+                                          onClick={() => setVideoDuration(d)}
+                                          className={`px-2.5 py-1 text-xs rounded-md transition-colors font-medium ${videoDuration === d ? "bg-cyan-600 text-white" : "text-cyan-400/60 hover:text-cyan-300"}`}
+                                        >
+                                          {d}s
+                                        </button>
+                                      ))}
+                                    </div>
+                                    <Button
+                                      size="sm"
+                                      onClick={() => handleGenerateVideo(scene)}
+                                      className="bg-gradient-to-r from-cyan-700 to-indigo-600 hover:from-cyan-600 hover:to-indigo-500 text-white border-0 text-xs font-semibold gap-1.5 shrink-0"
+                                    >
+                                      <Film className="w-3.5 h-3.5" />
+                                      {t.generateSceneVideo}
+                                    </Button>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Loading state with progress bar */}
+                            {vidState?.status === "loading" && (
+                              <div className="space-y-2">
+                                <div className="flex items-center gap-3 rounded-lg bg-cyan-950/20 border border-cyan-400/15 px-4 py-3">
+                                  <Loader2 className="w-4 h-4 text-cyan-400 animate-spin shrink-0" />
+                                  <div className="flex-1 min-w-0">
+                                    <div className="text-sm text-cyan-200/70 mb-1.5">{t.generatingVideo}</div>
+                                    <div className="h-1.5 bg-cyan-950/40 rounded-full overflow-hidden">
+                                      <div
+                                        className="h-full bg-gradient-to-r from-cyan-500 to-indigo-500 rounded-full transition-all duration-1000"
+                                        style={{ width: `${vidState.generationProgress ?? 0}%` }}
+                                      />
+                                    </div>
+                                    <div className="text-[9px] text-cyan-400/40 mt-1 tabular-nums">{vidState.generationProgress ?? 0}% — {t.videoProgress}</div>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Success: video player */}
+                            {vidState?.status === "success" && vidState.videoUrl && (
+                              <div className="space-y-2">
+                                <div className="relative rounded-xl overflow-hidden border border-cyan-400/20 bg-black group">
+                                  <video
+                                    src={vidState.videoUrl}
+                                    controls
+                                    autoPlay={false}
+                                    loop
+                                    className="w-full max-h-72 rounded-xl object-contain bg-black"
+                                    playsInline
+                                  />
+                                </div>
+                                <div className="flex flex-wrap items-center justify-between gap-2">
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    {vidState.videoProvider && (
+                                      <Badge className="text-[9px] bg-cyan-950/30 text-cyan-300/70 border-cyan-400/20 gap-1">
+                                        <span className="text-cyan-500/50">{t.providerLabel}</span> {vidState.videoProvider}
+                                      </Badge>
+                                    )}
+                                    {vidState.videoDuration !== undefined && vidState.videoDuration > 0 && (
+                                      <span className="text-[9px] text-cyan-400/40">{t.videoDurationLabel}: {vidState.videoDuration}s</span>
+                                    )}
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <div className="relative">
+                                      <select
+                                        value={selectedVideoProvider}
+                                        onChange={(e) => setSelectedVideoProvider(e.target.value as VideoProvider)}
+                                        className="appearance-none bg-cyan-950/15 border border-cyan-400/15 rounded-md px-2 py-1 text-[10px] text-cyan-200/60 cursor-pointer hover:border-cyan-400/30 focus:outline-none pr-5"
+                                      >
+                                        {VIDEO_PROVIDERS.map((p) => (
+                                          <option key={p.value} value={p.value} className="bg-background text-foreground">
+                                            {p.label}
+                                          </option>
+                                        ))}
+                                      </select>
+                                      <ChevronDown className="absolute right-1.5 top-1/2 -translate-y-1/2 w-2.5 h-2.5 text-cyan-400/40 pointer-events-none" />
+                                    </div>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => handleGenerateVideo(scene)}
+                                      className="h-7 px-2 text-[10px] border-cyan-400/20 text-cyan-300/60 hover:bg-cyan-950/30 hover:text-cyan-200 gap-1"
+                                    >
+                                      <RefreshCw className="w-3 h-3" />
+                                      {t.regenerateImage}
+                                    </Button>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Error state */}
+                            {vidState?.status === "error" && (
+                              <div className="space-y-2">
+                                <div className="flex items-start gap-2 rounded-lg bg-red-950/20 border border-red-400/20 px-3 py-2.5">
+                                  <XCircle className="w-3.5 h-3.5 text-red-400 shrink-0 mt-0.5" />
+                                  <div className="flex-1 min-w-0">
+                                    <div className="text-[9px] font-bold uppercase tracking-wider text-red-400 mb-0.5">{t.videoGenerationFailed}</div>
+                                    <p className="text-xs text-red-200/60 leading-relaxed break-words">{vidState.generationError}</p>
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <div className="relative flex-1">
+                                    <select
+                                      value={selectedVideoProvider}
+                                      onChange={(e) => setSelectedVideoProvider(e.target.value as VideoProvider)}
+                                      className="w-full appearance-none bg-cyan-950/20 border border-cyan-400/20 rounded-lg px-3 py-2 text-xs text-cyan-200 cursor-pointer hover:border-cyan-400/40 focus:outline-none pr-7"
+                                    >
+                                      {VIDEO_PROVIDERS.map((p) => (
+                                        <option key={p.value} value={p.value} className="bg-background text-foreground">
+                                          {p.label}
+                                        </option>
+                                      ))}
+                                    </select>
+                                    <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-cyan-400/50 pointer-events-none" />
+                                  </div>
+                                  <Button
+                                    size="sm"
+                                    onClick={() => handleGenerateVideo(scene)}
+                                    className="bg-red-900/40 hover:bg-red-800/50 text-red-200 border border-red-400/20 text-xs font-semibold gap-1.5 shrink-0"
+                                  >
+                                    <RefreshCw className="w-3.5 h-3.5" />
+                                    {t.retryVideo}
                                   </Button>
                                 </div>
                               </div>

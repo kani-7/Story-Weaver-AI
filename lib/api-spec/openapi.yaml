@@ -26,6 +26,37 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /storyboard/generate-video:
+    post:
+      operationId: generateSceneVideo
+      tags: [storyboard]
+      summary: Generate an AI video clip for a storyboard scene
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VideoGenerationRequest"
+      responses:
+        "200":
+          description: Video generation result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VideoGenerationResult"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
   /storyboard/generate-image:
     post:
       operationId: generateSceneImage
@@ -754,6 +785,127 @@ components:
         - title
         - characters
         - scenes
+
+    # ─── Video Generation Schemas ──────────────────────────────────────────────
+    VideoProvider:
+      type: string
+      enum: [runway, kling, veo, pika, luma]
+      description: AI video generation provider
+
+    VideoGenerationRequest:
+      type: object
+      description: Request to generate a video clip for a scene
+      properties:
+        sceneNumber:
+          type: integer
+          description: Scene number to generate video for
+        videoPrompt:
+          type: string
+          description: Main video generation prompt
+        provider:
+          $ref: "#/components/schemas/VideoProvider"
+        imageUrl:
+          type: string
+          description: Optional first-frame image URL (from image generation)
+        duration:
+          type: integer
+          enum: [5, 10]
+          default: 5
+          description: Clip duration in seconds
+        characterProfiles:
+          type: array
+          items:
+            $ref: "#/components/schemas/CharacterProfile"
+          description: Character profiles for continuity locking
+        characterVisualContinuity:
+          type: string
+          description: Per-character visual continuity state
+        cameraMovement:
+          type: string
+          description: Camera movement instruction from cinematicCamera
+        cinematicMood:
+          type: string
+          description: Cinematic mood compound phrase
+        lightingStyle:
+          type: string
+          description: Lighting mood and direction
+        animationStyle:
+          type: string
+          description: Animation movement and style guidance
+        dominantEmotion:
+          type: string
+          description: Primary emotional tone of the scene
+        emotionalIntensity:
+          type: number
+          minimum: 0
+          maximum: 1
+          description: Emotional intensity level
+        shotType:
+          type: string
+          description: Primary shot type
+        pacingStyle:
+          type: string
+          description: Editorial pacing feel
+        characterMovements:
+          type: array
+          items:
+            type: string
+          description: Per-character action descriptions for motion direction
+        environmentalMotion:
+          type: string
+          description: Environmental and weather motion description
+        cinematicTransition:
+          type: string
+          description: Transition type for the clip
+        clothingState:
+          type: array
+          items:
+            type: string
+          description: Current clothing state per character for visual continuity
+        lightingState:
+          type: string
+          description: Current lighting state carried from previous scenes
+        environmentState:
+          type: string
+          description: Current environment state
+        emotionalCarryOver:
+          type: array
+          items:
+            type: string
+          description: Emotional states carried into this scene
+      required:
+        - sceneNumber
+        - videoPrompt
+
+    VideoGenerationResult:
+      type: object
+      description: Result of a video generation request
+      properties:
+        videoStatus:
+          type: string
+          enum: [success, error, processing]
+          description: Generation status
+        videoUrl:
+          type: string
+          description: URL of the generated video (present when videoStatus is success)
+        videoProvider:
+          $ref: "#/components/schemas/VideoProvider"
+        videoDuration:
+          type: number
+          description: Actual clip duration in seconds
+        generationProgress:
+          type: number
+          minimum: 0
+          maximum: 100
+          description: Generation progress percentage (0-100)
+        generationError:
+          type: string
+          description: Error message (present when videoStatus is error)
+      required:
+        - videoStatus
+        - videoProvider
+        - videoDuration
+        - generationProgress
 
     # ─── Image Generation Schemas ──────────────────────────────────────────────
     ImageProvider:

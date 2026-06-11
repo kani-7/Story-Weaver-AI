@@ -25,7 +25,9 @@ import type {
   ImageGenerationRequest,
   ImageGenerationResult,
   StoryInput,
-  Storyboard
+  Storyboard,
+  VideoGenerationRequest,
+  VideoGenerationResult
 } from './api.schemas';
 
 import { customFetch } from '../custom-fetch';
@@ -117,6 +119,77 @@ export function useHealthCheck<TData = Awaited<ReturnType<typeof healthCheck>>, 
 
 
 
+
+export const getGenerateSceneVideoUrl = () => {
+
+
+
+
+  return `/api/storyboard/generate-video`
+}
+
+/**
+ * @summary Generate an AI video clip for a storyboard scene
+ */
+export const generateSceneVideo = async (videoGenerationRequest: VideoGenerationRequest, options?: RequestInit): Promise<VideoGenerationResult> => {
+
+  return customFetch<VideoGenerationResult>(getGenerateSceneVideoUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      videoGenerationRequest,)
+  }
+);}
+
+
+
+
+export const getGenerateSceneVideoMutationOptions = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof generateSceneVideo>>, TError,{data: BodyType<VideoGenerationRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof generateSceneVideo>>, TError,{data: BodyType<VideoGenerationRequest>}, TContext> => {
+
+const mutationKey = ['generateSceneVideo'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof generateSceneVideo>>, {data: BodyType<VideoGenerationRequest>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  generateSceneVideo(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type GenerateSceneVideoMutationResult = NonNullable<Awaited<ReturnType<typeof generateSceneVideo>>>
+    export type GenerateSceneVideoMutationBody = BodyType<VideoGenerationRequest>
+    export type GenerateSceneVideoMutationError = ErrorType<ApiError>
+
+    /**
+ * @summary Generate an AI video clip for a storyboard scene
+ */
+export const useGenerateSceneVideo = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof generateSceneVideo>>, TError,{data: BodyType<VideoGenerationRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof generateSceneVideo>>,
+        TError,
+        {data: BodyType<VideoGenerationRequest>},
+        TContext
+      > => {
+      return useMutation(getGenerateSceneVideoMutationOptions(options));
+    }
 
 export const getGenerateSceneImageUrl = () => {
 

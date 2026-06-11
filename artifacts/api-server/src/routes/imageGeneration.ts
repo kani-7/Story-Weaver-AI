@@ -80,14 +80,29 @@ function buildEnhancedPrompt(body: ImageGenerationRequestBody): string {
 
 async function generateWithPollinations(prompt: string): Promise<ProviderResult> {
   const seed = Math.floor(Math.random() * 999999);
-  const encodedPrompt = encodeURIComponent(prompt);
+  // Keep URL well under browser 2048-char limit: truncate prompt first
+  const shortPrompt = prompt.slice(0, 800);
+  const encodedPrompt = encodeURIComponent(shortPrompt);
   const url = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1216&height=832&model=flux&nologo=true&seed=${seed}&enhance=false`;
 
-  // Verify the URL is reachable (HEAD request, Pollinations generates on demand)
-  const headRes = await fetch(url, { method: "HEAD", signal: AbortSignal.timeout(30000) });
-  if (!headRes.ok) {
-    throw new Error(`Pollinations returned HTTP ${headRes.status}`);
+  // Use GET (not HEAD) — Pollinations generates lazily; HEAD may 200 before the
+  // image exists. GET blocks until the image bytes stream back, guaranteeing
+  // the URL is fully generated before we hand it to the browser.
+  const response = await fetch(url, { signal: AbortSignal.timeout(90000) });
+
+  if (!response.ok) {
+    throw new Error(`Pollinations returned HTTP ${response.status}`);
   }
+
+  const contentType = response.headers.get("content-type") ?? "";
+  if (!contentType.startsWith("image/")) {
+    // Drain body to avoid leaking the connection
+    await response.arrayBuffer().catch(() => null);
+    throw new Error(`Pollinations returned unexpected content-type: ${contentType}`);
+  }
+
+  // Consume the body so the underlying connection is released cleanly
+  await response.arrayBuffer().catch(() => null);
 
   return { url, provider: "pollinations" };
 }
