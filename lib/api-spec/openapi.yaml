@@ -1537,6 +1537,14 @@ components:
         generationError:
           type: string
           description: Error message (present when imageStatus is error)
+        retryable:
+          type: boolean
+          description: Whether the error is worth retrying (e.g. transient failure vs. 402)
+        providerChain:
+          type: array
+          items:
+            type: string
+          description: Ordered list of providers that were attempted during this generation
       required:
         - imageStatus
         - imageProvider
@@ -1800,6 +1808,9 @@ components:
         estimatedTimeRemaining:
           type: number
           description: Estimated remaining time in seconds
+        totalScenes:
+          type: integer
+          description: Total number of scenes in the batch
         sceneResults:
           type: object
           description: Per-scene results keyed by sceneNumber
@@ -1816,6 +1827,10 @@ components:
                 type: number
               generationError:
                 type: string
+              providerChain:
+                type: array
+                items:
+                  type: string
       required:
         - batchGenerationStatus
         - completedScenes

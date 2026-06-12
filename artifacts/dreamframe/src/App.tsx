@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Switch, Route, Router as WouterRouter } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -815,6 +815,7 @@ function Home() {
   const generateVideoMutation = useGenerateSceneVideo();
   const createMovieExportMutation = useCreateMovieExport();
   const batchImageMutation = useBatchGenerateImages();
+  const batchImagePollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const [story, setStory] = useState("");
   const [storyboard, setStoryboard] = useState<Storyboard | null>(null);
@@ -1004,8 +1005,15 @@ function Home() {
   useEffect(() => {
     try {
       localStorage.setItem("dreamframe-image-history", JSON.stringify(imageHistory));
-    } catch {
-      // localStorage unavailable
+    } catch (err) {
+      // QuotaExceededError: trim history to newest 3 entries per scene then retry
+      if (err instanceof DOMException && err.name === "QuotaExceededError") {
+        const trimmed: Record<number, SceneImageHistoryEntry[]> = {};
+        for (const [k, v] of Object.entries(imageHistory)) {
+          trimmed[Number(k)] = (v as SceneImageHistoryEntry[]).slice(0, 3);
+        }
+        try { localStorage.setItem("dreamframe-image-history", JSON.stringify(trimmed)); } catch { /* give up */ }
+      }
     }
   }, [imageHistory]);
 
@@ -1016,6 +1024,41 @@ function Home() {
       // localStorage unavailable
     }
   }, [imageFavorites]);
+
+  // ─── Auto-clear stuck loading states (90s timeout guard) ─────────────────
+  useEffect(() => {
+    const guard = setInterval(() => {
+      const STUCK_THRESHOLD_MS = 90_000;
+      const now = Date.now();
+      setImageStates(prev => {
+        let changed = false;
+        const next = { ...prev };
+        for (const [k, state] of Object.entries(next)) {
+          // Use a timestamp-based approach: if stuck in loading, clear it
+          if (state.status === "loading") {
+            // We track loading start via a hidden field; if absent, use a safe heuristic
+            const loadingStart = (state as SceneImageState & { _loadingStart?: number })._loadingStart;
+            if (loadingStart && now - loadingStart > STUCK_THRESHOLD_MS) {
+              next[Number(k)] = { status: "error", generationError: "Generation timed out. Please retry." };
+              changed = true;
+            }
+          }
+        }
+        return changed ? next : prev;
+      });
+    }, 10_000);
+    return () => clearInterval(guard);
+  }, []);
+
+  // ─── Cleanup batch image poll interval on unmount ─────────────────────────
+  useEffect(() => {
+    return () => {
+      if (batchImagePollRef.current !== null) {
+        clearInterval(batchImagePollRef.current);
+        batchImagePollRef.current = null;
+      }
+    };
+  }, []);
 
   useEffect(() => {
     try {
@@ -1102,7 +1145,7 @@ function Home() {
       return;
     }
 
-    setImageStates(prev => ({ ...prev, [sceneNum]: { status: "loading" } }));
+    setImageStates(prev => ({ ...prev, [sceneNum]: { status: "loading", _loadingStart: Date.now() } as SceneImageState }));
 
     generateImageMutation.mutate(
       {
@@ -1683,9 +1726,10 @@ function Home() {
       totalScenes: batchScenes.length,
     });
 
-    // Mark all scenes as loading
+    // Mark all scenes as loading (with timestamp for stuck-state guard)
+    const loadingStart = Date.now();
     for (const s of scenes) {
-      setImageStates(prev => ({ ...prev, [s.sceneNumber]: { status: "loading" } }));
+      setImageStates(prev => ({ ...prev, [s.sceneNumber]: { status: "loading", _loadingStart: loadingStart } as SceneImageState }));
     }
 
     batchImageMutation.mutate(
@@ -1710,9 +1754,17 @@ function Home() {
   };
 
   const startBatchImagePolling = () => {
-    const pollInterval = setInterval(() => {
+    // Clear any existing poll before starting a new one
+    if (batchImagePollRef.current !== null) {
+      clearInterval(batchImagePollRef.current);
+    }
+
+    batchImagePollRef.current = setInterval(() => {
       fetch(`${API_BASE_URL}/storyboard/batch-generate-images/status`, { method: "GET" })
-        .then(res => res.json())
+        .then(res => {
+          if (!res.ok) throw new Error(`Status poll HTTP ${res.status}`);
+          return res.json();
+        })
         .then((data: {
           batchGenerationStatus: string;
           completedScenes: number[];
@@ -1721,7 +1773,8 @@ function Home() {
           activeScene: number | null;
           queueProgress: number;
           estimatedTimeRemaining: number;
-          sceneResults: Record<number, {
+          totalScenes?: number;
+          sceneResults: Record<string, {
             imageStatus: string;
             imageUrl?: string;
             imageProvider?: string;
@@ -1732,30 +1785,37 @@ function Home() {
           setBatchImageQueue(prev => ({
             ...prev,
             status: data.batchGenerationStatus as BatchImageStatus,
-            completedScenes: data.completedScenes,
-            failedScenes: data.failedScenes,
-            queuedScenes: data.queuedScenes,
-            activeScene: data.activeScene,
-            queueProgress: data.queueProgress,
-            estimatedTimeRemaining: data.estimatedTimeRemaining,
+            completedScenes: data.completedScenes ?? prev.completedScenes,
+            failedScenes: data.failedScenes ?? prev.failedScenes,
+            queuedScenes: data.queuedScenes ?? prev.queuedScenes,
+            activeScene: data.activeScene ?? null,
+            queueProgress: data.queueProgress ?? prev.queueProgress,
+            estimatedTimeRemaining: data.estimatedTimeRemaining ?? prev.estimatedTimeRemaining,
+            totalScenes: data.totalScenes ?? prev.totalScenes,
           }));
 
           // Update per-scene image states from results
-          for (const [sceneNumStr, result] of Object.entries(data.sceneResults)) {
+          for (const [sceneNumStr, result] of Object.entries(data.sceneResults ?? {})) {
             const sceneNum = Number(sceneNumStr);
+            if (!Number.isFinite(sceneNum)) continue;
+
             if (result.imageStatus === "success" && result.imageUrl) {
-              setImageStates(prev => ({
-                ...prev,
-                [sceneNum]: {
-                  status: "success",
-                  imageUrl: result.imageUrl,
-                  imageProvider: result.imageProvider,
-                  generationTime: result.generationTime,
-                },
-              }));
-              // Push to image history
+              setImageStates(prev => {
+                // Don't overwrite a success state we already have for this scene
+                if (prev[sceneNum]?.status === "success" && prev[sceneNum]?.imageUrl === result.imageUrl) return prev;
+                return {
+                  ...prev,
+                  [sceneNum]: {
+                    status: "success",
+                    imageUrl: result.imageUrl,
+                    imageProvider: result.imageProvider,
+                    generationTime: result.generationTime,
+                  },
+                };
+              });
+              // Push to image history (dedup by URL)
               const entry: SceneImageHistoryEntry = {
-                imageUrl: result.imageUrl!,
+                imageUrl: result.imageUrl,
                 imageProvider: result.imageProvider,
                 generationTime: result.generationTime,
                 timestamp: Date.now(),
@@ -1763,36 +1823,45 @@ function Home() {
               setImageHistory(prev => {
                 const existing = prev[sceneNum] ?? [];
                 if (existing.some(e => e.imageUrl === result.imageUrl)) return prev;
-                const updated = [entry, ...existing].slice(0, 10);
-                return { ...prev, [sceneNum]: updated };
+                return { ...prev, [sceneNum]: [entry, ...existing].slice(0, 10) };
               });
               setImageVersionIndex(prev => ({ ...prev, [sceneNum]: 0 }));
             } else if (result.imageStatus === "error") {
-              setImageStates(prev => ({
-                ...prev,
-                [sceneNum]: {
-                  status: "error",
-                  imageProvider: result.imageProvider,
-                  generationTime: result.generationTime,
-                  generationError: result.generationError ?? "Generation failed",
-                },
-              }));
+              setImageStates(prev => {
+                if (prev[sceneNum]?.status === "error") return prev;
+                return {
+                  ...prev,
+                  [sceneNum]: {
+                    status: "error",
+                    imageProvider: result.imageProvider,
+                    generationTime: result.generationTime,
+                    generationError: result.generationError ?? "Generation failed",
+                  },
+                };
+              });
             }
           }
 
           if (data.batchGenerationStatus === "completed" || data.batchGenerationStatus === "cancelled") {
-            clearInterval(pollInterval);
+            if (batchImagePollRef.current !== null) {
+              clearInterval(batchImagePollRef.current);
+              batchImagePollRef.current = null;
+            }
             setTimeout(() => setBatchImageQueue(prev => ({ ...prev, status: "idle" })), 5000);
           }
         })
         .catch(() => {
-          // Silently ignore poll errors
+          // Silently ignore transient poll errors
         });
     }, 2000);
   };
 
   const handleCancelBatchImages = () => {
-    fetch(`${API_BASE_URL}/storyboard/batch-generate-images/cancel`, { method: "POST" });
+    fetch(`${API_BASE_URL}/storyboard/batch-generate-images/cancel`, { method: "POST" }).catch(() => {});
+    if (batchImagePollRef.current !== null) {
+      clearInterval(batchImagePollRef.current);
+      batchImagePollRef.current = null;
+    }
     setBatchImageQueue(prev => ({ ...prev, status: "cancelled" }));
   };
 
@@ -2916,8 +2985,8 @@ function Home() {
                             {imgState?.status === "success" && imgState.imageUrl && (() => {
                               const history = imageHistory[sceneNum] ?? [];
                               const versionIdx = imageVersionIndex[sceneNum] ?? 0;
-                              const isFavorited = imageFavorites[sceneNum] === imgState.imageUrl;
                               const displayUrl = history.length > 0 ? (history[versionIdx]?.imageUrl ?? imgState.imageUrl) : imgState.imageUrl;
+                              const isFavorited = imageFavorites[sceneNum] === displayUrl;
                               return (
                                 <div className="space-y-2">
                                   <div className="relative rounded-xl overflow-hidden border border-fuchsia-400/20 bg-fuchsia-950/10 group">

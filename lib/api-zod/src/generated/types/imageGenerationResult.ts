@@ -21,4 +21,8 @@ export interface ImageGenerationResult {
   generationTime: number;
   /** Error message (present when imageStatus is error) */
   generationError?: string;
+  /** Whether the error is worth retrying (e.g. transient failure vs. 402) */
+  retryable?: boolean;
+  /** Ordered list of providers that were attempted during this generation */
+  providerChain?: string[];
 }

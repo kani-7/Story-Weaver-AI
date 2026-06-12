@@ -30,6 +30,8 @@ export interface BatchImageGenerationStatus {
   queueProgress: number;
   /** Estimated remaining time in seconds */
   estimatedTimeRemaining?: number;
+  /** Total number of scenes in the batch */
+  totalScenes?: number;
   /** Per-scene results keyed by sceneNumber */
   sceneResults?: BatchImageGenerationStatusSceneResults;
 }

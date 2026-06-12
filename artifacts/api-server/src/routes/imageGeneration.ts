@@ -33,14 +33,139 @@ interface ImageGenerationRequestBody {
 interface ProviderResult {
   url: string;
   provider: ImageProvider;
+  providerChain?: string[];
+  retryable?: boolean;
 }
 
-// ─── Retry with Exponential Backoff ────────────────────────────────────────────
+// ─── Structured Logging ─────────────────────────────────────────────────────────
+
+interface GenLogEvent {
+  provider: string;
+  sceneNumber?: number;
+  promptLen: number;
+  durationMs?: number;
+  status: "attempt" | "ok" | "err" | "fallback" | "skip";
+  model?: string;
+  httpStatus?: number;
+  imageUrl?: string;
+  error?: string;
+}
+
+function logGen(event: GenLogEvent): void {
+  const parts: string[] = [
+    `[imageGen] provider=${event.provider}`,
+    `status=${event.status}`,
+    `prompt_len=${event.promptLen}`,
+  ];
+  if (event.sceneNumber !== undefined) parts.push(`scene=${event.sceneNumber}`);
+  if (event.model) parts.push(`model=${event.model}`);
+  if (event.httpStatus !== undefined) parts.push(`http=${event.httpStatus}`);
+  if (event.durationMs !== undefined) parts.push(`time=${(event.durationMs / 1000).toFixed(2)}s`);
+  if (event.imageUrl) parts.push(`url=${event.imageUrl.slice(0, 80)}${event.imageUrl.length > 80 ? "…" : ""}`);
+  if (event.error) parts.push(`error="${event.error.slice(0, 120)}"`);
+
+  const msg = parts.join(" | ");
+  if (event.status === "err") {
+    console.error(msg);
+  } else if (event.status === "fallback" || event.status === "skip") {
+    console.warn(msg);
+  } else {
+    console.info(msg);
+  }
+}
+
+// ─── Provider Error (non-retryable support) ─────────────────────────────────────
+
+class ProviderError extends Error {
+  public readonly httpStatus: number;
+  public readonly retryable: boolean;
+  public readonly userMessage: string;
+
+  constructor(
+    message: string,
+    httpStatus: number,
+    retryable: boolean,
+    userMessage: string
+  ) {
+    super(message);
+    this.name = "ProviderError";
+    this.httpStatus = httpStatus;
+    this.retryable = retryable;
+    this.userMessage = userMessage;
+  }
+}
+
+function classifyHttpError(status: number, provider: ImageProvider, body: string): ProviderError {
+  const short = body.slice(0, 200);
+  switch (status) {
+    case 400:
+      return new ProviderError(
+        `${provider} HTTP 400: ${short}`,
+        400,
+        false,
+        `${provider}: invalid request — your prompt may contain unsupported content.`
+      );
+    case 401:
+    case 403:
+      return new ProviderError(
+        `${provider} HTTP ${status}: unauthorized`,
+        status,
+        false,
+        `${provider}: API key is invalid or missing. Check your credentials.`
+      );
+    case 402:
+      return new ProviderError(
+        `${provider} HTTP 402: payment required`,
+        402,
+        false,
+        `${provider}: this model requires a paid plan. Trying a different provider.`
+      );
+    case 429:
+      return new ProviderError(
+        `${provider} HTTP 429: rate limited`,
+        429,
+        true,
+        `${provider}: rate limit reached. Retrying shortly…`
+      );
+    case 503:
+    case 502:
+    case 504:
+      return new ProviderError(
+        `${provider} HTTP ${status}: service unavailable`,
+        status,
+        true,
+        `${provider}: temporarily unavailable. Retrying…`
+      );
+    default:
+      return new ProviderError(
+        `${provider} HTTP ${status}: ${short}`,
+        status,
+        status >= 500,
+        `${provider}: generation failed (HTTP ${status}).`
+      );
+  }
+}
+
+// ─── Prompt Sanitisation ────────────────────────────────────────────────────────
+
+function sanitizePrompt(text: string, maxLen: number): string {
+  return text.trim().replace(/\s+/g, " ").slice(0, maxLen);
+}
+
+// ─── Image URL Validator ────────────────────────────────────────────────────────
+
+function validateImageUrl(url: string | undefined): url is string {
+  if (!url || typeof url !== "string") return false;
+  return url.startsWith("http://") || url.startsWith("https://") || url.startsWith("data:image/");
+}
+
+// ─── Retry with Exponential Backoff (respects non-retryable errors) ─────────────
 
 async function withRetry<T>(
   fn: () => Promise<T>,
   maxAttempts: number = 3,
-  baseDelayMs: number = 1500
+  baseDelayMs: number = 1500,
+  retryAfterMs?: number
 ): Promise<T> {
   let lastError: unknown;
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
@@ -48,8 +173,16 @@ async function withRetry<T>(
       return await fn();
     } catch (err) {
       lastError = err;
+      // Do not retry non-retryable ProviderErrors
+      if (err instanceof ProviderError && !err.retryable) {
+        throw err;
+      }
       if (attempt < maxAttempts - 1) {
-        const delay = baseDelayMs * Math.pow(2, attempt);
+        let delay = baseDelayMs * Math.pow(2, attempt);
+        // Honour the Retry-After hint if provided
+        if (retryAfterMs && retryAfterMs > 0) {
+          delay = Math.max(delay, retryAfterMs);
+        }
         console.warn(
           `[imageGen] attempt ${attempt + 1}/${maxAttempts} failed: ${err instanceof Error ? err.message : String(err)}. Retrying in ${delay}ms…`
         );
@@ -69,7 +202,6 @@ function buildCharacterReferenceBlock(
   if (!characterProfiles || characterProfiles.length === 0) return "";
 
   const parts: string[] = [];
-
   for (const char of characterProfiles) {
     const lines: string[] = [`[${char.name}]`];
     if (char.appearance) lines.push(`appearance: ${char.appearance}`);
@@ -79,11 +211,9 @@ function buildCharacterReferenceBlock(
   }
 
   let block = `CHARACTER REFERENCES — ${parts.join(" | ")}`;
-
   if (characterVisualContinuity) {
     block += ` | CONTINUITY STATE — ${characterVisualContinuity}`;
   }
-
   return block;
 }
 
@@ -104,161 +234,181 @@ function buildEnhancedPrompt(body: ImageGenerationRequestBody): string {
 }
 
 // ─── Provider: Pollinations (free, no API key) ─────────────────────────────────
-// Uses the `turbo` model (SDXL Turbo) — free tier, no 402.
-// `flux` has moved to a paid tier, so we do NOT use it.
-// GET request forces lazy generation to complete before we return the URL.
+// Model fallback: turbo → flux-schnell → (no model param = default free model)
+// 402 on a specific model = non-retryable → skip to next model immediately.
 
-async function attemptPollinations(prompt: string, model: string): Promise<ProviderResult> {
+async function attemptPollinationsModel(prompt: string, model: string | null): Promise<ProviderResult> {
   const seed = Math.floor(Math.random() * 999999);
-  const shortPrompt = prompt.slice(0, 800);
+  const shortPrompt = sanitizePrompt(prompt, 800);
   const encodedPrompt = encodeURIComponent(shortPrompt);
-  // nologo=true, enhance=false to keep it clean and deterministic
-  const url = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1216&height=832&model=${model}&nologo=true&seed=${seed}&enhance=false`;
+  const modelParam = model ? `&model=${model}` : "";
+  const url =
+    `https://image.pollinations.ai/prompt/${encodedPrompt}` +
+    `?width=1216&height=832${modelParam}&nologo=true&seed=${seed}&enhance=false`;
 
-  console.info(`[Pollinations] GET model=${model} seed=${seed} prompt_len=${shortPrompt.length}`);
+  const t0 = Date.now();
+  logGen({ provider: "pollinations", promptLen: shortPrompt.length, status: "attempt", model: model ?? "default" });
 
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 60000);
+  const timeout = setTimeout(() => controller.abort(), 65000);
 
   let response: Response;
   try {
     response = await fetch(url, { signal: controller.signal });
+  } catch (networkErr) {
+    clearTimeout(timeout);
+    const msg = networkErr instanceof Error ? networkErr.message : String(networkErr);
+    logGen({ provider: "pollinations", promptLen: shortPrompt.length, status: "err", model: model ?? "default", error: msg });
+    throw new ProviderError(`Pollinations network error: ${msg}`, 0, true, "Pollinations: network error. Retrying…");
   } finally {
     clearTimeout(timeout);
   }
 
   if (!response.ok) {
-    // Log full body for debugging
-    const body = await response.text().catch(() => "<unreadable>");
-    console.error(`[Pollinations] HTTP ${response.status} (model=${model}): ${body}`);
-    throw new Error(`Pollinations HTTP ${response.status} — ${body.slice(0, 200)}`);
+    const body = await response.text().catch(() => "");
+    logGen({ provider: "pollinations", promptLen: shortPrompt.length, status: "err", model: model ?? "default", httpStatus: response.status, error: body.slice(0, 120) });
+    throw classifyHttpError(response.status, "pollinations", body);
   }
 
   const contentType = response.headers.get("content-type") ?? "";
   if (!contentType.startsWith("image/")) {
-    const body = await response.arrayBuffer().catch(() => null);
-    console.error(`[Pollinations] Unexpected content-type: ${contentType}`);
-    throw new Error(`Pollinations returned unexpected content-type: ${contentType}`);
+    const body = await response.text().catch(() => "");
+    await response.arrayBuffer().catch(() => null);
+    logGen({ provider: "pollinations", promptLen: shortPrompt.length, status: "err", model: model ?? "default", error: `Unexpected content-type: ${contentType}` });
+    throw new ProviderError(
+      `Pollinations bad content-type: ${contentType} — ${body.slice(0, 80)}`,
+      0,
+      true,
+      "Pollinations returned unexpected response. Retrying…"
+    );
   }
 
-  // Consume the body so the connection is released cleanly
   await response.arrayBuffer().catch(() => null);
-
+  logGen({ provider: "pollinations", promptLen: shortPrompt.length, status: "ok", model: model ?? "default", durationMs: Date.now() - t0, imageUrl: url });
   return { url, provider: "pollinations" };
 }
 
 async function generateWithPollinations(prompt: string): Promise<ProviderResult> {
-  // Model fallback order: turbo (SDXL Turbo, always free) → flux-schnell → default (no model param)
-  // We try with retry+backoff on each model before moving to the next.
-  const models = ["turbo", "flux-schnell"];
+  const modelSequence: Array<string | null> = ["turbo", "flux-schnell", null];
 
-  for (const model of models) {
+  for (const model of modelSequence) {
     try {
-      return await withRetry(() => attemptPollinations(prompt, model), 2, 1500);
+      return await withRetry(() => attemptPollinationsModel(prompt, model), 2, 1500);
     } catch (err) {
-      console.warn(`[Pollinations] model=${model} exhausted retries: ${err instanceof Error ? err.message : String(err)}`);
+      if (err instanceof ProviderError && !err.retryable) {
+        // 402 / 400 on this model — skip immediately, do NOT retry
+        logGen({ provider: "pollinations", promptLen: prompt.length, status: "skip", model: model ?? "default", error: err.message });
+        continue;
+      }
+      // Retryable exhausted — try next model
+      logGen({ provider: "pollinations", promptLen: prompt.length, status: "skip", model: model ?? "default", error: err instanceof Error ? err.message : String(err) });
     }
   }
 
-  // Last-ditch: try without a model param (Pollinations picks the default free model)
-  const seed = Math.floor(Math.random() * 999999);
-  const shortPrompt = prompt.slice(0, 800);
-  const encodedPrompt = encodeURIComponent(shortPrompt);
-  const fallbackUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1216&height=832&nologo=true&seed=${seed}&enhance=false`;
-
-  console.info(`[Pollinations] Trying without model param (default), seed=${seed}`);
-
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 60000);
-  let response: Response;
-  try {
-    response = await fetch(fallbackUrl, { signal: controller.signal });
-  } finally {
-    clearTimeout(timeout);
-  }
-
-  if (!response.ok) {
-    const body = await response.text().catch(() => "<unreadable>");
-    console.error(`[Pollinations] Final fallback HTTP ${response.status}: ${body}`);
-    throw new Error(`Pollinations unavailable (HTTP ${response.status}). Response: ${body.slice(0, 200)}`);
-  }
-
-  const contentType = response.headers.get("content-type") ?? "";
-  if (!contentType.startsWith("image/")) {
-    await response.arrayBuffer().catch(() => null);
-    throw new Error(`Pollinations returned unexpected content-type: ${contentType}`);
-  }
-
-  await response.arrayBuffer().catch(() => null);
-  return { url: fallbackUrl, provider: "pollinations" };
+  throw new ProviderError(
+    "Pollinations: all models exhausted",
+    0,
+    false,
+    "Pollinations is currently unavailable. Try a different provider, or try again in a moment."
+  );
 }
 
 // ─── Provider: OpenAI DALL-E 3 ────────────────────────────────────────────────
 
 async function generateWithOpenAI(prompt: string): Promise<ProviderResult> {
   const apiKey = process.env["OPENAI_API_KEY"];
-  if (!apiKey) throw new Error("OPENAI_API_KEY is not set");
+  if (!apiKey) throw new ProviderError("OPENAI_API_KEY not set", 0, false, "OpenAI API key is not configured.");
 
-  const response = await fetch("https://api.openai.com/v1/images/generations", {
-    method: "POST",
-    headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-    body: JSON.stringify({
-      model: "dall-e-3",
-      prompt: prompt.slice(0, 4000),
-      n: 1,
-      size: "1792x1024",
-      quality: "hd",
-    }),
-    signal: AbortSignal.timeout(60000),
-  });
+  const t0 = Date.now();
+  const safePrompt = sanitizePrompt(prompt, 4000);
+  logGen({ provider: "openai", promptLen: safePrompt.length, status: "attempt" });
 
-  if (!response.ok) {
-    const err = await response.text();
-    throw new Error(`OpenAI API error ${response.status}: ${err}`);
+  let response: Response;
+  try {
+    response = await fetch("https://api.openai.com/v1/images/generations", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "dall-e-3",
+        prompt: safePrompt,
+        n: 1,
+        size: "1792x1024",
+        quality: "hd",
+      }),
+      signal: AbortSignal.timeout(70000),
+    });
+  } catch (networkErr) {
+    const msg = networkErr instanceof Error ? networkErr.message : String(networkErr);
+    logGen({ provider: "openai", promptLen: safePrompt.length, status: "err", error: msg });
+    throw new ProviderError(`OpenAI network error: ${msg}`, 0, true, "OpenAI: network error. Retrying…");
   }
 
-  const data = (await response.json()) as { data: Array<{ url: string }> };
-  if (!data.data?.[0]?.url) throw new Error("OpenAI returned no image URL");
+  if (!response.ok) {
+    const body = await response.text().catch(() => "");
+    logGen({ provider: "openai", promptLen: safePrompt.length, status: "err", httpStatus: response.status, error: body.slice(0, 120) });
+    throw classifyHttpError(response.status, "openai", body);
+  }
 
-  return { url: data.data[0].url, provider: "openai" };
+  const data = (await response.json()) as { data?: Array<{ url?: string }> };
+  const imageUrl = data.data?.[0]?.url;
+  if (!validateImageUrl(imageUrl)) {
+    logGen({ provider: "openai", promptLen: safePrompt.length, status: "err", error: "No valid image URL in response" });
+    throw new ProviderError("OpenAI returned no image URL", 0, false, "OpenAI: no image URL in response.");
+  }
+
+  logGen({ provider: "openai", promptLen: safePrompt.length, status: "ok", durationMs: Date.now() - t0, imageUrl });
+  return { url: imageUrl, provider: "openai" };
 }
 
 // ─── Provider: Stability AI ───────────────────────────────────────────────────
 
 async function generateWithStability(prompt: string): Promise<ProviderResult> {
   const apiKey = process.env["STABILITY_API_KEY"];
-  if (!apiKey) throw new Error("STABILITY_API_KEY is not set");
+  if (!apiKey) throw new ProviderError("STABILITY_API_KEY not set", 0, false, "Stability AI API key is not configured.");
 
-  const response = await fetch(
-    "https://api.stability.ai/v2beta/stable-image/generate/ultra",
-    {
+  const t0 = Date.now();
+  const safePrompt = sanitizePrompt(prompt, 10000);
+  logGen({ provider: "stability", promptLen: safePrompt.length, status: "attempt" });
+
+  const fd = new FormData();
+  fd.append("prompt", safePrompt);
+  fd.append("output_format", "jpeg");
+  fd.append("aspect_ratio", "16:9");
+
+  let response: Response;
+  try {
+    response = await fetch("https://api.stability.ai/v2beta/stable-image/generate/ultra", {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        Accept: "application/json",
-      },
-      body: (() => {
-        const fd = new FormData();
-        fd.append("prompt", prompt.slice(0, 10000));
-        fd.append("output_format", "jpeg");
-        fd.append("aspect_ratio", "16:9");
-        return fd;
-      })(),
-      signal: AbortSignal.timeout(60000),
-    }
-  );
-
-  if (!response.ok) {
-    const err = await response.text();
-    throw new Error(`Stability AI error ${response.status}: ${err}`);
+      headers: { Authorization: `Bearer ${apiKey}`, Accept: "application/json" },
+      body: fd,
+      signal: AbortSignal.timeout(70000),
+    });
+  } catch (networkErr) {
+    const msg = networkErr instanceof Error ? networkErr.message : String(networkErr);
+    logGen({ provider: "stability", promptLen: safePrompt.length, status: "err", error: msg });
+    throw new ProviderError(`Stability AI network error: ${msg}`, 0, true, "Stability AI: network error. Retrying…");
   }
 
-  const data = (await response.json()) as { image?: string; artifacts?: Array<{ base64: string }> };
+  if (!response.ok) {
+    const body = await response.text().catch(() => "");
+    logGen({ provider: "stability", promptLen: safePrompt.length, status: "err", httpStatus: response.status, error: body.slice(0, 120) });
+    throw classifyHttpError(response.status, "stability", body);
+  }
 
-  const base64 = data.image ?? data.artifacts?.[0]?.base64;
-  if (!base64) throw new Error("Stability AI returned no image data");
+  // Unified response parser: new API uses `image`, old uses `artifacts[].base64`
+  const raw = (await response.json()) as {
+    image?: string;
+    artifacts?: Array<{ base64?: string; seed?: number; finishReason?: string }>;
+  };
+
+  const base64 = raw.image ?? raw.artifacts?.[0]?.base64;
+  if (!base64) {
+    logGen({ provider: "stability", promptLen: safePrompt.length, status: "err", error: "No image data in response" });
+    throw new ProviderError("Stability AI returned no image data", 0, false, "Stability AI: no image data in response.");
+  }
 
   const dataUrl = `data:image/jpeg;base64,${base64}`;
+  logGen({ provider: "stability", promptLen: safePrompt.length, status: "ok", durationMs: Date.now() - t0, imageUrl: dataUrl.slice(0, 40) });
   return { url: dataUrl, provider: "stability" };
 }
 
@@ -266,58 +416,123 @@ async function generateWithStability(prompt: string): Promise<ProviderResult> {
 
 async function generateWithReplicate(prompt: string): Promise<ProviderResult> {
   const apiKey = process.env["REPLICATE_API_TOKEN"];
-  if (!apiKey) throw new Error("REPLICATE_API_TOKEN is not set");
+  if (!apiKey) throw new ProviderError("REPLICATE_API_TOKEN not set", 0, false, "Replicate API token is not configured.");
 
-  const createRes = await fetch("https://api.replicate.com/v1/models/black-forest-labs/flux-schnell/predictions", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-      Prefer: "wait",
-    },
-    body: JSON.stringify({
-      input: {
-        prompt: prompt.slice(0, 2000),
-        aspect_ratio: "16:9",
-        output_format: "jpg",
-        output_quality: 90,
-        num_inference_steps: 4,
-      },
-    }),
-    signal: AbortSignal.timeout(90000),
-  });
+  const t0 = Date.now();
+  const safePrompt = sanitizePrompt(prompt, 2000);
+  logGen({ provider: "replicate", promptLen: safePrompt.length, status: "attempt" });
+
+  let createRes: Response;
+  try {
+    createRes = await fetch(
+      "https://api.replicate.com/v1/models/black-forest-labs/flux-schnell/predictions",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+          Prefer: "wait",
+        },
+        body: JSON.stringify({
+          input: {
+            prompt: safePrompt,
+            aspect_ratio: "16:9",
+            output_format: "jpg",
+            output_quality: 90,
+            num_inference_steps: 4,
+          },
+        }),
+        signal: AbortSignal.timeout(90000),
+      }
+    );
+  } catch (networkErr) {
+    const msg = networkErr instanceof Error ? networkErr.message : String(networkErr);
+    logGen({ provider: "replicate", promptLen: safePrompt.length, status: "err", error: msg });
+    throw new ProviderError(`Replicate network error: ${msg}`, 0, true, "Replicate: network error. Retrying…");
+  }
 
   if (!createRes.ok) {
-    const err = await createRes.text();
-    throw new Error(`Replicate error ${createRes.status}: ${err}`);
+    const body = await createRes.text().catch(() => "");
+    logGen({ provider: "replicate", promptLen: safePrompt.length, status: "err", httpStatus: createRes.status, error: body.slice(0, 120) });
+    throw classifyHttpError(createRes.status, "replicate", body);
   }
 
   const prediction = (await createRes.json()) as {
     id: string;
     status: string;
     output?: string[];
+    error?: string;
     urls?: { get: string };
   };
 
-  if (prediction.status !== "succeeded" && prediction.urls?.get) {
-    for (let attempt = 0; attempt < 20; attempt++) {
-      await new Promise((r) => setTimeout(r, 3000));
-      const pollRes = await fetch(prediction.urls!.get, {
-        headers: { Authorization: `Bearer ${apiKey}` },
-        signal: AbortSignal.timeout(15000),
-      });
-      const polled = (await pollRes.json()) as { status: string; output?: string[] };
-      if (polled.status === "succeeded" && polled.output?.[0]) {
-        return { url: polled.output[0], provider: "replicate" };
-      }
-      if (polled.status === "failed") throw new Error("Replicate prediction failed");
-    }
-    throw new Error("Replicate prediction timed out");
+  if (prediction.error) {
+    logGen({ provider: "replicate", promptLen: safePrompt.length, status: "err", error: prediction.error });
+    throw new ProviderError(`Replicate prediction error: ${prediction.error}`, 0, false, `Replicate: ${prediction.error}`);
   }
 
-  const imageUrl = prediction.output?.[0];
-  if (!imageUrl) throw new Error("Replicate returned no image URL");
+  // If not immediately succeeded, poll
+  if (prediction.status !== "succeeded" && prediction.urls?.get) {
+    for (let attempt = 0; attempt < 25; attempt++) {
+      await new Promise((r) => setTimeout(r, 3000));
+      try {
+        const pollRes = await fetch(prediction.urls!.get, {
+          headers: { Authorization: `Bearer ${apiKey}` },
+          signal: AbortSignal.timeout(15000),
+        });
+        if (!pollRes.ok) continue;
 
+        const polled = (await pollRes.json()) as {
+          status: string;
+          output?: unknown;
+          error?: string;
+        };
+
+        if (polled.status === "failed") {
+          throw new ProviderError(
+            `Replicate prediction failed: ${polled.error ?? "unknown"}`,
+            0,
+            false,
+            `Replicate: generation failed. ${polled.error ?? ""}`
+          );
+        }
+
+        // output can be string[] or a single string
+        const outputArr = Array.isArray(polled.output)
+          ? (polled.output as string[])
+          : typeof polled.output === "string"
+          ? [polled.output]
+          : [];
+
+        if (polled.status === "succeeded" && outputArr.length > 0) {
+          const imageUrl = outputArr[0];
+          if (!validateImageUrl(imageUrl)) {
+            throw new ProviderError("Replicate: invalid image URL in output", 0, false, "Replicate returned an invalid image URL.");
+          }
+          logGen({ provider: "replicate", promptLen: safePrompt.length, status: "ok", durationMs: Date.now() - t0, imageUrl });
+          return { url: imageUrl, provider: "replicate" };
+        }
+      } catch (pollErr) {
+        if (pollErr instanceof ProviderError) throw pollErr;
+        // Network errors during polling → continue
+      }
+    }
+    throw new ProviderError("Replicate prediction timed out", 0, false, "Replicate: generation timed out.");
+  }
+
+  // Immediate success (Prefer: wait header)
+  const outputArr = Array.isArray(prediction.output)
+    ? (prediction.output as string[])
+    : typeof prediction.output === "string"
+    ? [prediction.output]
+    : [];
+
+  const imageUrl = outputArr[0];
+  if (!validateImageUrl(imageUrl)) {
+    logGen({ provider: "replicate", promptLen: safePrompt.length, status: "err", error: "No valid image URL in output" });
+    throw new ProviderError("Replicate returned no image URL", 0, false, "Replicate: no image URL in response.");
+  }
+
+  logGen({ provider: "replicate", promptLen: safePrompt.length, status: "ok", durationMs: Date.now() - t0, imageUrl });
   return { url: imageUrl, provider: "replicate" };
 }
 
@@ -325,60 +540,100 @@ async function generateWithReplicate(prompt: string): Promise<ProviderResult> {
 
 async function generateWithFal(prompt: string): Promise<ProviderResult> {
   const apiKey = process.env["FAL_KEY"];
-  if (!apiKey) throw new Error("FAL_KEY is not set");
+  if (!apiKey) throw new ProviderError("FAL_KEY not set", 0, false, "Fal.ai API key is not configured.");
 
-  const submitRes = await fetch("https://queue.fal.run/fal-ai/flux/schnell", {
-    method: "POST",
-    headers: {
-      Authorization: `Key ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      prompt: prompt.slice(0, 2000),
-      image_size: "landscape_16_9",
-      num_inference_steps: 4,
-      num_images: 1,
-      enable_safety_checker: true,
-    }),
-    signal: AbortSignal.timeout(90000),
-  });
+  const t0 = Date.now();
+  const safePrompt = sanitizePrompt(prompt, 2000);
+  logGen({ provider: "fal", promptLen: safePrompt.length, status: "attempt" });
+
+  let submitRes: Response;
+  try {
+    submitRes = await fetch("https://queue.fal.run/fal-ai/flux/schnell", {
+      method: "POST",
+      headers: { Authorization: `Key ${apiKey}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        prompt: safePrompt,
+        image_size: "landscape_16_9",
+        num_inference_steps: 4,
+        num_images: 1,
+        enable_safety_checker: true,
+      }),
+      signal: AbortSignal.timeout(90000),
+    });
+  } catch (networkErr) {
+    const msg = networkErr instanceof Error ? networkErr.message : String(networkErr);
+    logGen({ provider: "fal", promptLen: safePrompt.length, status: "err", error: msg });
+    throw new ProviderError(`Fal.ai network error: ${msg}`, 0, true, "Fal.ai: network error. Retrying…");
+  }
 
   if (!submitRes.ok) {
-    const err = await submitRes.text();
-    throw new Error(`Fal.ai error ${submitRes.status}: ${err}`);
+    const body = await submitRes.text().catch(() => "");
+    logGen({ provider: "fal", promptLen: safePrompt.length, status: "err", httpStatus: submitRes.status, error: body.slice(0, 120) });
+    throw classifyHttpError(submitRes.status, "fal", body);
   }
 
-  const queued = (await submitRes.json()) as { request_id: string; response_url?: string };
+  const queued = (await submitRes.json()) as {
+    request_id: string;
+    response_url?: string;
+    status?: string;
+    images?: Array<{ url?: string }>;
+  };
 
-  const resultUrl = queued.response_url ?? `https://queue.fal.run/fal-ai/flux/schnell/requests/${queued.request_id}`;
-  for (let attempt = 0; attempt < 20; attempt++) {
+  // If images are already in the submit response (synchronous result)
+  if (queued.images?.[0]?.url) {
+    const imageUrl = queued.images[0].url!;
+    if (!validateImageUrl(imageUrl)) throw new ProviderError("Fal.ai: invalid image URL in submit response", 0, false, "Fal.ai returned an invalid image URL.");
+    logGen({ provider: "fal", promptLen: safePrompt.length, status: "ok", durationMs: Date.now() - t0, imageUrl });
+    return { url: imageUrl, provider: "fal" };
+  }
+
+  const resultUrl =
+    queued.response_url ??
+    `https://queue.fal.run/fal-ai/flux/schnell/requests/${queued.request_id}`;
+
+  for (let attempt = 0; attempt < 25; attempt++) {
     await new Promise((r) => setTimeout(r, 3000));
-    const pollRes = await fetch(resultUrl, {
-      headers: { Authorization: `Key ${apiKey}` },
-      signal: AbortSignal.timeout(15000),
-    });
+    try {
+      const pollRes = await fetch(resultUrl, {
+        headers: { Authorization: `Key ${apiKey}` },
+        signal: AbortSignal.timeout(15000),
+      });
 
-    if (!pollRes.ok) continue;
-    const data = (await pollRes.json()) as {
-      status?: string;
-      images?: Array<{ url: string }>;
-    };
+      if (!pollRes.ok) continue;
 
-    if (data.images?.[0]?.url) {
-      return { url: data.images[0].url, provider: "fal" };
+      const data = (await pollRes.json()) as {
+        status?: string;
+        images?: Array<{ url?: string }>;
+        error?: string;
+      };
+
+      if (data.error) {
+        throw new ProviderError(`Fal.ai error: ${data.error}`, 0, false, `Fal.ai: ${data.error}`);
+      }
+
+      if (data.status === "FAILED") {
+        throw new ProviderError("Fal.ai generation failed", 0, false, "Fal.ai: generation failed.");
+      }
+
+      const imageUrl = data.images?.[0]?.url;
+      if (validateImageUrl(imageUrl)) {
+        logGen({ provider: "fal", promptLen: safePrompt.length, status: "ok", durationMs: Date.now() - t0, imageUrl });
+        return { url: imageUrl, provider: "fal" };
+      }
+    } catch (pollErr) {
+      if (pollErr instanceof ProviderError) throw pollErr;
     }
-    if (data.status === "FAILED") throw new Error("Fal.ai generation failed");
   }
 
-  throw new Error("Fal.ai generation timed out");
+  logGen({ provider: "fal", promptLen: safePrompt.length, status: "err", error: "Fal.ai timed out" });
+  throw new ProviderError("Fal.ai generation timed out", 0, false, "Fal.ai: generation timed out.");
 }
 
 // ─── Fallback Chain ────────────────────────────────────────────────────────────
-// After the requested provider fails, try other providers in priority order,
-// skipping any that require an API key that isn't configured.
 
 function buildFallbackChain(requestedProvider: ImageProvider): ImageProvider[] {
-  const all: ImageProvider[] = ["pollinations", "openai", "stability", "replicate", "fal"];
+  // Priority: free provider first, then key-gated providers
+  const priority: ImageProvider[] = ["pollinations", "openai", "stability", "replicate", "fal"];
   const hasKey: Record<ImageProvider, boolean> = {
     pollinations: true,
     openai: !!process.env["OPENAI_API_KEY"],
@@ -386,7 +641,7 @@ function buildFallbackChain(requestedProvider: ImageProvider): ImageProvider[] {
     replicate: !!process.env["REPLICATE_API_TOKEN"],
     fal: !!process.env["FAL_KEY"],
   };
-  return all.filter((p) => p !== requestedProvider && hasKey[p]);
+  return priority.filter((p) => p !== requestedProvider && hasKey[p]);
 }
 
 // ─── Provider Router ──────────────────────────────────────────────────────────
@@ -410,9 +665,79 @@ async function generateImage(
   }
 }
 
-// ─── In-memory dedup cache (keyed by sceneNumber + provider) ──────────────────
+// ─── Generate with Full Fallback Chain ───────────────────────────────────────
+// Tries primary provider, then automatically falls back through available providers.
+// Returns the result + the chain of providers that were attempted.
 
-const inFlightRequests = new Map<string, Promise<ProviderResult>>();
+async function generateWithFallbackChain(
+  requestedProvider: ImageProvider,
+  prompt: string
+): Promise<ProviderResult & { providerChain: string[] }> {
+  const chain: string[] = [];
+  const t0 = Date.now();
+
+  // Primary attempt
+  try {
+    chain.push(requestedProvider);
+    const result = await generateImage(requestedProvider, prompt);
+    return { ...result, providerChain: chain };
+  } catch (primaryErr) {
+    const errMsg = primaryErr instanceof Error ? primaryErr.message : String(primaryErr);
+    logGen({ provider: requestedProvider, promptLen: prompt.length, status: "err", error: errMsg });
+  }
+
+  // Fallback chain
+  const fallbacks = buildFallbackChain(requestedProvider);
+  logGen({ provider: requestedProvider, promptLen: prompt.length, status: "fallback", error: `Trying fallbacks: ${fallbacks.join(" → ")}` });
+
+  for (const fb of fallbacks) {
+    try {
+      chain.push(fb);
+      logGen({ provider: fb, promptLen: prompt.length, status: "attempt" });
+      const result = await generateImage(fb, prompt);
+      logGen({ provider: fb, promptLen: prompt.length, status: "ok", durationMs: Date.now() - t0, imageUrl: result.url });
+      return { ...result, providerChain: chain };
+    } catch (fbErr) {
+      const fbMsg = fbErr instanceof Error ? fbErr.message : String(fbErr);
+      logGen({ provider: fb, promptLen: prompt.length, status: "err", error: fbMsg });
+    }
+  }
+
+  throw new ProviderError(
+    `All providers exhausted: ${chain.join(" → ")}`,
+    0,
+    false,
+    `Image generation failed on all available providers (${chain.join(", ")}). Please try again later.`
+  );
+}
+
+// ─── In-memory dedup cache (keyed by sceneNumber + provider, with expiry) ──────
+
+interface InFlightEntry {
+  promise: Promise<ProviderResult>;
+  createdAt: number;
+}
+
+const inFlightMap = new Map<string, InFlightEntry>();
+const IN_FLIGHT_MAX_AGE_MS = 10 * 60 * 1000; // 10 minutes
+
+function getOrCreateInFlight(key: string, factory: () => Promise<ProviderResult>): Promise<ProviderResult> {
+  const now = Date.now();
+  const existing = inFlightMap.get(key);
+
+  // Evict stale entries
+  if (existing && now - existing.createdAt > IN_FLIGHT_MAX_AGE_MS) {
+    inFlightMap.delete(key);
+  }
+
+  if (!existing || now - existing.createdAt > IN_FLIGHT_MAX_AGE_MS) {
+    const promise = factory().finally(() => inFlightMap.delete(key));
+    inFlightMap.set(key, { promise, createdAt: now });
+    return promise;
+  }
+
+  return existing.promise;
+}
 
 // ─── Batch Image Generation State ─────────────────────────────────────────────
 
@@ -438,6 +763,7 @@ interface BatchImageSceneResult {
   imageProvider?: string;
   generationTime?: number;
   generationError?: string;
+  providerChain?: string[];
 }
 
 interface BatchImageState {
@@ -448,6 +774,7 @@ interface BatchImageState {
   activeScene: number | undefined;
   queueProgress: number;
   estimatedTimeRemaining: number;
+  totalScenes: number;
   sceneResults: Record<number, BatchImageSceneResult>;
 }
 
@@ -459,10 +786,12 @@ let batchImageState: BatchImageState = {
   activeScene: undefined,
   queueProgress: 0,
   estimatedTimeRemaining: 0,
+  totalScenes: 0,
   sceneResults: {},
 };
 
-let batchImageCancelled = false;
+// Generation ID prevents ghost completions from stale/cancelled batch runs
+let batchGenerationId = 0;
 
 // ─── Continuity-Enhanced Prompt Builder ────────────────────────────────────────
 
@@ -472,19 +801,16 @@ function buildContinuityEnhancedPrompt(
 ): string {
   const parts: string[] = [scene.sceneImagePrompt];
 
-  // Character references
   const charBlock = buildCharacterReferenceBlock(characterProfiles, scene.characterVisualContinuity);
   if (charBlock) parts.push(charBlock);
 
-  // Color & mood
   if (scene.colorPalette) parts.push(`color palette: ${scene.colorPalette}`);
   if (scene.cinematicMood) parts.push(`mood: ${scene.cinematicMood}`);
   if (scene.renderStyle) parts.push(`style: ${scene.renderStyle}`);
 
-  // Advanced Continuity Engine: inject previous scene's continuity state
+  // Continuity Engine
   const continuityParts: string[] = [];
-
-  if (scene.previousClothingState && scene.previousClothingState.length > 0) {
+  if (scene.previousClothingState?.length) {
     continuityParts.push(`clothing continuity: ${scene.previousClothingState.join(", ")}`);
   }
   if (scene.previousLightingState) {
@@ -496,13 +822,12 @@ function buildContinuityEnhancedPrompt(
   if (scene.previousEnvironmentState) {
     continuityParts.push(`environment: ${scene.previousEnvironmentState}`);
   }
-  if (scene.previousEmotionalCarryOver && scene.previousEmotionalCarryOver.length > 0) {
+  if (scene.previousEmotionalCarryOver?.length) {
     continuityParts.push(`emotional state carry-over: ${scene.previousEmotionalCarryOver.join(", ")}`);
   }
   if (scene.previousPoseContext) {
     continuityParts.push(`pose continuity: ${scene.previousPoseContext}`);
   }
-
   if (continuityParts.length > 0) {
     parts.push(`CONTINUITY ENGINE — ${continuityParts.join(" | ")}`);
   }
@@ -516,19 +841,21 @@ async function processBatchImages(
   scenes: BatchImageSceneInput[],
   provider: ImageProvider,
   storyboardId: string | undefined,
-  characterProfiles?: CharacterProfileRef[]
+  characterProfiles: CharacterProfileRef[] | undefined,
+  myGenerationId: number
 ): Promise<void> {
-  batchImageCancelled = false;
   const total = scenes.length;
-  const avgSecondsPerScene = 15; // Pollinations is relatively fast
+  const avgSecondsPerScene = 18;
 
   for (let idx = 0; idx < scenes.length; idx++) {
-    if (batchImageCancelled) {
-      batchImageState.batchGenerationStatus = "cancelled";
+    // Cancelled or superseded by a new batch
+    if (batchGenerationId !== myGenerationId) {
+      console.info(`[batchImage] Generation ID changed (${myGenerationId} → ${batchGenerationId}), stopping stale batch.`);
+      return;
+    }
+    if (batchImageState.batchGenerationStatus === "cancelled") {
       batchImageState.activeScene = undefined;
-      // Mark remaining queued as pending
-      const remaining = scenes.slice(idx).map(s => s.sceneNumber);
-      batchImageState.queuedScenes = remaining;
+      batchImageState.queuedScenes = scenes.slice(idx).map(s => s.sceneNumber);
       return;
     }
 
@@ -543,27 +870,24 @@ async function processBatchImages(
     const startTime = Date.now();
     const enhancedPrompt = buildContinuityEnhancedPrompt(scene, characterProfiles);
 
-    let result: ProviderResult | null = null;
+    logGen({ provider, sceneNumber: sceneNum, promptLen: enhancedPrompt.length, status: "attempt" });
+
+    let result: (ProviderResult & { providerChain: string[] }) | null = null;
     let errorMsg: string | null = null;
 
     try {
-      result = await withRetry(() => generateImage(provider, enhancedPrompt), 2, 2000);
+      result = await generateWithFallbackChain(provider, enhancedPrompt);
     } catch (err) {
-      errorMsg = err instanceof Error ? err.message : "Generation failed";
-      console.warn(`[batchImage] Scene ${sceneNum} primary provider failed: ${errorMsg}`);
-
-      // Fallback chain
-      const fallbacks = buildFallbackChain(provider);
-      for (const fb of fallbacks) {
-        try {
-          result = await withRetry(() => generateImage(fb, enhancedPrompt), 2, 1500);
-          console.info(`[batchImage] Scene ${sceneNum} fallback to ${fb} succeeded`);
-          break;
-        } catch {
-          // continue
-        }
+      if (err instanceof ProviderError) {
+        errorMsg = err.userMessage;
+      } else {
+        errorMsg = err instanceof Error ? err.message : "Generation failed";
       }
+      logGen({ provider, sceneNumber: sceneNum, promptLen: enhancedPrompt.length, status: "err", error: errorMsg });
     }
+
+    // Guard against stale batch overwriting new batch state
+    if (batchGenerationId !== myGenerationId) return;
 
     const generationTime = (Date.now() - startTime) / 1000;
 
@@ -574,24 +898,21 @@ async function processBatchImages(
         imageUrl: result.url,
         imageProvider: result.provider,
         generationTime,
+        providerChain: result.providerChain,
       };
 
-      // Persist to DB
       if (storyboardId) {
         try {
-          const { sceneImagesTable } = await import("@workspace/db/schema");
-          const { db } = await import("@workspace/db");
-          const { eq, and } = await import("drizzle-orm");
           const existing = await db.select().from(sceneImagesTable).where(
             and(eq(sceneImagesTable.storyboardId, storyboardId), eq(sceneImagesTable.sceneNumber, sceneNum))
           );
-          const payload = {
+          const payload: InsertSceneImage = {
             storyboardId,
             sceneNumber: sceneNum,
             imageUrl: result.url,
             imageProvider: result.provider,
             generationTime: Math.round(generationTime),
-            imageStatus: "success" as const,
+            imageStatus: "success",
             generationError: null,
             prompt: scene.sceneImagePrompt,
             colorPalette: scene.colorPalette ?? null,
@@ -606,7 +927,7 @@ async function processBatchImages(
             await db.insert(sceneImagesTable).values(payload);
           }
         } catch (dbErr) {
-          console.warn(`[batchImage] DB persist failed for scene ${sceneNum}: ${dbErr}`);
+          console.warn(`[batchImage] DB persist failed for scene ${sceneNum}:`, dbErr);
         }
       }
     } else {
@@ -618,17 +939,20 @@ async function processBatchImages(
       };
     }
 
-    // Update progress
     const completed = batchImageState.completedScenes.length + batchImageState.failedScenes.length;
     batchImageState.queueProgress = Math.round((completed / total) * 100);
   }
 
-  batchImageState.batchGenerationStatus = "completed";
-  batchImageState.activeScene = undefined;
-  batchImageState.queuedScenes = [];
-  batchImageState.estimatedTimeRemaining = 0;
-  batchImageState.queueProgress = 100;
-  console.info(`[batchImage] Batch complete: ${batchImageState.completedScenes.length} succeeded, ${batchImageState.failedScenes.length} failed`);
+  if (batchGenerationId === myGenerationId) {
+    batchImageState.batchGenerationStatus = "completed";
+    batchImageState.activeScene = undefined;
+    batchImageState.queuedScenes = [];
+    batchImageState.estimatedTimeRemaining = 0;
+    batchImageState.queueProgress = 100;
+    console.info(
+      `[batchImage] Batch complete: ${batchImageState.completedScenes.length} succeeded, ${batchImageState.failedScenes.length} failed`
+    );
+  }
 }
 
 // ─── Batch Image Routes ────────────────────────────────────────────────────────
@@ -641,19 +965,35 @@ router.post("/storyboard/batch-generate-images", async (req, res): Promise<void>
     storyboardId?: string;
   };
 
-  if (!scenes || scenes.length === 0) {
+  if (!scenes || !Array.isArray(scenes) || scenes.length === 0) {
     res.status(400).json({ error: "scenes array is required and must not be empty" });
     return;
   }
 
+  // Validate each scene has required fields
+  for (const s of scenes) {
+    if (typeof s.sceneNumber !== "number" || !s.sceneImagePrompt) {
+      res.status(400).json({ error: `Invalid scene entry: sceneNumber and sceneImagePrompt are required` });
+      return;
+    }
+  }
+
   if (batchImageState.batchGenerationStatus === "running") {
+    // Return current status — no duplicate run
     res.json(batchImageState);
     return;
   }
 
   const imageProvider: ImageProvider = provider ?? "pollinations";
+  const validProviders: ImageProvider[] = ["stability", "openai", "replicate", "fal", "pollinations"];
+  if (!validProviders.includes(imageProvider)) {
+    res.status(400).json({ error: `Invalid provider: ${imageProvider}` });
+    return;
+  }
 
-  // Reset state
+  // New generation ID to invalidate any stale in-progress callbacks
+  const myId = ++batchGenerationId;
+
   batchImageState = {
     batchGenerationStatus: "running",
     completedScenes: [],
@@ -661,14 +1001,16 @@ router.post("/storyboard/batch-generate-images", async (req, res): Promise<void>
     queuedScenes: scenes.map(s => s.sceneNumber),
     activeScene: undefined,
     queueProgress: 0,
-    estimatedTimeRemaining: scenes.length * 15,
+    estimatedTimeRemaining: scenes.length * 18,
+    totalScenes: scenes.length,
     sceneResults: {},
   };
 
-  // Start async processing (non-blocking)
-  processBatchImages(scenes, imageProvider, storyboardId, characterProfiles).catch(err => {
-    console.error(`[batchImage] Fatal error in batch processor: ${err}`);
-    batchImageState.batchGenerationStatus = "failed";
+  processBatchImages(scenes, imageProvider, storyboardId, characterProfiles, myId).catch(err => {
+    if (batchGenerationId === myId) {
+      console.error(`[batchImage] Fatal error in batch processor:`, err);
+      batchImageState.batchGenerationStatus = "failed";
+    }
   });
 
   res.json(batchImageState);
@@ -679,8 +1021,8 @@ router.get("/storyboard/batch-generate-images/status", (_req, res): void => {
 });
 
 router.post("/storyboard/batch-generate-images/cancel", (_req, res): void => {
-  batchImageCancelled = true;
   batchImageState.batchGenerationStatus = "cancelled";
+  batchGenerationId++; // Invalidate current batch
   res.json({ ok: true, status: "cancelled" });
 });
 
@@ -689,67 +1031,41 @@ router.post("/storyboard/batch-generate-images/cancel", (_req, res): void => {
 router.post("/storyboard/generate-image", async (req, res): Promise<void> => {
   const body = req.body as ImageGenerationRequestBody;
 
-  if (!body.sceneNumber || !body.sceneImagePrompt) {
-    res.status(400).json({ error: "sceneNumber and sceneImagePrompt are required" });
+  if (typeof body.sceneNumber !== "number" || !body.sceneImagePrompt) {
+    res.status(400).json({ error: "sceneNumber (number) and sceneImagePrompt (string) are required" });
     return;
   }
 
-  const provider: ImageProvider = body.provider ?? "pollinations";
   const validProviders: ImageProvider[] = ["stability", "openai", "replicate", "fal", "pollinations"];
-  if (!validProviders.includes(provider)) {
-    res.status(400).json({ error: `Invalid provider. Must be one of: ${validProviders.join(", ")}` });
-    return;
-  }
+  const provider: ImageProvider =
+    body.provider && validProviders.includes(body.provider) ? body.provider : "pollinations";
 
-  const dedupeKey = `scene-${body.sceneNumber}-${provider}`;
   const enhancedPrompt = buildEnhancedPrompt(body);
+  const dedupeKey = `scene-${body.sceneNumber}-${provider}`;
   const startTime = Date.now();
 
-  // ── Attempt primary provider (with dedup) ──────────────────────────────────
-  let generationPromise = inFlightRequests.get(dedupeKey);
-  if (!generationPromise) {
-    generationPromise = generateImage(provider, enhancedPrompt).finally(() => {
-      inFlightRequests.delete(dedupeKey);
-    });
-    inFlightRequests.set(dedupeKey, generationPromise);
-  }
+  logGen({ provider, sceneNumber: body.sceneNumber, promptLen: enhancedPrompt.length, status: "attempt" });
 
-  let result: ProviderResult | null = null;
-  let primaryError: string | null = null;
+  let result: (ProviderResult & { providerChain: string[] }) | null = null;
+  let userErrorMessage: string | null = null;
 
   try {
-    result = await generationPromise;
-  } catch (err: unknown) {
-    primaryError = err instanceof Error ? err.message : "Unknown generation error";
-    console.warn(`[imageGen] Primary provider "${provider}" failed: ${primaryError}`);
-
-    // ── Fallback chain ────────────────────────────────────────────────────────
-    const fallbacks = buildFallbackChain(provider);
-    console.info(`[imageGen] Trying fallback chain: ${fallbacks.join(" → ")}`);
-
-    for (const fallbackProvider of fallbacks) {
-      const fbKey = `scene-${body.sceneNumber}-${fallbackProvider}-fallback`;
-      try {
-        console.info(`[imageGen] Attempting fallback: ${fallbackProvider}`);
-        let fbPromise = inFlightRequests.get(fbKey);
-        if (!fbPromise) {
-          fbPromise = generateImage(fallbackProvider, enhancedPrompt).finally(() => {
-            inFlightRequests.delete(fbKey);
-          });
-          inFlightRequests.set(fbKey, fbPromise);
-        }
-        result = await fbPromise;
-        console.info(`[imageGen] Fallback succeeded with: ${fallbackProvider}`);
-        break;
-      } catch (fbErr) {
-        console.warn(`[imageGen] Fallback "${fallbackProvider}" also failed: ${fbErr instanceof Error ? fbErr.message : String(fbErr)}`);
-      }
+    const baseResult = await getOrCreateInFlight(dedupeKey, () =>
+      generateWithFallbackChain(provider, enhancedPrompt)
+    );
+    result = baseResult as ProviderResult & { providerChain: string[] };
+  } catch (err) {
+    if (err instanceof ProviderError) {
+      userErrorMessage = err.userMessage;
+    } else {
+      userErrorMessage = err instanceof Error ? err.message : "Image generation failed";
     }
+    logGen({ provider, sceneNumber: body.sceneNumber, promptLen: enhancedPrompt.length, status: "err", error: userErrorMessage });
   }
 
   const generationTime = (Date.now() - startTime) / 1000;
 
-  // ── Persist result to DB ──────────────────────────────────────────────────
+  // Persist to DB
   if (body.storyboardId) {
     try {
       const existing = await db.select().from(sceneImagesTable).where(
@@ -758,7 +1074,6 @@ router.post("/storyboard/generate-image", async (req, res): Promise<void> => {
           eq(sceneImagesTable.sceneNumber, body.sceneNumber)
         )
       );
-
       const payload: InsertSceneImage = {
         storyboardId: body.storyboardId,
         sceneNumber: body.sceneNumber,
@@ -766,7 +1081,7 @@ router.post("/storyboard/generate-image", async (req, res): Promise<void> => {
         imageProvider: result?.provider ?? provider,
         generationTime: Math.round(generationTime),
         imageStatus: result ? "success" : "error",
-        generationError: result ? null : (primaryError ?? "All providers failed"),
+        generationError: result ? null : (userErrorMessage ?? "All providers failed"),
         prompt: body.sceneImagePrompt,
         colorPalette: body.colorPalette ?? null,
         cinematicMood: body.cinematicMood ?? null,
@@ -774,9 +1089,8 @@ router.post("/storyboard/generate-image", async (req, res): Promise<void> => {
         visualEngine: body.visualEngine ?? null,
         characterVisualContinuity: body.characterVisualContinuity ?? null,
       };
-
       if (existing.length > 0) {
-        await db.update(sceneImagesTable).set(payload).where(eq(sceneImagesTable.id, existing[0].id));
+        await db.update(sceneImagesTable).set(payload).where(eq(sceneImagesTable.id, existing[0]!.id));
       } else {
         await db.insert(sceneImagesTable).values(payload);
       }
@@ -785,26 +1099,24 @@ router.post("/storyboard/generate-image", async (req, res): Promise<void> => {
     }
   }
 
-  // ── Respond — never crash the UI ──────────────────────────────────────────
   if (result) {
+    logGen({ provider: result.provider, sceneNumber: body.sceneNumber, promptLen: enhancedPrompt.length, status: "ok", durationMs: Date.now() - startTime * 1000, imageUrl: result.url });
     res.json({
       imageStatus: "success",
       imageUrl: result.url,
       imageProvider: result.provider,
       generationTime,
+      providerChain: result.providerChain ?? [result.provider],
+      retryable: false,
     });
   } else {
-    // All providers failed — return structured error, not a 5xx
-    const userMessage =
-      provider === "pollinations"
-        ? "Pollinations image generation is currently unavailable. Try again in a moment, or select a different provider."
-        : `Image generation failed (${provider}). ${primaryError ?? ""}`;
-
     res.json({
       imageStatus: "error",
       imageProvider: provider,
       generationTime,
-      generationError: userMessage,
+      generationError: userErrorMessage ?? "Image generation failed on all providers.",
+      providerChain: buildFallbackChain(provider).concat([provider]),
+      retryable: true,
     });
   }
 });

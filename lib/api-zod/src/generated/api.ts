@@ -107,7 +107,9 @@ export const GenerateSceneImageResponse = zod.object({
   "imageUrl": zod.string().optional().describe('URL of the generated image (present when imageStatus is success)'),
   "imageProvider": zod.enum(['stability', 'openai', 'replicate', 'fal', 'pollinations']).describe('AI image generation provider'),
   "generationTime": zod.number().describe('Time taken to generate the image in seconds'),
-  "generationError": zod.string().optional().describe('Error message (present when imageStatus is error)')
+  "generationError": zod.string().optional().describe('Error message (present when imageStatus is error)'),
+  "retryable": zod.boolean().optional().describe('Whether the error is worth retrying (e.g. transient failure vs. 402)'),
+  "providerChain": zod.array(zod.string()).optional().describe('Ordered list of providers that were attempted during this generation')
 }).describe('Result of an image generation request')
 
 
@@ -581,12 +583,14 @@ export const BatchGenerateImagesResponse = zod.object({
   "activeScene": zod.number().optional().describe('Scene currently being generated'),
   "queueProgress": zod.number().min(batchGenerateImagesResponseQueueProgressMin).max(batchGenerateImagesResponseQueueProgressMax).describe('Overall queue progress percentage'),
   "estimatedTimeRemaining": zod.number().optional().describe('Estimated remaining time in seconds'),
+  "totalScenes": zod.number().optional().describe('Total number of scenes in the batch'),
   "sceneResults": zod.record(zod.string(), zod.object({
   "imageStatus": zod.string().optional(),
   "imageUrl": zod.string().optional(),
   "imageProvider": zod.string().optional(),
   "generationTime": zod.number().optional(),
-  "generationError": zod.string().optional()
+  "generationError": zod.string().optional(),
+  "providerChain": zod.array(zod.string()).optional()
 })).optional().describe('Per-scene results keyed by sceneNumber')
 }).describe('Real-time status of batch image generation')
 
@@ -607,12 +611,14 @@ export const GetBatchImageStatusResponse = zod.object({
   "activeScene": zod.number().optional().describe('Scene currently being generated'),
   "queueProgress": zod.number().min(getBatchImageStatusResponseQueueProgressMin).max(getBatchImageStatusResponseQueueProgressMax).describe('Overall queue progress percentage'),
   "estimatedTimeRemaining": zod.number().optional().describe('Estimated remaining time in seconds'),
+  "totalScenes": zod.number().optional().describe('Total number of scenes in the batch'),
   "sceneResults": zod.record(zod.string(), zod.object({
   "imageStatus": zod.string().optional(),
   "imageUrl": zod.string().optional(),
   "imageProvider": zod.string().optional(),
   "generationTime": zod.number().optional(),
-  "generationError": zod.string().optional()
+  "generationError": zod.string().optional(),
+  "providerChain": zod.array(zod.string()).optional()
 })).optional().describe('Per-scene results keyed by sceneNumber')
 }).describe('Real-time status of batch image generation')
 

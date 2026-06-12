@@ -15,4 +15,5 @@ export type BatchImageGenerationStatusSceneResults = {[key: string]: {
   imageProvider?: string;
   generationTime?: number;
   generationError?: string;
+  providerChain?: string[];
 }};

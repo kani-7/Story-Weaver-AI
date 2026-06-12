@@ -802,6 +802,10 @@ export interface ImageGenerationResult {
   generationTime: number;
   /** Error message (present when imageStatus is error) */
   generationError?: string;
+  /** Whether the error is worth retrying (e.g. transient failure vs. 402) */
+  retryable?: boolean;
+  /** Ordered list of providers that were attempted during this generation */
+  providerChain?: string[];
 }
 
 export type SceneAssetImageStatus = typeof SceneAssetImageStatus[keyof typeof SceneAssetImageStatus];
@@ -1018,6 +1022,7 @@ export type BatchImageGenerationStatusSceneResults = {[key: string]: {
   imageProvider?: string;
   generationTime?: number;
   generationError?: string;
+  providerChain?: string[];
 }};
 
 /**
@@ -1042,6 +1047,8 @@ export interface BatchImageGenerationStatus {
   queueProgress: number;
   /** Estimated remaining time in seconds */
   estimatedTimeRemaining?: number;
+  /** Total number of scenes in the batch */
+  totalScenes?: number;
   /** Per-scene results keyed by sceneNumber */
   sceneResults?: BatchImageGenerationStatusSceneResults;
 }
