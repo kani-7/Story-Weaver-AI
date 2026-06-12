@@ -9,6 +9,7 @@ import {
   useAnalyzeStory,
   useGenerateSceneImage,
   useGenerateSceneVideo,
+  useBatchGenerateVideos,
   type Storyboard,
   type CharacterProfile,
   type Scene,
@@ -28,6 +29,7 @@ import {
   type ImageProvider,
   type VideoProvider,
 } from "@workspace/api-client-react";
+const API_BASE_URL = import.meta.env.VITE_API_URL || "";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
@@ -200,6 +202,13 @@ const translations: Record<UILang, Record<string, string>> = {
     batchComplete: "Batch complete",
     batchFailed: "Batch failed",
     batchRemaining: "remaining",
+    batchPause: "Pause",
+    batchResume: "Resume",
+    batchCancel: "Cancel",
+    batchRetry: "Retry Failed",
+    batchPaused: "Paused",
+    batchCancelled: "Cancelled",
+    batchCompleted: "Completed",
   },
   si: {
     subtitle: "අධ්‍යක්ෂකගේ පුටුවට ඇතුළු වන්න. ඔබේ කතාව ඇතුළු කර ක්ෂණිකව ස්ටෝරිබෝර්ඩ් එකක් ලබා ගන්න.",
@@ -350,6 +359,13 @@ const translations: Record<UILang, Record<string, string>> = {
     batchComplete: "කාණ්ඩය සම්පූර්ණයි",
     batchFailed: "කාණ්ඩය අසාර්ථකයි",
     batchRemaining: "ඉතිරිව ඇත",
+    batchPause: "විරාමය",
+    batchResume: "නැවත ආරම්භය",
+    batchCancel: "අවලංගු",
+    batchRetry: "අසාර්ථක නැවත උත්සාහය",
+    batchPaused: "විරාමයේ",
+    batchCancelled: "අවලංගු කළ",
+    batchCompleted: "සම්පූර්ණයි",
   },
   ta: {
     subtitle: "இயக்குனரின் இருக்கையில் அமருங்கள். உங்கள் கதையை ஒட்டவும், நொடியில் திரைக்கதை உருவாகும்.",
@@ -500,6 +516,13 @@ const translations: Record<UILang, Record<string, string>> = {
     batchComplete: "குழு முழுமையானது",
     batchFailed: "குழு தோல்வி",
     batchRemaining: "மீதமுள்ள",
+    batchPause: "இடைநிறுத்து",
+    batchResume: "தொடர்க",
+    batchCancel: "ரத்து",
+    batchRetry: "தோல்விகளை மீண்டும் முயற்சி",
+    batchPaused: "இடைநிறுத்தப்பட்டது",
+    batchCancelled: "ரத்து செய்யப்பட்டது",
+    batchCompleted: "முடிந்தது",
   },
 };
 
@@ -891,149 +914,352 @@ function Home() {
   };
 
   // Batch generate all scene videos (sequential)
-  const [batchVideoProgress, setBatchVideoProgress] = useState<{ total: number; completed: number; failed: number; active: number } | null>(null);
+  // ─── Global Video Queue Manager ───────────────────────────────────
+  type QueueStatus = "idle" | "running" | "paused" | "completed" | "cancelled";
 
+  interface VideoQueueState {
+    status: QueueStatus;
+    completedScenes: number[];
+    failedScenes: number[];
+    activeScene: number | null;
+    queueProgress: number;
+    estimatedRemainingTime: number;
+    totalScenes: number;
+  }
+
+  const [videoQueue, setVideoQueue] = useState<VideoQueueState>({
+    status: "idle",
+    completedScenes: [],
+    failedScenes: [],
+    activeScene: null,
+    queueProgress: 0,
+    estimatedRemainingTime: 0,
+    totalScenes: 0,
+  });
+
+  const batchVideoMutation = useBatchGenerateVideos();
+
+  // ─── Cinematic Continuity Engine Helpers ───────────────────────
+  function extractDominantEmotion(scene: Scene): { emotion: string; intensity: number } | null {
+    if (!scene.emotions || scene.emotions.length === 0) return null;
+    const sorted = [...scene.emotions].sort((a, b) => (b.confidence ?? 0) - (a.confidence ?? 0));
+    const top = sorted[0];
+    if (!top) return null;
+    return { emotion: top.emotion, intensity: top.confidence ?? 0.5 };
+  }
+
+  function extractTimelineMemory(scene: Scene): {
+    cameraMovement: string | undefined;
+    emotionalState: string | undefined;
+    visualPalette: string | undefined;
+    environmentState: string | undefined;
+  } {
+    const emo = extractDominantEmotion(scene);
+    return {
+      cameraMovement: scene.cinematicCamera?.cameraMovement,
+      emotionalState: emo ? `${emo.emotion} (${emo.intensity >= 0.8 ? "intense" : emo.intensity >= 0.5 ? "moderate" : "subtle"})` : undefined,
+      visualPalette: scene.imagePrompt?.colorPalette ?? scene.cinematicCamera?.lightingStyle,
+      environmentState: scene.continuityMemory?.environmentState ?? scene.continuityMemory?.weatherState,
+    };
+  }
+
+  function determineTransitionType(
+    prevScene: Scene | undefined,
+    currScene: Scene
+  ): "fade" | "dissolve" | "whip_pan" | "cinematic_cut" | "dream_dissolve" | "flashback_blur" | "match_cut" {
+    // If explicit transition type exists on last shot, use it
+    const lastShot = currScene.shotList?.[currScene.shotList.length - 1];
+    const explicitTransition = lastShot?.transitionType;
+    if (explicitTransition) {
+      const map: Record<string, "fade" | "dissolve" | "whip_pan" | "cinematic_cut" | "dream_dissolve" | "flashback_blur" | "match_cut"> = {
+        "Fade": "fade",
+        "Dissolve": "dissolve",
+        "Whip Pan": "whip_pan",
+        "Cinematic Cut": "cinematic_cut",
+        "Dream Ripple": "dream_dissolve",
+        "Flashback Blur": "flashback_blur",
+        "Match Cut": "match_cut",
+      };
+      if (map[explicitTransition]) return map[explicitTransition]!;
+    }
+
+    // Scene type based transitions
+    const currType = currScene.sceneType;
+    if (currType === "Flashback") return "flashback_blur";
+    if (currType === "Dream") return "dream_dissolve";
+    if (currType === "Imagination") return "dissolve";
+
+    // Transition from previous scene type
+    if (prevScene) {
+      const prevType = prevScene.sceneType;
+      if (prevType === "Dream" && currType === "Present") return "fade";
+      if (prevType === "Flashback" && currType === "Present") return "flashback_blur";
+      if (prevType === "Imagination" && currType === "Present") return "dissolve";
+    }
+
+    // Default: cinematic cut for Present scenes
+    return "cinematic_cut";
+  }
+
+  // ─── Batch Video Generation with Queue Manager ───────────────
   const handleGenerateAllVideos = () => {
     if (!storyboard || storyboard.scenes.length === 0) return;
     const scenes = storyboard.scenes;
-    const total = scenes.length;
-    setBatchVideoProgress({ total, completed: 0, failed: 0, active: 0 });
 
-    let completed = 0;
-    let failed = 0;
-    const activeScenes = new Set<number>();
-
-    const processNext = (idx: number) => {
-      if (idx >= scenes.length) {
-        setTimeout(() => {
-          setBatchVideoProgress({ total, completed, failed, active: activeScenes.size });
-          setTimeout(() => setBatchVideoProgress(null), 3000);
-        }, 500);
-        return;
-      }
-      const scene = scenes[idx]!;
-      const sceneNum = scene.sceneNumber;
-      // Skip already loaded or in-flight
-      if (videoStates[sceneNum]?.status === "loading" || videoStates[sceneNum]?.status === "success") {
-        processNext(idx + 1);
-        return;
-      }
-      activeScenes.add(sceneNum);
-      setBatchVideoProgress({ total, completed, failed, active: activeScenes.size });
-
-      // Use the same prompt building logic as handleGenerateVideo
-      const videoPrompt = scene.imagePrompt?.sceneImagePrompt ?? scene.description ?? `Scene ${sceneNum}`;
-      let dominantEmotion: string | undefined;
-      let emotionalIntensity: number | undefined;
-      if (scene.emotions && scene.emotions.length > 0) {
-        const sorted = [...scene.emotions].sort((a, b) => (b.confidence ?? 0) - (a.confidence ?? 0));
-        dominantEmotion = sorted[0]?.emotion;
-        emotionalIntensity = sorted[0]?.confidence;
-      }
-      const characterMovements: string[] = (scene.actions ?? []).map(
-        (a: CharacterAction) => `${a.character}: ${a.action}`
-      );
-      const environmentalMotion = scene.continuityMemory?.weatherState;
+    // Build cinematic timeline: extract previous scene memory for each scene
+    const timelineScenes = scenes.map((scene, idx) => {
+      const prevScene = idx > 0 ? scenes[idx - 1] : undefined;
+      const prevMemory = prevScene ? extractTimelineMemory(prevScene) : undefined;
+      const emo = extractDominantEmotion(scene);
+      const transitionType = determineTransitionType(prevScene, scene);
       const lastShot = scene.shotList?.[scene.shotList.length - 1];
-      const cinematicTransition = lastShot?.transitionType;
+      const characterMovements = (scene.actions ?? []).map((a) => `${a.character}: ${a.action}`);
       const mem = scene.continuityMemory;
-      const clothingState = mem?.clothingState;
 
-      setVideoStates(prev => ({ ...prev, [sceneNum]: { status: "loading", generationProgress: 0 } }));
+      return {
+        sceneNumber: scene.sceneNumber,
+        videoPrompt: scene.imagePrompt?.sceneImagePrompt ?? scene.description ?? `Scene ${scene.sceneNumber}`,
+        imageUrl: imageStates[scene.sceneNumber]?.imageUrl,
+        characterProfiles: storyboard.characters,
+        characterVisualContinuity: scene.imagePrompt?.characterVisualContinuity,
+        cameraMovement: scene.cinematicCamera?.cameraMovement,
+        cinematicMood: scene.imagePrompt?.cinematicMood,
+        lightingStyle: scene.cinematicCamera?.lightingStyle,
+        animationStyle: scene.imagePrompt?.animationStyle,
+        dominantEmotion: emo?.emotion,
+        emotionalIntensity: emo?.intensity,
+        shotType: scene.cinematicCamera?.shotType,
+        pacingStyle: scene.cinematicCamera?.pacingStyle,
+        characterMovements,
+        environmentalMotion: mem?.weatherState,
+        cinematicTransition: lastShot?.transitionType,
+        clothingState: mem?.clothingState,
+        lightingState: mem?.lightingState,
+        environmentState: mem?.environmentState,
+        emotionalCarryOver: mem?.emotionalCarryOver,
+        // Timeline memory (cinematic continuity)
+        previousCameraMovement: prevMemory?.cameraMovement,
+        previousEmotionalState: prevMemory?.emotionalState,
+        previousVisualPalette: prevMemory?.visualPalette,
+        previousEnvironmentState: prevMemory?.environmentState,
+        // Transition intelligence
+        transitionType,
+      };
+    });
 
-      // Start client-side progress ticker
-      let progressTick = 0;
-      const progressInterval = setInterval(() => {
-        progressTick = Math.min(progressTick + 2, 90);
-        setVideoStates(prev => {
-          if (prev[sceneNum]?.status !== "loading") {
-            clearInterval(progressInterval);
-            return prev;
-          }
-          return { ...prev, [sceneNum]: { ...prev[sceneNum], generationProgress: progressTick } };
-        });
-      }, 3000);
+    // Set initial queue state
+    setVideoQueue({
+      status: "running",
+      completedScenes: [],
+      failedScenes: [],
+      activeScene: null,
+      queueProgress: 0,
+      estimatedRemainingTime: scenes.length * 45,
+      totalScenes: scenes.length,
+    });
 
-      generateVideoMutation.mutate(
-        {
-          data: {
-            sceneNumber: sceneNum,
-            videoPrompt,
-            provider: selectedVideoProvider,
-            imageUrl: imageStates[sceneNum]?.imageUrl,
-            duration: videoDuration,
-            characterProfiles: storyboard?.characters,
-            characterVisualContinuity: scene.imagePrompt?.characterVisualContinuity,
-            cameraMovement: scene.cinematicCamera?.cameraMovement,
-            cinematicMood: scene.imagePrompt?.cinematicMood,
-            lightingStyle: scene.cinematicCamera?.lightingStyle,
-            animationStyle: scene.imagePrompt?.animationStyle,
-            dominantEmotion,
-            emotionalIntensity,
-            shotType: scene.cinematicCamera?.shotType,
-            pacingStyle: scene.cinematicCamera?.pacingStyle,
-            characterMovements,
-            environmentalMotion,
-            cinematicTransition,
-            clothingState,
-            lightingState: mem?.lightingState,
-            environmentState: mem?.environmentState,
-            emotionalCarryOver: mem?.emotionalCarryOver,
-          },
+    // Mark all scenes as loading initially
+    for (const s of scenes) {
+      setVideoStates(prev => ({ ...prev, [s.sceneNumber]: { ...prev[s.sceneNumber], status: "loading" as SceneVideoStatus, generationProgress: 0 } }));
+    }
+
+    batchVideoMutation.mutate(
+      {
+        data: {
+          scenes: timelineScenes,
+          provider: selectedVideoProvider,
+          duration: videoDuration,
         },
-        {
-          onSuccess: (data) => {
-            clearInterval(progressInterval);
-            activeScenes.delete(sceneNum);
-            if (data.videoStatus === "success" && data.videoUrl) {
-              completed++;
+      },
+      {
+        onSuccess: (data) => {
+          setVideoQueue({
+            status: data.batchVideoStatus as QueueStatus,
+            completedScenes: data.completedScenes,
+            failedScenes: data.failedScenes,
+            activeScene: data.activeScene ?? null,
+            queueProgress: data.queueProgress,
+            estimatedRemainingTime: data.estimatedRemainingTime ?? 0,
+            totalScenes: scenes.length,
+          });
+          // Start polling for status updates
+          startQueuePolling();
+        },
+        onError: () => {
+          setVideoQueue(prev => ({ ...prev, status: "idle" }));
+          // Clear loading states
+          for (const s of scenes) {
+            const sn = s.sceneNumber;
+            setVideoStates(prev => ({ ...prev, [sn]: { ...prev[sn], status: "idle" as SceneVideoStatus } }));
+          }
+        },
+      }
+    );
+  };
+
+  // Queue polling for status updates
+  const startQueuePolling = () => {
+    const pollInterval = setInterval(() => {
+      fetch(`${API_BASE_URL}/storyboard/batch-generate-videos/status`, { method: "GET" })
+        .then(res => res.json())
+        .then((data: {
+          batchVideoStatus: string;
+          completedScenes: number[];
+          failedScenes: number[];
+          activeScene: number | null;
+          queueProgress: number;
+          estimatedRemainingTime: number;
+          sceneResults: Record<number, {
+            videoStatus: string;
+            videoUrl?: string;
+            videoProvider?: string;
+            videoDuration?: number;
+            generationTime?: number;
+            generationError?: string;
+          }>;
+        }) => {
+          setVideoQueue(prev => ({
+            ...prev,
+            status: data.batchVideoStatus as QueueStatus,
+            completedScenes: data.completedScenes,
+            failedScenes: data.failedScenes,
+            activeScene: data.activeScene,
+            queueProgress: data.queueProgress,
+            estimatedRemainingTime: data.estimatedRemainingTime,
+          }));
+
+          // Update per-scene video states from results
+          for (const [sceneNumStr, result] of Object.entries(data.sceneResults)) {
+            const sceneNum = Number(sceneNumStr);
+            if (result.videoStatus === "success" && result.videoUrl) {
               setVideoStates(prev => ({
                 ...prev,
                 [sceneNum]: {
                   status: "success",
-                  videoUrl: data.videoUrl,
-                  videoProvider: data.videoProvider,
-                  videoDuration: data.videoDuration,
-                  generationTime: data.generationTime,
+                  videoUrl: result.videoUrl,
+                  videoProvider: result.videoProvider,
+                  videoDuration: result.videoDuration,
+                  generationTime: result.generationTime,
                   generationProgress: 100,
                 },
               }));
-            } else {
-              failed++;
+            } else if (result.videoStatus === "error") {
               setVideoStates(prev => ({
                 ...prev,
                 [sceneNum]: {
                   status: "error",
-                  videoProvider: data.videoProvider,
-                  generationTime: data.generationTime,
+                  videoProvider: result.videoProvider,
+                  generationTime: result.generationTime,
                   generationProgress: 0,
-                  generationError: data.generationError ?? "Video generation failed",
+                  generationError: result.generationError ?? "Video generation failed",
                 },
               }));
             }
-            setBatchVideoProgress({ total, completed, failed, active: activeScenes.size });
-            processNext(idx + 1);
-          },
-          onError: (err) => {
-            clearInterval(progressInterval);
-            activeScenes.delete(sceneNum);
-            failed++;
-            setVideoStates(prev => ({
-              ...prev,
-              [sceneNum]: {
-                status: "error",
-                generationProgress: 0,
-                generationError: err instanceof Error ? err.message : "Video generation failed",
-              },
-            }));
-            setBatchVideoProgress({ total, completed, failed, active: activeScenes.size });
-            processNext(idx + 1);
-          },
-        }
-      );
-    };
+          }
 
-    processNext(0);
+          // Stop polling when done
+          if (data.batchVideoStatus === "completed" || data.batchVideoStatus === "cancelled") {
+            clearInterval(pollInterval);
+            setTimeout(() => setVideoQueue(prev => ({ ...prev, status: "idle" })), 4000);
+          }
+        })
+        .catch(() => {
+          // Silently ignore poll errors
+        });
+    }, 2000);
+  };
+
+  // Queue control handlers
+  const handlePauseQueue = () => {
+    fetch(`${API_BASE_URL}/storyboard/batch-generate-videos/pause`, { method: "POST" });
+    setVideoQueue(prev => ({ ...prev, status: "paused" }));
+  };
+
+  const handleResumeQueue = () => {
+    fetch(`${API_BASE_URL}/storyboard/batch-generate-videos/resume`, { method: "POST" });
+    setVideoQueue(prev => ({ ...prev, status: "running" }));
+  };
+
+  const handleCancelQueue = () => {
+    fetch(`${API_BASE_URL}/storyboard/batch-generate-videos/cancel`, { method: "POST" });
+    setVideoQueue(prev => ({ ...prev, status: "cancelled" }));
+  };
+
+  const handleRetryFailedScenes = () => {
+    if (!storyboard || videoQueue.failedScenes.length === 0) return;
+    const failedSceneNums = videoQueue.failedScenes;
+    const scenes = storyboard.scenes.filter(s => failedSceneNums.includes(s.sceneNumber));
+    // Reset failed states to idle
+    for (const sn of failedSceneNums) {
+      setVideoStates(prev => ({ ...prev, [sn]: { ...prev[sn], status: "idle" as SceneVideoStatus } }));
+    }
+    // Re-run batch with only failed scenes
+    const timelineScenes = scenes.map((scene, idx) => {
+      const sceneIdx = storyboard.scenes.indexOf(scene);
+      const prevScene = sceneIdx > 0 ? storyboard.scenes[sceneIdx - 1] : undefined;
+      const prevMemory = prevScene ? extractTimelineMemory(prevScene) : undefined;
+      const emo = extractDominantEmotion(scene);
+      const transitionType = determineTransitionType(prevScene, scene);
+      const lastShot = scene.shotList?.[scene.shotList.length - 1];
+      const characterMovements = (scene.actions ?? []).map((a) => `${a.character}: ${a.action}`);
+      const mem = scene.continuityMemory;
+
+      return {
+        sceneNumber: scene.sceneNumber,
+        videoPrompt: scene.imagePrompt?.sceneImagePrompt ?? scene.description ?? `Scene ${scene.sceneNumber}`,
+        imageUrl: imageStates[scene.sceneNumber]?.imageUrl,
+        characterProfiles: storyboard.characters,
+        characterVisualContinuity: scene.imagePrompt?.characterVisualContinuity,
+        cameraMovement: scene.cinematicCamera?.cameraMovement,
+        cinematicMood: scene.imagePrompt?.cinematicMood,
+        lightingStyle: scene.cinematicCamera?.lightingStyle,
+        animationStyle: scene.imagePrompt?.animationStyle,
+        dominantEmotion: emo?.emotion,
+        emotionalIntensity: emo?.intensity,
+        shotType: scene.cinematicCamera?.shotType,
+        pacingStyle: scene.cinematicCamera?.pacingStyle,
+        characterMovements,
+        environmentalMotion: mem?.weatherState,
+        cinematicTransition: lastShot?.transitionType,
+        clothingState: mem?.clothingState,
+        lightingState: mem?.lightingState,
+        environmentState: mem?.environmentState,
+        emotionalCarryOver: mem?.emotionalCarryOver,
+        previousCameraMovement: prevMemory?.cameraMovement,
+        previousEmotionalState: prevMemory?.emotionalState,
+        previousVisualPalette: prevMemory?.visualPalette,
+        previousEnvironmentState: prevMemory?.environmentState,
+        transitionType,
+      };
+    });
+
+    setVideoQueue({
+      status: "running",
+      completedScenes: [],
+      failedScenes: [],
+      activeScene: null,
+      queueProgress: 0,
+      estimatedRemainingTime: failedSceneNums.length * 45,
+      totalScenes: failedSceneNums.length,
+    });
+
+    for (const s of scenes) {
+      setVideoStates(prev => ({ ...prev, [s.sceneNumber]: { ...prev[s.sceneNumber], status: "loading" as SceneVideoStatus, generationProgress: 0 } }));
+    }
+
+    batchVideoMutation.mutate(
+      {
+        data: {
+          scenes: timelineScenes,
+          provider: selectedVideoProvider,
+          duration: videoDuration,
+        },
+      },
+      {
+        onSuccess: () => startQueuePolling(),
+        onError: () => setVideoQueue(prev => ({ ...prev, status: "idle" })),
+      }
+    );
   };
 
   const t = translations[uiLanguage];
@@ -1275,36 +1501,77 @@ function Home() {
                 <Button
                   size="sm"
                   onClick={handleGenerateAllVideos}
-                  disabled={!storyboard || storyboard.scenes.length === 0 || batchVideoProgress !== null}
+                  disabled={!storyboard || storyboard.scenes.length === 0 || videoQueue.status === "running"}
                   className="bg-gradient-to-r from-cyan-700 to-indigo-600 hover:from-cyan-600 hover:to-indigo-500 text-white border-0 text-xs font-semibold gap-1.5"
                 >
                   <Film className="w-3.5 h-3.5" />
                   {t.generateAllVideos}
                 </Button>
               </div>
-              {/* Batch progress bar */}
-              {batchVideoProgress && (
+              {/* Batch queue status panel */}
+              {videoQueue.status !== "idle" && (
                 <div className="rounded-lg bg-cyan-950/20 border border-cyan-400/15 px-4 py-3 space-y-2">
                   <div className="flex items-center justify-between gap-2">
-                    <span className="text-xs text-cyan-200/70 font-medium">{t.batchProgress}</span>
+                    <span className="text-xs text-cyan-200/70 font-medium">
+                      {videoQueue.status === "paused" ? t.batchPaused
+                        : videoQueue.status === "cancelled" ? t.batchCancelled
+                        : videoQueue.status === "completed" ? t.batchCompleted
+                        : t.batchProgress}
+                    </span>
                     <span className="text-[9px] text-cyan-400/40 tabular-nums">
-                      {batchVideoProgress.completed} / {batchVideoProgress.total}
+                      {videoQueue.completedScenes.length} / {videoQueue.totalScenes}
                     </span>
                   </div>
                   <div className="h-2 bg-cyan-950/40 rounded-full overflow-hidden">
                     <div
                       className="h-full bg-gradient-to-r from-cyan-500 to-indigo-500 rounded-full transition-all duration-500"
                       style={{
-                        width: `${batchVideoProgress.total > 0
-                          ? (batchVideoProgress.completed / batchVideoProgress.total) * 100
+                        width: `${videoQueue.totalScenes > 0
+                          ? (videoQueue.completedScenes.length / videoQueue.totalScenes) * 100
                           : 0}%`,
                       }}
                     />
                   </div>
                   <div className="flex items-center justify-between gap-2 text-[9px] text-cyan-400/40">
-                    <span>{t.batchComplete}: {batchVideoProgress.completed}</span>
-                    <span>{t.batchFailed}: {batchVideoProgress.failed}</span>
-                    <span>{batchVideoProgress.total - batchVideoProgress.completed - batchVideoProgress.failed} {t.batchRemaining}</span>
+                    <span>{t.batchComplete}: {videoQueue.completedScenes.length}</span>
+                    <span>{t.batchFailed}: {videoQueue.failedScenes.length}</span>
+                    <span>{videoQueue.totalScenes - videoQueue.completedScenes.length - videoQueue.failedScenes.length} {t.batchRemaining}</span>
+                    <span>{videoQueue.estimatedRemainingTime > 0 ? `~${videoQueue.estimatedRemainingTime}s` : ""}</span>
+                  </div>
+                  {/* Pause / Resume / Cancel controls */}
+                  <div className="flex items-center gap-2 pt-1">
+                    {videoQueue.status === "running" && (
+                      <button
+                        onClick={handlePauseQueue}
+                        className="text-[9px] bg-cyan-950/40 hover:bg-cyan-900/40 text-cyan-300/60 px-2 py-0.5 rounded border border-cyan-400/10 transition-colors"
+                      >
+                        {t.batchPause}
+                      </button>
+                    )}
+                    {videoQueue.status === "paused" && (
+                      <button
+                        onClick={handleResumeQueue}
+                        className="text-[9px] bg-cyan-950/40 hover:bg-cyan-900/40 text-cyan-300/60 px-2 py-0.5 rounded border border-cyan-400/10 transition-colors"
+                      >
+                        {t.batchResume}
+                      </button>
+                    )}
+                    {(videoQueue.status === "running" || videoQueue.status === "paused") && (
+                      <button
+                        onClick={handleCancelQueue}
+                        className="text-[9px] bg-cyan-950/40 hover:bg-cyan-900/40 text-cyan-300/60 px-2 py-0.5 rounded border border-cyan-400/10 transition-colors"
+                      >
+                        {t.batchCancel}
+                      </button>
+                    )}
+                    {videoQueue.failedScenes.length > 0 && videoQueue.status === "completed" && (
+                      <button
+                        onClick={handleRetryFailedScenes}
+                        className="text-[9px] bg-cyan-950/40 hover:bg-cyan-900/40 text-cyan-300/60 px-2 py-0.5 rounded border border-cyan-400/10 transition-colors"
+                      >
+                        {t.batchRetry}
+                      </button>
+                    )}
                   </div>
                 </div>
               )}

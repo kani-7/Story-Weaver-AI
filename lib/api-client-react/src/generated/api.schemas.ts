@@ -513,6 +513,115 @@ export interface VideoGenerationResult {
   generationError?: string;
 }
 
+export type BatchVideoGenerationRequestScenesItemTransitionType = typeof BatchVideoGenerationRequestScenesItemTransitionType[keyof typeof BatchVideoGenerationRequestScenesItemTransitionType];
+
+
+export const BatchVideoGenerationRequestScenesItemTransitionType = {
+  fade: 'fade',
+  dissolve: 'dissolve',
+  whip_pan: 'whip_pan',
+  cinematic_cut: 'cinematic_cut',
+  dream_dissolve: 'dream_dissolve',
+  flashback_blur: 'flashback_blur',
+  match_cut: 'match_cut',
+} as const;
+
+export type BatchVideoGenerationRequestScenesItem = {
+  sceneNumber: number;
+  videoPrompt: string;
+  imageUrl?: string;
+  characterProfiles?: CharacterProfile[];
+  characterVisualContinuity?: string;
+  cameraMovement?: string;
+  cinematicMood?: string;
+  lightingStyle?: string;
+  animationStyle?: string;
+  dominantEmotion?: string;
+  emotionalIntensity?: number;
+  shotType?: string;
+  pacingStyle?: string;
+  characterMovements?: string[];
+  environmentalMotion?: string;
+  cinematicTransition?: string;
+  clothingState?: string[];
+  lightingState?: string;
+  environmentState?: string;
+  emotionalCarryOver?: string[];
+  previousCameraMovement?: string;
+  previousEmotionalState?: string;
+  previousVisualPalette?: string;
+  previousEnvironmentState?: string;
+  transitionType?: BatchVideoGenerationRequestScenesItemTransitionType;
+};
+
+export type BatchVideoGenerationRequestDuration = typeof BatchVideoGenerationRequestDuration[keyof typeof BatchVideoGenerationRequestDuration];
+
+
+export const BatchVideoGenerationRequestDuration = {
+  NUMBER_5: 5,
+  NUMBER_10: 10,
+} as const;
+
+/**
+ * Request to batch generate videos for all storyboard scenes
+ */
+export interface BatchVideoGenerationRequest {
+  /** Array of scene data for sequential generation */
+  scenes: BatchVideoGenerationRequestScenesItem[];
+  provider?: VideoProvider;
+  duration?: BatchVideoGenerationRequestDuration;
+}
+
+/**
+ * Current queue status
+ */
+export type BatchVideoGenerationStatusBatchVideoStatus = typeof BatchVideoGenerationStatusBatchVideoStatus[keyof typeof BatchVideoGenerationStatusBatchVideoStatus];
+
+
+export const BatchVideoGenerationStatusBatchVideoStatus = {
+  idle: 'idle',
+  running: 'running',
+  paused: 'paused',
+  completed: 'completed',
+  cancelled: 'cancelled',
+} as const;
+
+/**
+ * Per-scene results keyed by sceneNumber
+ */
+export type BatchVideoGenerationStatusSceneResults = {[key: string]: {
+  videoStatus?: string;
+  videoUrl?: string;
+  videoProvider?: string;
+  videoDuration?: number;
+  generationTime?: number;
+  generationError?: string;
+}};
+
+/**
+ * Real-time status of batch video generation
+ */
+export interface BatchVideoGenerationStatus {
+  /** Current queue status */
+  batchVideoStatus: BatchVideoGenerationStatusBatchVideoStatus;
+  /** Scene numbers that successfully generated */
+  completedScenes: number[];
+  /** Scene numbers that failed */
+  failedScenes: number[];
+  /** Scene currently being generated */
+  activeScene?: number;
+  /**
+     * Overall queue progress percentage
+     * @minimum 0
+     * @maximum 100
+     */
+  queueProgress: number;
+  /** Estimated remaining time in seconds */
+  estimatedRemainingTime?: number;
+  /** Per-scene results keyed by sceneNumber */
+  sceneResults?: BatchVideoGenerationStatusSceneResults;
+}
+
 /**
  * AI image generation provider
  */

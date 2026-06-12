@@ -21,6 +21,8 @@ import type {
 
 import type {
   ApiError,
+  BatchVideoGenerationRequest,
+  BatchVideoGenerationStatus,
   HealthStatus,
   ImageGenerationRequest,
   ImageGenerationResult,
@@ -331,5 +333,76 @@ export const useAnalyzeStory = <TError = ErrorType<ApiError>,
         TContext
       > => {
       return useMutation(getAnalyzeStoryMutationOptions(options));
+    }
+
+export const getBatchGenerateVideosUrl = () => {
+
+
+
+
+  return `/api/storyboard/batch-generate-videos`
+}
+
+/**
+ * @summary Batch generate cinematic video clips for all storyboard scenes
+ */
+export const batchGenerateVideos = async (batchVideoGenerationRequest: BatchVideoGenerationRequest, options?: RequestInit): Promise<BatchVideoGenerationStatus> => {
+
+  return customFetch<BatchVideoGenerationStatus>(getBatchGenerateVideosUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      batchVideoGenerationRequest,)
+  }
+);}
+
+
+
+
+export const getBatchGenerateVideosMutationOptions = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof batchGenerateVideos>>, TError,{data: BodyType<BatchVideoGenerationRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof batchGenerateVideos>>, TError,{data: BodyType<BatchVideoGenerationRequest>}, TContext> => {
+
+const mutationKey = ['batchGenerateVideos'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof batchGenerateVideos>>, {data: BodyType<BatchVideoGenerationRequest>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  batchGenerateVideos(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type BatchGenerateVideosMutationResult = NonNullable<Awaited<ReturnType<typeof batchGenerateVideos>>>
+    export type BatchGenerateVideosMutationBody = BodyType<BatchVideoGenerationRequest>
+    export type BatchGenerateVideosMutationError = ErrorType<ApiError>
+
+    /**
+ * @summary Batch generate cinematic video clips for all storyboard scenes
+ */
+export const useBatchGenerateVideos = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof batchGenerateVideos>>, TError,{data: BodyType<BatchVideoGenerationRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof batchGenerateVideos>>,
+        TError,
+        {data: BodyType<BatchVideoGenerationRequest>},
+        TContext
+      > => {
+      return useMutation(getBatchGenerateVideosMutationOptions(options));
     }
 

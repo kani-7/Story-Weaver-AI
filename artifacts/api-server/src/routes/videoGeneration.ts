@@ -760,4 +760,371 @@ async function generateWithPixverse(
   throw new Error("PixVerse generation timed out after 200s");
 }
 
+// ─── Cinematic Continuity Engine ─────────────────────────────────────────────────
+// Injects timeline memory and transition intelligence into the enhanced prompt
+
+interface SceneWithTimeline {
+  sceneNumber: number;
+  videoPrompt: string;
+  imageUrl?: string;
+  // Scene intelligence
+  characterProfiles?: CharacterProfileRef[];
+  characterVisualContinuity?: string;
+  cameraMovement?: string;
+  cinematicMood?: string;
+  lightingStyle?: string;
+  animationStyle?: string;
+  dominantEmotion?: string;
+  emotionalIntensity?: number;
+  shotType?: string;
+  pacingStyle?: string;
+  // Motion
+  characterMovements?: string[];
+  environmentalMotion?: string;
+  cinematicTransition?: string;
+  // Continuity
+  clothingState?: string[];
+  lightingState?: string;
+  environmentState?: string;
+  emotionalCarryOver?: string[];
+  // Timeline memory (from previous scene)
+  previousCameraMovement?: string;
+  previousEmotionalState?: string;
+  previousVisualPalette?: string;
+  previousEnvironmentState?: string;
+  // Transition intelligence
+  transitionType?: string;
+}
+
+function buildCinematicContinuityBlock(scene: SceneWithTimeline): string {
+  const parts: string[] = [];
+
+  // Character appearance continuity
+  if (scene.characterVisualContinuity) {
+    parts.push(`character consistency: ${scene.characterVisualContinuity}`);
+  } else if (scene.clothingState && scene.clothingState.length > 0) {
+    parts.push(`clothing: ${scene.clothingState.join(", ")}`);
+  }
+
+  // Emotional progression from previous scene
+  if (scene.previousEmotionalState) {
+    parts.push(`emotional arc: transitioning from "${scene.previousEmotionalState}" to "${scene.dominantEmotion ?? scene.videoPrompt.slice(0, 40)}"`);
+  }
+
+  // Camera language continuity
+  if (scene.previousCameraMovement && scene.cameraMovement) {
+    parts.push(`camera flow: from ${scene.previousCameraMovement} to ${scene.cameraMovement}`);
+  } else if (scene.cameraMovement) {
+    parts.push(`camera: ${scene.cameraMovement}`);
+  }
+
+  // Lighting evolution
+  if (scene.previousVisualPalette && scene.lightingState) {
+    parts.push(`lighting evolution: ${scene.previousVisualPalette} → ${scene.lightingState}`);
+  } else if (scene.lightingState) {
+    parts.push(`lighting: ${scene.lightingState}`);
+  }
+
+  // Environment continuity
+  if (scene.previousEnvironmentState && scene.environmentState) {
+    parts.push(`environment continuity: ${scene.previousEnvironmentState} → ${scene.environmentState}`);
+  } else if (scene.environmentState) {
+    parts.push(`environment: ${scene.environmentState}`);
+  }
+
+  // Color grading continuity
+  if (scene.previousVisualPalette) {
+    parts.push(`color palette: ${scene.previousVisualPalette}`);
+  }
+
+  // Cinematic mood continuity
+  if (scene.cinematicMood) {
+    parts.push(`cinematic mood: ${scene.cinematicMood}`);
+  }
+
+  // Weather continuity
+  if (scene.environmentalMotion) {
+    parts.push(`weather continuity: ${scene.environmentalMotion}`);
+  }
+
+  return parts.join(". ");
+}
+
+function buildTransitionBlock(transitionType: string | undefined): string {
+  if (!transitionType) return "";
+  const transitionMap: Record<string, string> = {
+    fade: "begin with a soft fade in from black",
+    dissolve: "dissolve into scene from previous frame",
+    whip_pan: "enter with a fast whip pan from the left",
+    cinematic_cut: "hard cut with immediate action in frame",
+    dream_dissolve: "ethereal dissolve with soft light bloom",
+    flashback_blur: "blur dissolve with desaturated color wash",
+    match_cut: "match cut on action from previous scene",
+  };
+  return transitionMap[transitionType] ?? `transition: ${transitionType}`;
+}
+
+function buildCinematicEnhancedPrompt(scene: SceneWithTimeline): string {
+  const sections: string[] = [];
+
+  // 1. Transition intelligence
+  const transition = buildTransitionBlock(scene.transitionType);
+  if (transition) sections.push(transition);
+
+  // 2. Base scene prompt
+  sections.push(scene.videoPrompt.trim());
+
+  // 3. Cinematic continuity engine
+  const continuity = buildCinematicContinuityBlock(scene);
+  if (continuity) sections.push(continuity);
+
+  // 4. Motion direction
+  const motionParts: string[] = [];
+  if (scene.cameraMovement) {
+    const cameraMap: Record<string, string> = {
+      Static: "static locked-off shot",
+      "Dolly In": "smooth dolly push in toward subject",
+      "Dolly Out": "slow dolly pull back revealing scene",
+      "Crane Up": "majestic crane rise upward",
+      Handheld: "subtle handheld shake for authenticity",
+      Tracking: "smooth tracking shot following subject",
+      Orbit: "cinematic orbit around subject",
+    };
+    motionParts.push(`camera: ${cameraMap[scene.cameraMovement] ?? scene.cameraMovement}`);
+  }
+  if (scene.characterMovements && scene.characterMovements.length > 0) {
+    motionParts.push(`character motion: ${scene.characterMovements.join(", ")}`);
+  }
+  if (scene.environmentalMotion) {
+    motionParts.push(`environment: ${scene.environmentalMotion}`);
+  }
+  if (scene.cinematicTransition) {
+    const transMap: Record<string, string> = {
+      "Fade In": "fade in from black",
+      "Fade Out": "fade out to black",
+      Dissolve: "smooth dissolve transition",
+      "Match Cut": "match cut on action",
+      "Dream Ripple": "rippling dream transition",
+      "Iris Transition": "iris wipe transition",
+    };
+    motionParts.push(`transition: ${transMap[scene.cinematicTransition] ?? scene.cinematicTransition}`);
+  }
+  if (motionParts.length > 0) {
+    sections.push(motionParts.join("; "));
+  }
+
+  // 5. Emotional direction
+  if (scene.dominantEmotion) {
+    const intensity = scene.emotionalIntensity ?? 0.5;
+    const intensityLabel = intensity >= 0.8 ? "intense" : intensity >= 0.5 ? "moderate" : "subtle";
+    sections.push(`emotional tone: ${intensityLabel} ${scene.dominantEmotion}`);
+  }
+
+  // 6. Character visual references
+  if (scene.characterProfiles && scene.characterProfiles.length > 0) {
+    const charBlock = scene.characterProfiles
+      .map((c) => {
+        const attrs = [c.appearance, c.distinctiveFeatures, c.clothing].filter(Boolean);
+        return `[${c.name}: ${attrs.join(", ")}]`;
+      })
+      .join(" ");
+    sections.push(`characters: ${charBlock}`);
+  }
+
+  // 7. Cinematic context
+  const cinematic: string[] = [];
+  if (scene.cinematicMood) cinematic.push(`mood: ${scene.cinematicMood}`);
+  if (scene.lightingStyle) cinematic.push(`lighting: ${scene.lightingStyle}`);
+  if (scene.animationStyle) cinematic.push(`style: ${scene.animationStyle}`);
+  if (scene.shotType) cinematic.push(`shot: ${scene.shotType}`);
+  if (scene.pacingStyle) cinematic.push(`pacing: ${scene.pacingStyle}`);
+  if (cinematic.length > 0) sections.push(cinematic.join(", "));
+
+  return sections.join(". ");
+}
+
+// ─── Batch Video Generation Endpoint ─────────────────────────────────────────
+
+interface BatchVideoGenerationBody {
+  scenes: SceneWithTimeline[];
+  provider?: VideoProvider;
+  duration?: 5 | 10;
+}
+
+// In-memory batch queue state
+interface BatchQueueState {
+  status: "idle" | "running" | "paused" | "completed" | "cancelled";
+  completedScenes: number[];
+  failedScenes: number[];
+  activeScene: number | null;
+  sceneResults: Record<number, {
+    videoStatus: string;
+    videoUrl?: string;
+    videoProvider?: string;
+    videoDuration?: number;
+    generationTime?: number;
+    generationError?: string;
+  }>;
+  startTime: number;
+  totalScenes: number;
+}
+
+const batchQueueState: BatchQueueState = {
+  status: "idle",
+  completedScenes: [],
+  failedScenes: [],
+  activeScene: null,
+  sceneResults: {},
+  startTime: 0,
+  totalScenes: 0,
+};
+
+let batchCancelFlag = false;
+
+router.post("/storyboard/batch-generate-videos", async (req, res): Promise<void> => {
+  const body = req.body as BatchVideoGenerationBody;
+
+  if (!body.scenes || body.scenes.length === 0) {
+    res.status(400).json({ error: "scenes array is required" });
+    return;
+  }
+
+  const provider: VideoProvider = body.provider ?? "luma";
+  const validProviders: VideoProvider[] = ["runway", "kling", "luma", "pika", "haiper", "stability", "pixverse"];
+  if (!validProviders.includes(provider)) {
+    res.status(400).json({ error: `Invalid provider. Must be one of: ${validProviders.join(", ")}` });
+    return;
+  }
+
+  const duration = body.duration ?? 5;
+
+  // Reset queue state
+  batchQueueState.status = "running";
+  batchQueueState.completedScenes = [];
+  batchQueueState.failedScenes = [];
+  batchQueueState.activeScene = null;
+  batchQueueState.sceneResults = {};
+  batchQueueState.startTime = Date.now();
+  batchQueueState.totalScenes = body.scenes.length;
+  batchCancelFlag = false;
+
+  // Start sequential generation in background
+  const runBatch = async () => {
+    for (let i = 0; i < body.scenes.length; i++) {
+      if (batchCancelFlag) {
+        batchQueueState.status = "cancelled";
+        break;
+      }
+
+      // Check for pause
+      while (batchQueueState.status === "paused" && !batchCancelFlag) {
+        await new Promise((r) => setTimeout(r, 500));
+      }
+      if (batchCancelFlag) {
+        batchQueueState.status = "cancelled";
+        break;
+      }
+
+      const scene = body.scenes[i]!;
+      const sceneNum = scene.sceneNumber;
+      batchQueueState.activeScene = sceneNum;
+
+      const enhancedPrompt = buildCinematicEnhancedPrompt(scene);
+      const startTime = Date.now();
+
+      try {
+        const result = await generateVideo(provider, enhancedPrompt, scene.imageUrl, duration);
+        const generationTime = (Date.now() - startTime) / 1000;
+
+        batchQueueState.completedScenes.push(sceneNum);
+        batchQueueState.sceneResults[sceneNum] = {
+          videoStatus: "success",
+          videoUrl: result.url,
+          videoProvider: result.provider,
+          videoDuration: result.duration,
+          generationTime,
+        };
+      } catch (err: unknown) {
+        const errorMsg = err instanceof Error ? err.message : "Unknown video generation error";
+        const generationTime = (Date.now() - startTime) / 1000;
+
+        batchQueueState.failedScenes.push(sceneNum);
+        batchQueueState.sceneResults[sceneNum] = {
+          videoStatus: "error",
+          videoProvider: provider,
+          videoDuration: 0,
+          generationTime,
+          generationError: errorMsg,
+        };
+      }
+    }
+
+    if (batchQueueState.status === "running") {
+      batchQueueState.status = "completed";
+    }
+    batchQueueState.activeScene = null;
+  };
+
+  // Kick off async batch
+  runBatch().catch(() => {
+    batchQueueState.status = "completed";
+  });
+
+  // Return initial status immediately
+  res.json({
+    batchVideoStatus: "running",
+    completedScenes: [],
+    failedScenes: [],
+    activeScene: body.scenes[0]?.sceneNumber ?? null,
+    queueProgress: 0,
+    estimatedRemainingTime: body.scenes.length * 45,
+    sceneResults: {},
+  });
+});
+
+// ─── Batch Status Endpoint ───────────────────────────────────────────────────
+
+router.get("/storyboard/batch-generate-videos/status", (_req, res): void => {
+  const completed = batchQueueState.completedScenes.length;
+  const total = batchQueueState.totalScenes;
+  const progress = total > 0 ? Math.round((completed / total) * 100) : 0;
+
+  // Estimate remaining time based on average
+  const elapsed = (Date.now() - batchQueueState.startTime) / 1000;
+  const avgPerScene = completed > 0 ? elapsed / completed : 45;
+  const remaining = (total - completed) * avgPerScene;
+
+  res.json({
+    batchVideoStatus: batchQueueState.status,
+    completedScenes: batchQueueState.completedScenes,
+    failedScenes: batchQueueState.failedScenes,
+    activeScene: batchQueueState.activeScene,
+    queueProgress: progress,
+    estimatedRemainingTime: Math.round(remaining),
+    sceneResults: batchQueueState.sceneResults,
+  });
+});
+
+// ─── Batch Control Endpoints ──────────────────────────────────────────────────
+
+router.post("/storyboard/batch-generate-videos/pause", (_req, res): void => {
+  if (batchQueueState.status === "running") {
+    batchQueueState.status = "paused";
+  }
+  res.json({ success: true, status: batchQueueState.status });
+});
+
+router.post("/storyboard/batch-generate-videos/resume", (_req, res): void => {
+  if (batchQueueState.status === "paused") {
+    batchQueueState.status = "running";
+  }
+  res.json({ success: true, status: batchQueueState.status });
+});
+
+router.post("/storyboard/batch-generate-videos/cancel", (_req, res): void => {
+  batchCancelFlag = true;
+  batchQueueState.status = "cancelled";
+  res.json({ success: true, status: batchQueueState.status });
+});
+
 export default router;

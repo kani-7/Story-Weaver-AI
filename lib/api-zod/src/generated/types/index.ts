@@ -7,6 +7,13 @@
  */
 
 export * from './apiError';
+export * from './batchVideoGenerationRequest';
+export * from './batchVideoGenerationRequestDuration';
+export * from './batchVideoGenerationRequestScenesItem';
+export * from './batchVideoGenerationRequestScenesItemTransitionType';
+export * from './batchVideoGenerationStatus';
+export * from './batchVideoGenerationStatusBatchVideoStatus';
+export * from './batchVideoGenerationStatusSceneResults';
 export * from './characterAction';
 export * from './characterEmotion';
 export * from './characterProfile';

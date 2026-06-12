@@ -288,3 +288,72 @@ export const AnalyzeStoryResponse = zod.object({
 })
 
 
+/**
+ * @summary Batch generate cinematic video clips for all storyboard scenes
+ */
+export const batchGenerateVideosBodyDurationDefault = 5;
+
+export const BatchGenerateVideosBody = zod.object({
+  "scenes": zod.array(zod.object({
+  "sceneNumber": zod.number(),
+  "videoPrompt": zod.string(),
+  "imageUrl": zod.string().optional(),
+  "characterProfiles": zod.array(zod.object({
+  "characterId": zod.string().describe('English lowercase hyphenated slug, unique across all characters'),
+  "name": zod.string().describe('Character name in the output language'),
+  "species": zod.string().describe('Species or archetype in the output language'),
+  "appearance": zod.string().describe('3-4 sentences describing the character visually'),
+  "clothing": zod.string().optional().describe('Garments, accessories, footwear in the output language. \"—\" if none.'),
+  "personality": zod.string().describe('2-3 sentences covering motivation, baseline, and behavioral tell'),
+  "distinctiveFeatures": zod.string().describe('2-4 precise, artist-reproducible visual markers'),
+  "voiceStyle": zod.string().optional().describe('English only. One sentence: pitch, tempo, texture, accent, delivery style.')
+})).optional(),
+  "characterVisualContinuity": zod.string().optional(),
+  "cameraMovement": zod.string().optional(),
+  "cinematicMood": zod.string().optional(),
+  "lightingStyle": zod.string().optional(),
+  "animationStyle": zod.string().optional(),
+  "dominantEmotion": zod.string().optional(),
+  "emotionalIntensity": zod.number().optional(),
+  "shotType": zod.string().optional(),
+  "pacingStyle": zod.string().optional(),
+  "characterMovements": zod.array(zod.string()).optional(),
+  "environmentalMotion": zod.string().optional(),
+  "cinematicTransition": zod.string().optional(),
+  "clothingState": zod.array(zod.string()).optional(),
+  "lightingState": zod.string().optional(),
+  "environmentState": zod.string().optional(),
+  "emotionalCarryOver": zod.array(zod.string()).optional(),
+  "previousCameraMovement": zod.string().optional(),
+  "previousEmotionalState": zod.string().optional(),
+  "previousVisualPalette": zod.string().optional(),
+  "previousEnvironmentState": zod.string().optional(),
+  "transitionType": zod.enum(['fade', 'dissolve', 'whip_pan', 'cinematic_cut', 'dream_dissolve', 'flashback_blur', 'match_cut']).optional()
+})).describe('Array of scene data for sequential generation'),
+  "provider": zod.enum(['runway', 'kling', 'luma', 'pika', 'haiper', 'stability', 'pixverse']).optional().describe('AI video generation provider'),
+  "duration": zod.union([zod.literal(5),zod.literal(10)]).default(batchGenerateVideosBodyDurationDefault)
+}).describe('Request to batch generate videos for all storyboard scenes')
+
+export const batchGenerateVideosResponseQueueProgressMin = 0;
+export const batchGenerateVideosResponseQueueProgressMax = 100;
+
+
+
+export const BatchGenerateVideosResponse = zod.object({
+  "batchVideoStatus": zod.enum(['idle', 'running', 'paused', 'completed', 'cancelled']).describe('Current queue status'),
+  "completedScenes": zod.array(zod.number()).describe('Scene numbers that successfully generated'),
+  "failedScenes": zod.array(zod.number()).describe('Scene numbers that failed'),
+  "activeScene": zod.number().optional().describe('Scene currently being generated'),
+  "queueProgress": zod.number().min(batchGenerateVideosResponseQueueProgressMin).max(batchGenerateVideosResponseQueueProgressMax).describe('Overall queue progress percentage'),
+  "estimatedRemainingTime": zod.number().optional().describe('Estimated remaining time in seconds'),
+  "sceneResults": zod.record(zod.string(), zod.object({
+  "videoStatus": zod.string().optional(),
+  "videoUrl": zod.string().optional(),
+  "videoProvider": zod.string().optional(),
+  "videoDuration": zod.number().optional(),
+  "generationTime": zod.number().optional(),
+  "generationError": zod.string().optional()
+})).optional().describe('Per-scene results keyed by sceneNumber')
+}).describe('Real-time status of batch video generation')
+
+

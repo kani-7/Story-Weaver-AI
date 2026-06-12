@@ -118,6 +118,37 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ApiError"
+
+  /storyboard/batch-generate-videos:
+    post:
+      operationId: batchGenerateVideos
+      tags: [storyboard]
+      summary: Batch generate cinematic video clips for all storyboard scenes
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BatchVideoGenerationRequest"
+      responses:
+        "200":
+          description: Batch video generation status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BatchVideoGenerationStatus"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
 components:
   schemas:
     HealthStatus:
@@ -910,6 +941,141 @@ components:
         - videoDuration
         - generationTime
         - generationProgress
+
+    # ─── Batch Video Generation Schemas ─────────────────────────────────────────
+    BatchVideoGenerationRequest:
+      type: object
+      description: Request to batch generate videos for all storyboard scenes
+      properties:
+        scenes:
+          type: array
+          items:
+            type: object
+            properties:
+              sceneNumber:
+                type: integer
+              videoPrompt:
+                type: string
+              imageUrl:
+                type: string
+              characterProfiles:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CharacterProfile"
+              characterVisualContinuity:
+                type: string
+              cameraMovement:
+                type: string
+              cinematicMood:
+                type: string
+              lightingStyle:
+                type: string
+              animationStyle:
+                type: string
+              dominantEmotion:
+                type: string
+              emotionalIntensity:
+                type: number
+              shotType:
+                type: string
+              pacingStyle:
+                type: string
+              characterMovements:
+                type: array
+                items:
+                  type: string
+              environmentalMotion:
+                type: string
+              cinematicTransition:
+                type: string
+              clothingState:
+                type: array
+                items:
+                  type: string
+              lightingState:
+                type: string
+              environmentState:
+                type: string
+              emotionalCarryOver:
+                type: array
+                items:
+                  type: string
+              previousCameraMovement:
+                type: string
+              previousEmotionalState:
+                type: string
+              previousVisualPalette:
+                type: string
+              previousEnvironmentState:
+                type: string
+              transitionType:
+                type: string
+                enum: [fade, dissolve, whip_pan, cinematic_cut, dream_dissolve, flashback_blur, match_cut]
+            required:
+              - sceneNumber
+              - videoPrompt
+          description: Array of scene data for sequential generation
+        provider:
+          $ref: "#/components/schemas/VideoProvider"
+        duration:
+          type: integer
+          enum: [5, 10]
+          default: 5
+      required:
+        - scenes
+
+    BatchVideoGenerationStatus:
+      type: object
+      description: Real-time status of batch video generation
+      properties:
+        batchVideoStatus:
+          type: string
+          enum: [idle, running, paused, completed, cancelled]
+          description: Current queue status
+        completedScenes:
+          type: array
+          items:
+            type: integer
+          description: Scene numbers that successfully generated
+        failedScenes:
+          type: array
+          items:
+            type: integer
+          description: Scene numbers that failed
+        activeScene:
+          type: integer
+          description: Scene currently being generated
+        queueProgress:
+          type: number
+          minimum: 0
+          maximum: 100
+          description: Overall queue progress percentage
+        estimatedRemainingTime:
+          type: number
+          description: Estimated remaining time in seconds
+        sceneResults:
+          type: object
+          description: Per-scene results keyed by sceneNumber
+          additionalProperties:
+            type: object
+            properties:
+              videoStatus:
+                type: string
+              videoUrl:
+                type: string
+              videoProvider:
+                type: string
+              videoDuration:
+                type: number
+              generationTime:
+                type: number
+              generationError:
+                type: string
+      required:
+        - batchVideoStatus
+        - completedScenes
+        - failedScenes
+        - queueProgress
 
     # ─── Image Generation Schemas ──────────────────────────────────────────────
     ImageProvider:
