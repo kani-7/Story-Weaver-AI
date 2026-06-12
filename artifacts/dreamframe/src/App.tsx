@@ -843,7 +843,7 @@ function Home() {
   const handleGenerateImage = (scene: Scene) => {
     const sceneNum = scene.sceneNumber;
     if (imageStates[sceneNum]?.status === "loading") return;
-    if (!scene.imagePrompt?.sceneImagePrompt) {
+    if (!scene.sceneImagePrompt?.sceneImagePrompt) {
       toast({ title: "No image prompt", description: "This scene has no image prompt data.", variant: "destructive" });
       return;
     }
@@ -855,14 +855,14 @@ function Home() {
         data: {
           storyboardId: storyboard?.storyboardId,
           sceneNumber: sceneNum,
-          sceneImagePrompt: scene.imagePrompt.sceneImagePrompt,
+          sceneImagePrompt: scene.sceneImagePrompt.sceneImagePrompt,
           provider: selectedProvider,
           characterProfiles: storyboard?.characters,
-          characterVisualContinuity: scene.imagePrompt.characterVisualContinuity,
-          colorPalette: scene.imagePrompt.colorPalette,
-          cinematicMood: scene.imagePrompt.cinematicMood,
-          renderStyle: scene.imagePrompt.renderStyle,
-          visualEngine: scene.imagePrompt.visualEngine,
+          characterVisualContinuity: scene.sceneImagePrompt.characterVisualContinuity,
+          colorPalette: scene.sceneImagePrompt.colorPalette,
+          cinematicMood: scene.sceneImagePrompt.cinematicMood,
+          renderStyle: scene.sceneImagePrompt.renderStyle,
+          visualEngine: scene.sceneImagePrompt.visualEngine,
         },
       },
       {
@@ -906,19 +906,19 @@ function Home() {
     const sceneNum = scene.sceneNumber;
     if (videoStates[sceneNum]?.status === "loading") return;
 
-    const videoPrompt = scene.imagePrompt?.sceneImagePrompt ?? scene.description ?? `Scene ${sceneNum}`;
+    const videoPrompt = scene.sceneImagePrompt?.sceneImagePrompt ?? scene.setting ?? `Scene ${sceneNum}`;
 
     // Scene-to-Video Intelligence: extract dominant emotion
     let dominantEmotion: string | undefined;
     let emotionalIntensity: number | undefined;
-    if (scene.emotions && scene.emotions.length > 0) {
-      const sorted = [...scene.emotions].sort((a, b) => (b.confidence ?? 0) - (a.confidence ?? 0));
+    if (scene.characterEmotions && scene.characterEmotions.length > 0) {
+      const sorted = [...scene.characterEmotions].sort((a, b) => (b.confidence ?? 0) - (a.confidence ?? 0));
       dominantEmotion = sorted[0]?.emotion;
       emotionalIntensity = sorted[0]?.confidence;
     }
 
     // Motion Direction: character movements from actions
-    const characterMovements: string[] = (scene.actions ?? []).map(
+    const characterMovements: string[] = (scene.characterActions ?? []).map(
       (a: CharacterAction) => `${a.character}: ${a.action}`
     );
 
@@ -963,11 +963,11 @@ function Home() {
           duration: videoDuration,
           // Scene intelligence
           characterProfiles: storyboard?.characters,
-          characterVisualContinuity: scene.imagePrompt?.characterVisualContinuity,
+          characterVisualContinuity: scene.sceneImagePrompt?.characterVisualContinuity,
           cameraMovement: scene.cinematicCamera?.cameraMovement,
-          cinematicMood: scene.imagePrompt?.cinematicMood,
+          cinematicMood: scene.sceneImagePrompt?.cinematicMood,
           lightingStyle: scene.cinematicCamera?.lightingStyle,
-          animationStyle: scene.imagePrompt?.animationStyle,
+          animationStyle: scene.sceneImagePrompt?.animationStyle,
           dominantEmotion,
           emotionalIntensity,
           shotType: scene.cinematicCamera?.shotType,
@@ -1054,8 +1054,8 @@ function Home() {
 
   // ─── Cinematic Continuity Engine Helpers ───────────────────────
   function extractDominantEmotion(scene: Scene): { emotion: string; intensity: number } | null {
-    if (!scene.emotions || scene.emotions.length === 0) return null;
-    const sorted = [...scene.emotions].sort((a, b) => (b.confidence ?? 0) - (a.confidence ?? 0));
+    if (!scene.characterEmotions || scene.characterEmotions.length === 0) return null;
+    const sorted = [...scene.characterEmotions].sort((a, b) => (b.confidence ?? 0) - (a.confidence ?? 0));
     const top = sorted[0];
     if (!top) return null;
     return { emotion: top.emotion, intensity: top.confidence ?? 0.5 };
@@ -1071,7 +1071,7 @@ function Home() {
     return {
       cameraMovement: scene.cinematicCamera?.cameraMovement,
       emotionalState: emo ? `${emo.emotion} (${emo.intensity >= 0.8 ? "intense" : emo.intensity >= 0.5 ? "moderate" : "subtle"})` : undefined,
-      visualPalette: scene.imagePrompt?.colorPalette ?? scene.cinematicCamera?.lightingStyle,
+      visualPalette: scene.sceneImagePrompt?.colorPalette ?? scene.cinematicCamera?.lightingStyle,
       environmentState: scene.continuityMemory?.environmentState ?? scene.continuityMemory?.weatherState,
     };
   }
@@ -1126,19 +1126,19 @@ function Home() {
       const emo = extractDominantEmotion(scene);
       const transitionType = determineTransitionType(prevScene, scene);
       const lastShot = scene.shotList?.[scene.shotList.length - 1];
-      const characterMovements = (scene.actions ?? []).map((a) => `${a.character}: ${a.action}`);
+      const characterMovements = (scene.characterActions ?? []).map((a) => `${a.character}: ${a.action}`);
       const mem = scene.continuityMemory;
 
       return {
         sceneNumber: scene.sceneNumber,
-        videoPrompt: scene.imagePrompt?.sceneImagePrompt ?? scene.description ?? `Scene ${scene.sceneNumber}`,
+        videoPrompt: scene.sceneImagePrompt?.sceneImagePrompt ?? scene.setting ?? `Scene ${scene.sceneNumber}`,
         imageUrl: imageStates[scene.sceneNumber]?.imageUrl,
         characterProfiles: storyboard.characters,
-        characterVisualContinuity: scene.imagePrompt?.characterVisualContinuity,
+        characterVisualContinuity: scene.sceneImagePrompt?.characterVisualContinuity,
         cameraMovement: scene.cinematicCamera?.cameraMovement,
-        cinematicMood: scene.imagePrompt?.cinematicMood,
+        cinematicMood: scene.sceneImagePrompt?.cinematicMood,
         lightingStyle: scene.cinematicCamera?.lightingStyle,
-        animationStyle: scene.imagePrompt?.animationStyle,
+        animationStyle: scene.sceneImagePrompt?.animationStyle,
         dominantEmotion: emo?.emotion,
         emotionalIntensity: emo?.intensity,
         shotType: scene.cinematicCamera?.shotType,
@@ -1315,19 +1315,19 @@ function Home() {
       const emo = extractDominantEmotion(scene);
       const transitionType = determineTransitionType(prevScene, scene);
       const lastShot = scene.shotList?.[scene.shotList.length - 1];
-      const characterMovements = (scene.actions ?? []).map((a) => `${a.character}: ${a.action}`);
+      const characterMovements = (scene.characterActions ?? []).map((a) => `${a.character}: ${a.action}`);
       const mem = scene.continuityMemory;
 
       return {
         sceneNumber: scene.sceneNumber,
-        videoPrompt: scene.imagePrompt?.sceneImagePrompt ?? scene.description ?? `Scene ${scene.sceneNumber}`,
+        videoPrompt: scene.sceneImagePrompt?.sceneImagePrompt ?? scene.setting ?? `Scene ${scene.sceneNumber}`,
         imageUrl: imageStates[scene.sceneNumber]?.imageUrl,
         characterProfiles: storyboard.characters,
-        characterVisualContinuity: scene.imagePrompt?.characterVisualContinuity,
+        characterVisualContinuity: scene.sceneImagePrompt?.characterVisualContinuity,
         cameraMovement: scene.cinematicCamera?.cameraMovement,
-        cinematicMood: scene.imagePrompt?.cinematicMood,
+        cinematicMood: scene.sceneImagePrompt?.cinematicMood,
         lightingStyle: scene.cinematicCamera?.lightingStyle,
-        animationStyle: scene.imagePrompt?.animationStyle,
+        animationStyle: scene.sceneImagePrompt?.animationStyle,
         dominantEmotion: emo?.emotion,
         emotionalIntensity: emo?.intensity,
         shotType: scene.cinematicCamera?.shotType,
@@ -1780,9 +1780,12 @@ function Home() {
                         )}
 
                         <h4 className="text-xl font-bold">{scene.title}</h4>
-                        <p className="text-muted-foreground leading-relaxed">{scene.description}</p>
+                        <p className="text-muted-foreground leading-relaxed">{scene.setting}</p>
                         <div className="flex flex-wrap gap-2 pt-2">
-                          {scene.characters.map((charName: string, ci: number) => (
+                          {[...new Set([
+                            ...(scene.characterEmotions ?? []).map(e => e.character),
+                            ...(scene.characterActions ?? []).map(a => a.character),
+                          ])].map((charName: string, ci: number) => (
                             <Badge key={ci} variant="outline" className="border-accent/30 text-accent/90 bg-accent/5">
                               {charName}
                             </Badge>
@@ -1791,27 +1794,27 @@ function Home() {
                       </div>
 
                       {/* Transition Instructions (non-present scenes) */}
-                      {isNonPresent && (scene.transitionInstructions || scene.returnToPresentInstructions) && (
+                      {isNonPresent && (scene.transitionIn || scene.returnToPresent) && (
                         <div className={`px-6 py-4 border-b ${cardBorder} space-y-3`}>
-                          {scene.transitionInstructions && (
+                          {scene.transitionIn && (
                             <div className="space-y-1.5">
                               <div className="flex items-center gap-1.5">
                                 <ArrowLeftRight className={`w-3 h-3 ${meta.color}`} />
                                 <span className={`text-[10px] font-bold uppercase tracking-widest ${meta.color}`}>{t.transitionIn}</span>
                               </div>
                               <p className="text-xs text-foreground/65 leading-relaxed pl-4 border-l border-white/10 italic">
-                                {scene.transitionInstructions}
+                                {scene.transitionIn}
                               </p>
                             </div>
                           )}
-                          {scene.returnToPresentInstructions && (
+                          {scene.returnToPresent && (
                             <div className="space-y-1.5">
                               <div className="flex items-center gap-1.5">
                                 <ArrowLeftRight className={`w-3 h-3 ${meta.color} rotate-180`} />
                                 <span className={`text-[10px] font-bold uppercase tracking-widest ${meta.color}`}>{t.returnToPresent}</span>
                               </div>
                               <p className="text-xs text-foreground/65 leading-relaxed pl-4 border-l border-white/10 italic">
-                                {scene.returnToPresentInstructions}
+                                {scene.returnToPresent}
                               </p>
                             </div>
                           )}
@@ -1870,10 +1873,10 @@ function Home() {
                       {(() => {
                         const hasNarration = scene.narration && scene.narration.length > 0;
                         const hasDialogue = scene.dialogue && scene.dialogue.length > 0;
-                        const hasThoughts = scene.thoughts && scene.thoughts.length > 0;
+                        const hasThoughts = scene.internalThoughts && scene.internalThoughts.length > 0;
                         const hasMonologue = scene.internalMonologue && scene.internalMonologue.length > 0;
-                        const hasActions = scene.actions && scene.actions.length > 0;
-                        const hasEmotions = scene.emotions && scene.emotions.length > 0;
+                        const hasActions = scene.characterActions && scene.characterActions.length > 0;
+                        const hasEmotions = scene.characterEmotions && scene.characterEmotions.length > 0;
                         const hasAudio = scene.audio && (
                           (scene.audio.backgroundAmbience && scene.audio.backgroundAmbience.length > 0) ||
                           scene.audio.backgroundMusic ||
@@ -1891,12 +1894,10 @@ function Home() {
                                   <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">{t.narration}</span>
                                 </div>
                                 <div className="space-y-2">
-                                  {scene.narration.map((line: string, ni: number) => (
-                                    <div key={ni} className="p-3 rounded-lg bg-slate-900/40 border border-slate-500/10">
-                                      <span className="text-[9px] font-bold uppercase tracking-widest text-slate-500 block mb-1">{t.narratorLabel}</span>
-                                      <p className="text-sm text-slate-300/75 italic leading-relaxed">{line}</p>
-                                    </div>
-                                  ))}
+                                  <div className="p-3 rounded-lg bg-slate-900/40 border border-slate-500/10">
+                                    <span className="text-[9px] font-bold uppercase tracking-widest text-slate-500 block mb-1">{t.narratorLabel}</span>
+                                    <p className="text-sm text-slate-300/75 italic leading-relaxed">{scene.narration}</p>
+                                  </div>
                                 </div>
                               </div>
                             )}
@@ -1974,7 +1975,7 @@ function Home() {
                                   <span className="text-[10px] font-bold uppercase tracking-widest text-amber-400">{t.thoughts}</span>
                                 </div>
                                 <div className="space-y-2">
-                                  {scene.thoughts.map((th: InternalThought, ti: number) => (
+                                  {scene.internalThoughts.map((th: InternalThought, ti: number) => (
                                     <div key={ti} className="p-3 rounded-lg bg-amber-950/30 border border-amber-400/10 space-y-1">
                                       <div className="flex items-center gap-2">
                                         <span className="text-[9px] font-bold uppercase tracking-widest text-amber-500/70">{t.character}:</span>
@@ -2022,7 +2023,7 @@ function Home() {
                                   <span className="text-[10px] font-bold uppercase tracking-widest text-orange-400">{t.actions}</span>
                                 </div>
                                 <div className="space-y-2">
-                                  {scene.actions.map((ac: CharacterAction, ai: number) => (
+                                  {scene.characterActions.map((ac: CharacterAction, ai: number) => (
                                     <div key={ai} className="p-3 rounded-lg bg-orange-950/25 border border-orange-400/10 space-y-1">
                                       <div className="flex items-center gap-2">
                                         <span className="text-[9px] font-bold uppercase tracking-widest text-orange-500/70">{t.character}:</span>
@@ -2046,7 +2047,7 @@ function Home() {
                                   <span className="text-[10px] font-bold uppercase tracking-widest text-rose-400">{t.emotions}</span>
                                 </div>
                                 <div className="space-y-2">
-                                  {scene.emotions.map((em: CharacterEmotion, ei: number) => {
+                                  {scene.characterEmotions.map((em: CharacterEmotion, ei: number) => {
                                     const conf: number = em.confidence;
                                     const pct = Math.round(conf * 100);
                                     const barColor = conf >= 0.8 ? "bg-rose-400" : conf >= 0.5 ? "bg-rose-400/60" : "bg-rose-400/30";
@@ -2281,7 +2282,7 @@ function Home() {
                       )}
 
                       {/* ── Scene Image Generator ────────────────────────── */}
-                      {scene.imagePrompt && (() => {
+                      {scene.sceneImagePrompt && (() => {
                         const sceneNum = scene.sceneNumber;
                         const imgState = imageStates[sceneNum];
                         const hasCharRefs = storyboard.characters && storyboard.characters.length > 0;
@@ -2628,8 +2629,8 @@ function Home() {
                       })()}
 
                       {/* Image Generation — collapsible, open by default */}
-                      {scene.imagePrompt && (() => {
-                        const ip: SceneImagePrompt = scene.imagePrompt;
+                      {scene.sceneImagePrompt && (() => {
+                        const ip: SceneImagePrompt = scene.sceneImagePrompt;
                         const imgKey = `img-${i}`;
                         const isOpen = expandedSceneSections[imgKey] !== false;
                         const engineColors: Record<string, { bg: string; text: string; border: string; dot: string }> = {
@@ -2736,11 +2737,9 @@ function Home() {
                                   <div>
                                     <div className="text-[8px] font-bold uppercase tracking-wider text-fuchsia-500/45 mb-1.5">{t.visualEffectsLabel}</div>
                                     <div className="flex flex-wrap gap-1.5">
-                                      {ip.visualEffects.map((fx: string, fxi: number) => (
-                                        <span key={fxi} className="inline-flex items-center gap-1 text-[9px] font-medium text-fuchsia-300/65 bg-fuchsia-950/20 border border-fuchsia-400/12 px-2 py-0.5 rounded-full">
-                                          ✦ {fx}
+                                      <span className="inline-flex items-center gap-1 text-[9px] font-medium text-fuchsia-300/65 bg-fuchsia-950/20 border border-fuchsia-400/12 px-2 py-0.5 rounded-full">
+                                          ✦ {ip.visualEffects}
                                         </span>
-                                      ))}
                                     </div>
                                   </div>
                                 )}
@@ -2777,7 +2776,7 @@ function Home() {
                                     { label: t.aspectRatioLabel, value: fm.aspectRatio },
                                     { label: t.focalLengthLabel, value: fm.focalLength },
                                     { label: t.depthOfFieldLabel, value: fm.depthOfField },
-                                    { label: t.lensStyleFrameLabel, value: fm.lensStyle },
+                                    { label: t.lensStyleFrameLabel, value: fm.lensStyleFrame },
                                   ] as { label: string; value: string }[]).map((item, idx) => (
                                     <div key={idx} className="rounded-md bg-rose-950/15 border border-rose-400/10 px-2.5 py-1.5">
                                       <div className="text-[8px] font-bold uppercase tracking-wider text-rose-500/55 mb-0.5">{item.label}</div>
@@ -2785,8 +2784,8 @@ function Home() {
                                     </div>
                                   ))}
                                 </div>
-                                {fm.cinematicCompositionNotes && (
-                                  <p className="text-xs text-rose-200/50 italic leading-relaxed pl-3 border-l border-rose-400/15">{fm.cinematicCompositionNotes}</p>
+                                {fm.compositionNotes && (
+                                  <p className="text-xs text-rose-200/50 italic leading-relaxed pl-3 border-l border-rose-400/15">{fm.compositionNotes}</p>
                                 )}
                               </div>
                             )}
@@ -2802,7 +2801,7 @@ function Home() {
                           <span className="text-xs font-bold uppercase tracking-wider text-primary">{t.directorNote}</span>
                         </div>
                         <div className="font-mono text-sm text-primary-foreground/80 leading-relaxed p-4 rounded-lg bg-black/50 border border-primary/20 shadow-[inset_0_0_20px_rgba(109,40,217,0.1)]">
-                          {scene.visualPrompt}
+                          {scene.directorNote}
                         </div>
                       </div>
                     </Card>
@@ -2813,7 +2812,7 @@ function Home() {
             </motion.div>
 
             {/* Production Readiness Score + Movie Readiness Report */}
-            {(storyboard.productionReadinessScore !== undefined || storyboard.movieReadinessReport) && (
+            {(storyboard.productionScore !== undefined || storyboard.movieReadinessReport) && (
               <motion.div variants={itemVariants} className="space-y-6">
                 <div className="flex items-center gap-3">
                   <Trophy className="w-6 h-6 text-yellow-400" />
@@ -2822,33 +2821,33 @@ function Home() {
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                   {/* Score card */}
-                  {storyboard.productionReadinessScore !== undefined && (
+                  {storyboard.productionScore !== undefined && (
                     <Card className="bg-card/60 backdrop-blur-md border-yellow-400/15 overflow-hidden flex flex-col items-center justify-center p-8 text-center">
                       <div className="mb-3">
                         <Trophy className="w-8 h-8 text-yellow-400 mx-auto mb-2" />
                         <div className="text-[10px] font-bold uppercase tracking-widest text-yellow-400/70">{t.productionScore}</div>
                       </div>
                       <div className="flex items-end gap-1">
-                        <span className="text-7xl font-black text-yellow-300 tabular-nums leading-none">{storyboard.productionReadinessScore}</span>
+                        <span className="text-7xl font-black text-yellow-300 tabular-nums leading-none">{storyboard.productionScore}</span>
                         <span className="text-2xl font-bold text-yellow-400/50 mb-2">{t.outOf100}</span>
                       </div>
                       <div className="w-full mt-4 h-2 rounded-full bg-yellow-950/40 overflow-hidden">
                         <div
                           className="h-full rounded-full bg-gradient-to-r from-yellow-500 to-yellow-300"
-                          style={{ width: `${storyboard.productionReadinessScore}%` }}
+                          style={{ width: `${storyboard.productionScore}%` }}
                         />
                       </div>
                       <div className="mt-3 text-xs text-yellow-400/50">
-                        {storyboard.productionReadinessScore >= 90 ? "Festival Ready" :
-                          storyboard.productionReadinessScore >= 70 ? "Solid Draft" :
-                          storyboard.productionReadinessScore >= 50 ? "Promising" : "Needs Development"}
+                        {storyboard.productionScore >= 90 ? "Festival Ready" :
+                          storyboard.productionScore >= 70 ? "Solid Draft" :
+                          storyboard.productionScore >= 50 ? "Promising" : "Needs Development"}
                       </div>
                     </Card>
                   )}
 
                   {/* Report detail */}
                   {storyboard.movieReadinessReport && (
-                    <div className={`${storyboard.productionReadinessScore !== undefined ? "lg:col-span-2" : "lg:col-span-3"} space-y-4`}>
+                    <div className={`${storyboard.productionScore !== undefined ? "lg:col-span-2" : "lg:col-span-3"} space-y-4`}>
                       <Card className="bg-card/60 backdrop-blur-md border-white/5 overflow-hidden">
                         <CardContent className="p-5 space-y-5">
                           {storyboard.movieReadinessReport.strengths && storyboard.movieReadinessReport.strengths.length > 0 && (
@@ -2910,20 +2909,23 @@ function Home() {
             )}
 
             {/* Export Readiness */}
-            {storyboard.exportReadiness && (
+            {storyboard.scenes[0]?.exportReadiness && (
               <motion.div variants={itemVariants} className="space-y-4">
                 <div className="flex items-center gap-3">
                   <Film className="w-6 h-6 text-cyan-400" />
                   <h3 className="text-2xl font-semibold">{t.exportReadiness}</h3>
                 </div>
                 <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-                  {([
-                    { label: t.screenplayReady, value: storyboard.exportReadiness.screenplayReady },
-                    { label: t.storyboardReady, value: storyboard.exportReadiness.storyboardReady },
-                    { label: t.animationReady, value: storyboard.exportReadiness.animationPipelineReady },
-                    { label: t.voicePipelineReady, value: storyboard.exportReadiness.voicePipelineReady },
-                    { label: t.editingReady, value: storyboard.exportReadiness.editingPipelineReady },
-                  ] as { label: string; value: boolean }[]).map((item, idx) => (
+                  {(() => {
+                    const er = storyboard.scenes[0]?.exportReadiness;
+                    if (!er) return null;
+                    return ([
+                      { label: t.screenplayReady, value: er.screenplayReady },
+                      { label: t.storyboardReady, value: er.storyboardReady },
+                      { label: t.animationReady, value: er.animationPipelineReady },
+                      { label: t.voicePipelineReady, value: er.voicePipelineReady },
+                      { label: t.editingReady, value: er.editingPipelineReady },
+                    ] as { label: string; value: boolean }[]).map((item, idx) => (
                     <Card key={idx} className={`backdrop-blur-md border overflow-hidden ${item.value ? "bg-emerald-950/20 border-emerald-400/15" : "bg-red-950/10 border-red-400/10"}`}>
                       <CardContent className="p-3 flex flex-col items-center gap-2 text-center">
                         {item.value
@@ -2941,7 +2943,8 @@ function Home() {
                         </Badge>
                       </CardContent>
                     </Card>
-                  ))}
+                  ));
+                  })()}
                 </div>
               </motion.div>
             )}
@@ -3061,7 +3064,7 @@ function Home() {
             )}
 
             {/* Visual Production Report */}
-            {(storyboard.imageGenerationScore !== undefined || storyboard.visualProductionReport) && (
+            {storyboard.visualProductionReport && (
               <motion.div variants={itemVariants} className="space-y-6">
                 <div className="flex items-center gap-3">
                   <BarChart3 className="w-6 h-6 text-fuchsia-400" />
@@ -3069,36 +3072,32 @@ function Home() {
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                  {/* Image Generation Score */}
-                  {storyboard.imageGenerationScore !== undefined && (
-                    <Card className="bg-card/60 backdrop-blur-md border-fuchsia-400/15 overflow-hidden flex flex-col items-center justify-center p-8 text-center">
-                      <div className="mb-3">
-                        <Camera className="w-8 h-8 text-fuchsia-400 mx-auto mb-2" />
-                        <div className="text-[10px] font-bold uppercase tracking-widest text-fuchsia-400/70">{t.imageGenScoreLabel}</div>
-                      </div>
-                      <div className="flex items-end gap-1">
-                        <span className="text-7xl font-black text-fuchsia-300 tabular-nums leading-none">{storyboard.imageGenerationScore}</span>
-                        <span className="text-2xl font-bold text-fuchsia-400/50 mb-2">{t.outOf100}</span>
-                      </div>
-                      <div className="w-full mt-4 h-2 rounded-full bg-fuchsia-950/40 overflow-hidden">
-                        <div
-                          className="h-full rounded-full bg-gradient-to-r from-fuchsia-600 to-fuchsia-300"
-                          style={{ width: `${storyboard.imageGenerationScore}%` }}
-                        />
-                      </div>
-                      <div className="mt-3 text-xs text-fuchsia-400/50">
-                        {storyboard.imageGenerationScore >= 90 ? "Paste-Ready" :
-                          storyboard.imageGenerationScore >= 70 ? "Minor Gaps" :
-                          storyboard.imageGenerationScore >= 50 ? "Moderate" : "Needs Refinement"}
-                      </div>
-                    </Card>
-                  )}
-
                   {/* Visual Production Report detail */}
                   {storyboard.visualProductionReport && (() => {
                     const vpr = storyboard.visualProductionReport;
+                    const scores = storyboard.scenes.map(s => s.sceneImagePrompt?.imageGenerationScore ?? 0).filter(n => n > 0);
+                    const avgScore = scores.length > 0 ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : undefined;
                     return (
-                      <div className={`${storyboard.imageGenerationScore !== undefined ? "lg:col-span-2" : "lg:col-span-3"} space-y-4`}>
+                      <>
+                      {avgScore !== undefined && (
+                        <Card className="bg-card/60 backdrop-blur-md border-fuchsia-400/15 overflow-hidden flex flex-col items-center justify-center p-8 text-center">
+                          <div className="mb-3">
+                            <Camera className="w-8 h-8 text-fuchsia-400 mx-auto mb-2" />
+                            <div className="text-[10px] font-bold uppercase tracking-widest text-fuchsia-400/70">{t.imageGenScoreLabel}</div>
+                          </div>
+                          <div className="flex items-end gap-1">
+                            <span className="text-7xl font-black text-fuchsia-300 tabular-nums leading-none">{avgScore}</span>
+                            <span className="text-2xl font-bold text-fuchsia-400/50 mb-2">{t.outOf100}</span>
+                          </div>
+                          <div className="w-full mt-4 h-2 rounded-full bg-fuchsia-950/40 overflow-hidden">
+                            <div className="h-full rounded-full bg-gradient-to-r from-fuchsia-600 to-fuchsia-300" style={{ width: `${avgScore}%` }} />
+                          </div>
+                          <div className="mt-3 text-xs text-fuchsia-400/50">
+                            {avgScore >= 90 ? "Paste-Ready" : avgScore >= 70 ? "Minor Gaps" : avgScore >= 50 ? "Moderate" : "Needs Refinement"}
+                          </div>
+                        </Card>
+                      )}
+                      <div className={`${avgScore !== undefined ? "lg:col-span-2" : "lg:col-span-3"} space-y-4`}>
                         <Card className="bg-card/60 backdrop-blur-md border-white/5 overflow-hidden">
                           <CardContent className="p-5 space-y-5">
                             {vpr.strongestVisualScenes && vpr.strongestVisualScenes.length > 0 && (
@@ -3108,8 +3107,8 @@ function Home() {
                                   <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-400">{t.strongestScenesLabel}</span>
                                 </div>
                                 <ul className="space-y-1 pl-5">
-                                  {vpr.strongestVisualScenes.map((s: string, si: number) => (
-                                    <li key={si} className="text-sm text-emerald-200/65 list-disc leading-relaxed">{s}</li>
+                                  {vpr.strongestVisualScenes.map((s: number, si: number) => (
+                                    <li key={si} className="text-sm text-emerald-200/65 list-disc leading-relaxed">Scene {s}</li>
                                   ))}
                                 </ul>
                               </div>
@@ -3121,8 +3120,8 @@ function Home() {
                                   <span className="text-[10px] font-bold uppercase tracking-widest text-yellow-400">{t.weakestScenesLabel}</span>
                                 </div>
                                 <ul className="space-y-1 pl-5">
-                                  {vpr.weakestVisualScenes.map((w: string, wi: number) => (
-                                    <li key={wi} className="text-sm text-yellow-200/65 list-disc leading-relaxed">{w}</li>
+                                  {vpr.weakestVisualScenes.map((w: number, wi: number) => (
+                                    <li key={wi} className="text-sm text-yellow-200/65 list-disc leading-relaxed">Scene {w}</li>
                                   ))}
                                 </ul>
                               </div>
@@ -3140,30 +3139,22 @@ function Home() {
                                 </ul>
                               </div>
                             )}
-                            {vpr.animationComplexityNotes && vpr.animationComplexityNotes.length > 0 && (
+                            {vpr.animationComplexity && (
                               <div className="space-y-2">
                                 <div className="flex items-center gap-2">
                                   <Layers className="w-3.5 h-3.5 text-indigo-400" />
                                   <span className="text-[10px] font-bold uppercase tracking-widest text-indigo-400">{t.animationComplexityLabel}</span>
                                 </div>
-                                <ul className="space-y-1 pl-5">
-                                  {vpr.animationComplexityNotes.map((n: string, ni: number) => (
-                                    <li key={ni} className="text-sm text-indigo-200/65 list-disc leading-relaxed">{n}</li>
-                                  ))}
-                                </ul>
+                                <p className="text-sm text-indigo-200/65 pl-4 border-l border-indigo-400/15 leading-relaxed">{vpr.animationComplexity}</p>
                               </div>
                             )}
-                            {vpr.renderingDifficultyNotes && vpr.renderingDifficultyNotes.length > 0 && (
+                            {vpr.renderingDifficulty && (
                               <div className="space-y-2">
                                 <div className="flex items-center gap-2">
                                   <Zap className="w-3.5 h-3.5 text-red-400" />
                                   <span className="text-[10px] font-bold uppercase tracking-widest text-red-400">{t.renderingDifficultyLabel}</span>
                                 </div>
-                                <ul className="space-y-1 pl-5">
-                                  {vpr.renderingDifficultyNotes.map((d: string, di: number) => (
-                                    <li key={di} className="text-sm text-red-200/65 list-disc leading-relaxed">{d}</li>
-                                  ))}
-                                </ul>
+                                <p className="text-sm text-red-200/65 pl-4 border-l border-red-400/15 leading-relaxed">{vpr.renderingDifficulty}</p>
                               </div>
                             )}
                             {vpr.cinematicStrengths && vpr.cinematicStrengths.length > 0 && (
@@ -3182,6 +3173,7 @@ function Home() {
                           </CardContent>
                         </Card>
                       </div>
+                      </>
                     );
                   })()}
                 </div>

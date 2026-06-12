@@ -10,56 +10,42 @@ import type { VideoGenerationRequestDuration } from './videoGenerationRequestDur
 import type { VideoProvider } from './videoProvider';
 
 /**
- * Request to generate a video clip for a scene
+ * Request to generate an AI video clip for a storyboard scene
  */
 export interface VideoGenerationRequest {
   /** Storyboard identifier for asset persistence */
   storyboardId?: string;
   /** Scene number to generate video for */
   sceneNumber: number;
-  /** Main video generation prompt */
+  /** Base video generation prompt */
   videoPrompt: string;
   provider?: VideoProvider;
-  /** Optional first-frame image URL (from image generation) */
+  /** Optional reference image URL for image-to-video generation */
   imageUrl?: string;
   /** Clip duration in seconds */
   duration?: VideoGenerationRequestDuration;
-  /** Character profiles for continuity locking */
+  /** Character profiles for visual continuity */
   characterProfiles?: CharacterProfile[];
   /** Per-character visual continuity state */
   characterVisualContinuity?: string;
-  /** Camera movement instruction from cinematicCamera */
+  /** Camera movement from CinematicCamera */
   cameraMovement?: string;
-  /** Cinematic mood compound phrase */
   cinematicMood?: string;
-  /** Lighting mood and direction */
   lightingStyle?: string;
-  /** Animation movement and style guidance */
   animationStyle?: string;
-  /** Primary emotional tone of the scene */
   dominantEmotion?: string;
   /**
-     * Emotional intensity level
      * @minimum 0
      * @maximum 1
      */
   emotionalIntensity?: number;
-  /** Primary shot type */
   shotType?: string;
-  /** Editorial pacing feel */
   pacingStyle?: string;
-  /** Per-character action descriptions for motion direction */
   characterMovements?: string[];
-  /** Environmental and weather motion description */
   environmentalMotion?: string;
-  /** Transition type for the clip */
   cinematicTransition?: string;
-  /** Current clothing state per character for visual continuity */
   clothingState?: string[];
-  /** Current lighting state carried from previous scenes */
   lightingState?: string;
-  /** Current environment state */
   environmentState?: string;
-  /** Emotional states carried into this scene */
   emotionalCarryOver?: string[];
 }

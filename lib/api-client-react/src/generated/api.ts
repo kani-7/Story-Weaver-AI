@@ -21,16 +21,19 @@ import type {
 
 import type {
   ApiError,
+  BatchControlResponse,
   BatchQueueState,
   BatchVideoGenerationRequest,
   BatchVideoGenerationStatus,
   GetBatchStatusParams,
+  GetProductionAnalyticsParams,
   GetStoryboardAssetsParams,
   HealthStatus,
   ImageGenerationRequest,
   ImageGenerationResult,
   MovieExport,
   MovieExportRequest,
+  ProductionAnalytics,
   SceneAssetList,
   StoryInput,
   Storyboard,
@@ -509,6 +512,83 @@ export const useCreateMovieExport = <TError = ErrorType<ApiError>,
       return useMutation(getCreateMovieExportMutationOptions(options));
     }
 
+export const getGetMovieExportUrl = (exportId: string,) => {
+
+
+
+
+  return `/api/storyboard/movie-export/${exportId}`
+}
+
+/**
+ * @summary Get movie export status and result by ID
+ */
+export const getMovieExport = async (exportId: string, options?: RequestInit): Promise<MovieExport> => {
+
+  return customFetch<MovieExport>(getGetMovieExportUrl(exportId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetMovieExportQueryKey = (exportId: string,) => {
+    return [
+    `/api/storyboard/movie-export/${exportId}`
+    ] as const;
+    }
+
+
+export const getGetMovieExportQueryOptions = <TData = Awaited<ReturnType<typeof getMovieExport>>, TError = ErrorType<ApiError>>(exportId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMovieExport>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetMovieExportQueryKey(exportId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getMovieExport>>> = ({ signal }) => getMovieExport(exportId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(exportId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getMovieExport>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetMovieExportQueryResult = NonNullable<Awaited<ReturnType<typeof getMovieExport>>>
+export type GetMovieExportQueryError = ErrorType<ApiError>
+
+
+/**
+ * @summary Get movie export status and result by ID
+ */
+
+export function useGetMovieExport<TData = Awaited<ReturnType<typeof getMovieExport>>, TError = ErrorType<ApiError>>(
+ exportId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMovieExport>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetMovieExportQueryOptions(exportId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
 export const getAnalyzeStoryUrl = () => {
 
 
@@ -650,4 +730,375 @@ export const useBatchGenerateVideos = <TError = ErrorType<ApiError>,
       > => {
       return useMutation(getBatchGenerateVideosMutationOptions(options));
     }
+
+export const getGetBatchVideoStatusUrl = () => {
+
+
+
+
+  return `/api/storyboard/batch-generate-videos/status`
+}
+
+/**
+ * @summary Get real-time in-memory batch video generation status
+ */
+export const getBatchVideoStatus = async ( options?: RequestInit): Promise<BatchVideoGenerationStatus> => {
+
+  return customFetch<BatchVideoGenerationStatus>(getGetBatchVideoStatusUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetBatchVideoStatusQueryKey = () => {
+    return [
+    `/api/storyboard/batch-generate-videos/status`
+    ] as const;
+    }
+
+
+export const getGetBatchVideoStatusQueryOptions = <TData = Awaited<ReturnType<typeof getBatchVideoStatus>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getBatchVideoStatus>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetBatchVideoStatusQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getBatchVideoStatus>>> = ({ signal }) => getBatchVideoStatus({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getBatchVideoStatus>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetBatchVideoStatusQueryResult = NonNullable<Awaited<ReturnType<typeof getBatchVideoStatus>>>
+export type GetBatchVideoStatusQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Get real-time in-memory batch video generation status
+ */
+
+export function useGetBatchVideoStatus<TData = Awaited<ReturnType<typeof getBatchVideoStatus>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getBatchVideoStatus>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetBatchVideoStatusQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getPauseBatchVideoGenerationUrl = () => {
+
+
+
+
+  return `/api/storyboard/batch-generate-videos/pause`
+}
+
+/**
+ * @summary Pause the active batch video generation queue
+ */
+export const pauseBatchVideoGeneration = async ( options?: RequestInit): Promise<BatchControlResponse> => {
+
+  return customFetch<BatchControlResponse>(getPauseBatchVideoGenerationUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getPauseBatchVideoGenerationMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof pauseBatchVideoGeneration>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof pauseBatchVideoGeneration>>, TError,void, TContext> => {
+
+const mutationKey = ['pauseBatchVideoGeneration'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof pauseBatchVideoGeneration>>, void> = () => {
+
+
+          return  pauseBatchVideoGeneration(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PauseBatchVideoGenerationMutationResult = NonNullable<Awaited<ReturnType<typeof pauseBatchVideoGeneration>>>
+
+    export type PauseBatchVideoGenerationMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Pause the active batch video generation queue
+ */
+export const usePauseBatchVideoGeneration = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof pauseBatchVideoGeneration>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof pauseBatchVideoGeneration>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getPauseBatchVideoGenerationMutationOptions(options));
+    }
+
+export const getResumeBatchVideoGenerationUrl = () => {
+
+
+
+
+  return `/api/storyboard/batch-generate-videos/resume`
+}
+
+/**
+ * @summary Resume a paused batch video generation queue
+ */
+export const resumeBatchVideoGeneration = async ( options?: RequestInit): Promise<BatchControlResponse> => {
+
+  return customFetch<BatchControlResponse>(getResumeBatchVideoGenerationUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getResumeBatchVideoGenerationMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof resumeBatchVideoGeneration>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof resumeBatchVideoGeneration>>, TError,void, TContext> => {
+
+const mutationKey = ['resumeBatchVideoGeneration'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof resumeBatchVideoGeneration>>, void> = () => {
+
+
+          return  resumeBatchVideoGeneration(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ResumeBatchVideoGenerationMutationResult = NonNullable<Awaited<ReturnType<typeof resumeBatchVideoGeneration>>>
+
+    export type ResumeBatchVideoGenerationMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Resume a paused batch video generation queue
+ */
+export const useResumeBatchVideoGeneration = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof resumeBatchVideoGeneration>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof resumeBatchVideoGeneration>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getResumeBatchVideoGenerationMutationOptions(options));
+    }
+
+export const getCancelBatchVideoGenerationUrl = () => {
+
+
+
+
+  return `/api/storyboard/batch-generate-videos/cancel`
+}
+
+/**
+ * @summary Cancel the active batch video generation queue
+ */
+export const cancelBatchVideoGeneration = async ( options?: RequestInit): Promise<BatchControlResponse> => {
+
+  return customFetch<BatchControlResponse>(getCancelBatchVideoGenerationUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getCancelBatchVideoGenerationMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof cancelBatchVideoGeneration>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof cancelBatchVideoGeneration>>, TError,void, TContext> => {
+
+const mutationKey = ['cancelBatchVideoGeneration'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof cancelBatchVideoGeneration>>, void> = () => {
+
+
+          return  cancelBatchVideoGeneration(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CancelBatchVideoGenerationMutationResult = NonNullable<Awaited<ReturnType<typeof cancelBatchVideoGeneration>>>
+
+    export type CancelBatchVideoGenerationMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Cancel the active batch video generation queue
+ */
+export const useCancelBatchVideoGeneration = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof cancelBatchVideoGeneration>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof cancelBatchVideoGeneration>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getCancelBatchVideoGenerationMutationOptions(options));
+    }
+
+export const getGetProductionAnalyticsUrl = (params: GetProductionAnalyticsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/storyboard/analytics?${stringifiedParams}` : `/api/storyboard/analytics`
+}
+
+/**
+ * @summary Get production analytics for a storyboard
+ */
+export const getProductionAnalytics = async (params: GetProductionAnalyticsParams, options?: RequestInit): Promise<ProductionAnalytics> => {
+
+  return customFetch<ProductionAnalytics>(getGetProductionAnalyticsUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetProductionAnalyticsQueryKey = (params?: GetProductionAnalyticsParams,) => {
+    return [
+    `/api/storyboard/analytics`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetProductionAnalyticsQueryOptions = <TData = Awaited<ReturnType<typeof getProductionAnalytics>>, TError = ErrorType<ApiError>>(params: GetProductionAnalyticsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getProductionAnalytics>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetProductionAnalyticsQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getProductionAnalytics>>> = ({ signal }) => getProductionAnalytics(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getProductionAnalytics>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetProductionAnalyticsQueryResult = NonNullable<Awaited<ReturnType<typeof getProductionAnalytics>>>
+export type GetProductionAnalyticsQueryError = ErrorType<ApiError>
+
+
+/**
+ * @summary Get production analytics for a storyboard
+ */
+
+export function useGetProductionAnalytics<TData = Awaited<ReturnType<typeof getProductionAnalytics>>, TError = ErrorType<ApiError>>(
+ params: GetProductionAnalyticsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getProductionAnalytics>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetProductionAnalyticsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
 

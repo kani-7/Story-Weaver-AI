@@ -253,19 +253,6 @@ export interface ExportReadiness {
 }
 
 /**
- * Scene-type visual engine applied
- */
-export type SceneImagePromptVisualEngine = typeof SceneImagePromptVisualEngine[keyof typeof SceneImagePromptVisualEngine];
-
-
-export const SceneImagePromptVisualEngine = {
-  PresentEngine: 'PresentEngine',
-  FlashbackEngine: 'FlashbackEngine',
-  DreamEngine: 'DreamEngine',
-  ImaginationEngine: 'ImaginationEngine',
-} as const;
-
-/**
  * Platform-neutral image generation prompt for this scene (all fields English only)
  */
 export interface SceneImagePrompt {
@@ -279,51 +266,57 @@ export interface SceneImagePrompt {
   characterPositioning: string;
   /** English only. Per-character facial expression descriptions */
   facialExpressionDetail: string;
-  /** English only. Overall emotional and visual mood compound phrase */
+  /** English only. Compound phrase capturing the scene's cinematic atmosphere */
   cinematicMood: string;
-  /** English only. Specific visual effects to apply in image generation */
-  visualEffects: string[];
-  /** English only. Render style specification */
+  /** English only. Specific visual effects or post-processing notes */
+  visualEffects: string;
+  /** English only. Preferred render style (e.g. photorealistic, cel-shaded, watercolor) */
   renderStyle: string;
-  /** English only. Animation movement and style guidance */
+  /** English only. Animation style if applicable */
   animationStyle: string;
-  /** Scene-type visual engine applied */
-  visualEngine: SceneImagePromptVisualEngine;
-  /** English only. Per-character visual continuity state (clothing condition, injury, wetness, emotional carry-over from previous scene) */
+  /** English only. Declared visual engine for this scene (PresentEngine, FlashbackEngine, DreamEngine, ImaginationEngine) */
+  visualEngine: string;
+  /** English only. Per-character visual continuity state summary carried from memory */
   characterVisualContinuity: string;
+  /**
+     * Float 0-100. Estimated suitability score for AI image generation (detail, clarity, prompt quality)
+     * @minimum 0
+     * @maximum 100
+     */
+  imageGenerationScore: number;
 }
 
 /**
- * Technical frame metadata for storyboard rendering (all fields English only)
+ * Technical frame-level metadata for storyboard rendering (all fields English only)
  */
 export interface StoryboardFrameMetadata {
-  /** English only. Suggested aspect ratio (e.g. '2.39:1 CinemaScope', '16:9 Widescreen', '1.85:1 Theatrical') */
+  /** English only. Frame aspect ratio (e.g. 16:9 Cinematic, 2.39:1 Anamorphic) */
   aspectRatio: string;
-  /** English only. Suggested focal length (e.g. '28mm ultra wide', '85mm portrait', '200mm telephoto compression') */
+  /** English only. Simulated focal length (e.g. 35mm, 85mm) */
   focalLength: string;
-  /** English only. Depth of field specification (e.g. 'shallow — subject sharp, background soft bokeh at f/1.8') */
+  /** English only. Depth of field description */
   depthOfField: string;
-  /** English only. Lens rendering style (e.g. 'anamorphic — oval bokeh and horizontal flares', 'vintage — edge softness and vignette') */
-  lensStyle: string;
-  /** English only. Specific composition instructions for the image artist */
-  cinematicCompositionNotes: string;
+  /** English only. Lens style for this frame */
+  lensStyleFrame: string;
+  /** English only. Composition-specific direction for frame layout */
+  compositionNotes: string;
 }
 
 /**
- * Visual production assessment and recommendations (all fields English only)
+ * Cross-scene visual production assessment (all fields English only)
  */
 export interface VisualProductionReport {
-  /** English only. Scene identifiers with strongest visual generation potential */
-  strongestVisualScenes: string[];
-  /** English only. Scene identifiers with weakest visual execution or lowest generation confidence */
-  weakestVisualScenes: string[];
-  /** English only. Specific visual consistency risks across scenes */
+  /** English only. Scene numbers with the highest image generation score */
+  strongestVisualScenes: number[];
+  /** English only. Scene numbers needing the most visual improvement */
+  weakestVisualScenes: number[];
+  /** English only. Cross-scene visual consistency risks */
   consistencyRisks: string[];
-  /** English only. Per-scene or per-character animation complexity notes */
-  animationComplexityNotes: string[];
-  /** English only. Rendering difficulty and resource intensity notes per scene */
-  renderingDifficultyNotes: string[];
-  /** English only. Overall cinematic strengths for visual production */
+  /** English only. Overall animation complexity assessment */
+  animationComplexity: string;
+  /** English only. Estimated rendering difficulty */
+  renderingDifficulty: string;
+  /** English only. Strong cinematic elements across all scenes */
   cinematicStrengths: string[];
 }
 
@@ -331,73 +324,66 @@ export interface Scene {
   /** Sequential scene number starting from 1 */
   sceneNumber: number;
   sceneType: SceneType;
-  /** Short scene title in output language */
+  /** Short scene title in the output language */
   title: string;
-  /** 2-3 sentence scene description in output language */
-  description: string;
-  /** Character names exactly as in their profiles */
-  characters: string[];
-  /** English only. 40-80 words. Vivid 3D cartoon production prompt referencing distinctiveFeatures. */
-  visualPrompt: string;
-  /** External narrator passages in output language */
-  narration: string[];
-  /** Audible spoken dialogue with full voice performance metadata */
+  /** Where and when the scene takes place in the output language */
+  setting: string;
+  /** Narrator's voice-over or descriptive narration in the output language. Empty string if none. */
+  narration: string;
   dialogue: DialogueLine[];
-  /** Brief reactive private reflections */
-  thoughts: InternalThought[];
-  /** Extended inner voice stream-of-consciousness passages */
+  internalThoughts: InternalThought[];
   internalMonologue: InternalMonologueLine[];
-  /** Physical actions by named characters only */
-  actions: CharacterAction[];
-  /** Detected emotional states with confidence scores */
-  emotions: CharacterEmotion[];
-  audio?: SceneAudio;
-  continuityCheck?: SceneContinuityCheck;
-  continuityMemory?: SceneContinuityMemory;
-  cinematicCamera?: CinematicCamera;
-  /** Production-ready shotlist for the scene (English only) */
-  shotList?: ShotListItem[];
-  tensionAnalysis?: TensionAnalysis;
-  imagePrompt?: SceneImagePrompt;
-  storyboardFrameMetadata?: StoryboardFrameMetadata;
-  /** Flashback scenes only. English only. Color grade, film treatment, camera characteristics. */
-  flashbackVisualStyle?: string;
-  /** Flashback scenes only. English only. Audio treatment suggesting memory. */
-  flashbackAudioStyle?: string;
-  /** Dream scenes only. English only. Visual treatment distinguishing dream from reality. */
-  dreamVisualStyle?: string;
-  /** Dream scenes only. English only. Audio treatment inside the dream. */
-  dreamAudioStyle?: string;
-  /** Flashback/Dream/Imagination only. English on-screen text card. Under 6 words. */
+  characterActions: CharacterAction[];
+  characterEmotions: CharacterEmotion[];
+  audio: SceneAudio;
+  continuityCheck: SceneContinuityCheck;
+  cinematicCamera: CinematicCamera;
+  /** Ordered list of shots for this scene */
+  shotList: ShotListItem[];
+  tensionAnalysis: TensionAnalysis;
+  continuityMemory: SceneContinuityMemory;
+  exportReadiness: ExportReadiness;
+  sceneImagePrompt: SceneImagePrompt;
+  storyboardFrameMetadata: StoryboardFrameMetadata;
+  /** Director's note in the output language. May be empty. */
+  directorNote: string;
+  /** What triggers this flashback (present only when sceneType is Flashback) */
   flashbackIndicator?: string;
-  /** Flashback/Dream/Imagination only. English only. Cinematic entry technique. */
-  transitionInstructions?: string;
-  /** Flashback/Dream/Imagination only. English only. Cinematic exit technique. */
-  returnToPresentInstructions?: string;
+  /** How this non-present scene begins (present only for non-Present scenes) */
+  transitionIn?: string;
+  /** How the scene ends and returns to present (present only for non-Present scenes) */
+  returnToPresent?: string;
+  /** Visual style for dream sequences (present only when sceneType is Dream) */
+  dreamVisualStyle?: string;
+  /** Audio style for dream sequences (present only when sceneType is Dream) */
+  dreamAudioStyle?: string;
+  /** Visual style for flashback sequences (present only when sceneType is Flashback) */
+  flashbackVisualStyle?: string;
+  /** Audio style for flashback sequences (present only when sceneType is Flashback) */
+  flashbackAudioStyle?: string;
 }
 
 export interface Storyboard {
-  /** Unique identifier for storyboard asset persistence */
-  storyboardId?: string;
-  /** Short cinematic title in output language */
+  /** Unique identifier for this storyboard session */
+  storyboardId: string;
+  /** Story title in the output language */
   title: string;
+  /** Story genre in the output language */
+  genre: string;
+  /** One-sentence story summary in the output language */
+  logline: string;
+  /** All character profiles */
   characters: CharacterProfile[];
+  /** All story scenes */
   scenes: Scene[];
   /**
-     * Overall production readiness: 90-100 festival-ready, 70-89 solid draft, 50-69 promising, <50 needs development
+     * Overall production readiness score (0-100)
      * @minimum 0
      * @maximum 100
      */
-  productionReadinessScore?: number;
-  movieReadinessReport?: MovieReadinessReport;
-  exportReadiness?: ExportReadiness;
-  /**
-     * Overall image generation readiness score 0-100. 90-100: all scenes fully prompt-ready; 70-89: minor gaps; 50-69: moderate; <50: significant gaps
-     * @minimum 0
-     * @maximum 100
-     */
-  imageGenerationScore?: number;
-  visualProductionReport?: VisualProductionReport;
+  productionScore: number;
+  movieReadinessReport: MovieReadinessReport;
+  visualProductionReport: VisualProductionReport;
 }
 
 /**
@@ -428,57 +414,43 @@ export const VideoGenerationRequestDuration = {
 } as const;
 
 /**
- * Request to generate a video clip for a scene
+ * Request to generate an AI video clip for a storyboard scene
  */
 export interface VideoGenerationRequest {
   /** Storyboard identifier for asset persistence */
   storyboardId?: string;
   /** Scene number to generate video for */
   sceneNumber: number;
-  /** Main video generation prompt */
+  /** Base video generation prompt */
   videoPrompt: string;
   provider?: VideoProvider;
-  /** Optional first-frame image URL (from image generation) */
+  /** Optional reference image URL for image-to-video generation */
   imageUrl?: string;
   /** Clip duration in seconds */
   duration?: VideoGenerationRequestDuration;
-  /** Character profiles for continuity locking */
+  /** Character profiles for visual continuity */
   characterProfiles?: CharacterProfile[];
   /** Per-character visual continuity state */
   characterVisualContinuity?: string;
-  /** Camera movement instruction from cinematicCamera */
+  /** Camera movement from CinematicCamera */
   cameraMovement?: string;
-  /** Cinematic mood compound phrase */
   cinematicMood?: string;
-  /** Lighting mood and direction */
   lightingStyle?: string;
-  /** Animation movement and style guidance */
   animationStyle?: string;
-  /** Primary emotional tone of the scene */
   dominantEmotion?: string;
   /**
-     * Emotional intensity level
      * @minimum 0
      * @maximum 1
      */
   emotionalIntensity?: number;
-  /** Primary shot type */
   shotType?: string;
-  /** Editorial pacing feel */
   pacingStyle?: string;
-  /** Per-character action descriptions for motion direction */
   characterMovements?: string[];
-  /** Environmental and weather motion description */
   environmentalMotion?: string;
-  /** Transition type for the clip */
   cinematicTransition?: string;
-  /** Current clothing state per character for visual continuity */
   clothingState?: string[];
-  /** Current lighting state carried from previous scenes */
   lightingState?: string;
-  /** Current environment state */
   environmentState?: string;
-  /** Emotional states carried into this scene */
   emotionalCarryOver?: string[];
 }
 
@@ -626,6 +598,145 @@ export interface BatchVideoGenerationStatus {
   estimatedRemainingTime?: number;
   /** Per-scene results keyed by sceneNumber */
   sceneResults?: BatchVideoGenerationStatusSceneResults;
+}
+
+export type BatchControlResponseStatus = typeof BatchControlResponseStatus[keyof typeof BatchControlResponseStatus];
+
+
+export const BatchControlResponseStatus = {
+  idle: 'idle',
+  running: 'running',
+  paused: 'paused',
+  completed: 'completed',
+  cancelled: 'cancelled',
+} as const;
+
+/**
+ * Response from batch queue control operations (pause/resume/cancel)
+ */
+export interface BatchControlResponse {
+  success: boolean;
+  status: BatchControlResponseStatus;
+}
+
+export type SceneRenderAnalyticsVideoStatus = typeof SceneRenderAnalyticsVideoStatus[keyof typeof SceneRenderAnalyticsVideoStatus];
+
+
+export const SceneRenderAnalyticsVideoStatus = {
+  success: 'success',
+  error: 'error',
+  processing: 'processing',
+  pending: 'pending',
+} as const;
+
+export type SceneRenderAnalyticsImageStatus = typeof SceneRenderAnalyticsImageStatus[keyof typeof SceneRenderAnalyticsImageStatus];
+
+
+export const SceneRenderAnalyticsImageStatus = {
+  success: 'success',
+  error: 'error',
+  pending: 'pending',
+} as const;
+
+/**
+ * Per-scene render analytics
+ */
+export interface SceneRenderAnalytics {
+  sceneNumber: number;
+  hasImage: boolean;
+  hasVideo: boolean;
+  imageProvider?: string;
+  videoProvider?: string;
+  imageGenerationTime?: number;
+  videoGenerationTime?: number;
+  videoStatus?: SceneRenderAnalyticsVideoStatus;
+  imageStatus?: SceneRenderAnalyticsImageStatus;
+  generationError?: string;
+}
+
+/**
+ * Summary of export status
+ */
+export type ProductionAnalyticsExportDiagnostics = {
+  totalExports: number;
+  completedExports: number;
+  failedExports: number;
+  processingExports: number;
+  latestExportId?: string;
+  latestExportStatus?: string;
+  latestExportProgress?: number;
+};
+
+/**
+ * Count of generated assets per provider
+ */
+export type ProductionAnalyticsProviderBreakdown = {[key: string]: number};
+
+/**
+ * Current or last batch generation status
+ */
+export type ProductionAnalyticsBatchStatus = typeof ProductionAnalyticsBatchStatus[keyof typeof ProductionAnalyticsBatchStatus];
+
+
+export const ProductionAnalyticsBatchStatus = {
+  idle: 'idle',
+  running: 'running',
+  paused: 'paused',
+  completed: 'completed',
+  cancelled: 'cancelled',
+} as const;
+
+/**
+ * Comprehensive production analytics for a storyboard
+ */
+export interface ProductionAnalytics {
+  storyboardId: string;
+  /** Total number of scenes with generated assets */
+  totalScenes: number;
+  /**
+     * Percentage of scenes with successful video renders
+     * @minimum 0
+     * @maximum 100
+     */
+  renderProgress: number;
+  /**
+     * Percentage of scenes with successful images
+     * @minimum 0
+     * @maximum 100
+     */
+  imageProgress: number;
+  /** Estimated seconds to render remaining scenes (based on average generation time) */
+  estimatedRenderTime: number;
+  /** Average video generation time in seconds across successful renders */
+  averageVideoGenTime: number;
+  /** Average image generation time in seconds across successful renders */
+  averageImageGenTime: number;
+  /** Scene numbers that failed video generation */
+  failedScenes: number[];
+  /** Scene numbers that failed image generation */
+  failedImageScenes: number[];
+  /**
+     * Score (0-100) measuring how consistently scenes have both image and video generated
+     * @minimum 0
+     * @maximum 100
+     */
+  visualContinuityScore: number;
+  /**
+     * Score (0-100) measuring provider consistency and generation quality across scenes
+     * @minimum 0
+     * @maximum 100
+     */
+  cinematicConsistencyScore: number;
+  /** Summary of export status */
+  exportDiagnostics: ProductionAnalyticsExportDiagnostics;
+  /** Per-scene detailed analytics */
+  sceneAnalytics: SceneRenderAnalytics[];
+  /** Count of generated assets per provider */
+  providerBreakdown: ProductionAnalyticsProviderBreakdown;
+  /** Current or last batch generation status */
+  batchStatus?: ProductionAnalyticsBatchStatus;
+  /** ISO timestamp of when analytics were computed */
+  generatedAt: string;
 }
 
 /**
@@ -858,6 +969,10 @@ storyboardId: string;
 };
 
 export type GetBatchStatusParams = {
+storyboardId: string;
+};
+
+export type GetProductionAnalyticsParams = {
 storyboardId: string;
 };
 

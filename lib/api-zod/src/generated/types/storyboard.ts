@@ -6,31 +6,29 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { CharacterProfile } from './characterProfile';
-import type { ExportReadiness } from './exportReadiness';
 import type { MovieReadinessReport } from './movieReadinessReport';
 import type { Scene } from './scene';
 import type { VisualProductionReport } from './visualProductionReport';
 
 export interface Storyboard {
-  /** Unique identifier for storyboard asset persistence */
-  storyboardId?: string;
-  /** Short cinematic title in output language */
+  /** Unique identifier for this storyboard session */
+  storyboardId: string;
+  /** Story title in the output language */
   title: string;
+  /** Story genre in the output language */
+  genre: string;
+  /** One-sentence story summary in the output language */
+  logline: string;
+  /** All character profiles */
   characters: CharacterProfile[];
+  /** All story scenes */
   scenes: Scene[];
   /**
-     * Overall production readiness: 90-100 festival-ready, 70-89 solid draft, 50-69 promising, <50 needs development
+     * Overall production readiness score (0-100)
      * @minimum 0
      * @maximum 100
      */
-  productionReadinessScore?: number;
-  movieReadinessReport?: MovieReadinessReport;
-  exportReadiness?: ExportReadiness;
-  /**
-     * Overall image generation readiness score 0-100. 90-100: all scenes fully prompt-ready; 70-89: minor gaps; 50-69: moderate; <50: significant gaps
-     * @minimum 0
-     * @maximum 100
-     */
-  imageGenerationScore?: number;
-  visualProductionReport?: VisualProductionReport;
+  productionScore: number;
+  movieReadinessReport: MovieReadinessReport;
+  visualProductionReport: VisualProductionReport;
 }

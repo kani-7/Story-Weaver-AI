@@ -26,6 +26,7 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
   /storyboard/generate-video:
     post:
       operationId: generateSceneVideo
@@ -169,6 +170,37 @@ paths:
               schema:
                 $ref: "#/components/schemas/ApiError"
 
+  /storyboard/movie-export/{exportId}:
+    get:
+      operationId: getMovieExport
+      tags: [storyboard]
+      summary: Get movie export status and result by ID
+      parameters:
+        - name: exportId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Export status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MovieExport"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
   /storyboard/analyze:
     post:
       operationId: analyzeStory
@@ -230,6 +262,90 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ApiError"
+
+  /storyboard/batch-generate-videos/status:
+    get:
+      operationId: getBatchVideoStatus
+      tags: [storyboard]
+      summary: Get real-time in-memory batch video generation status
+      responses:
+        "200":
+          description: Live batch status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BatchVideoGenerationStatus"
+
+  /storyboard/batch-generate-videos/pause:
+    post:
+      operationId: pauseBatchVideoGeneration
+      tags: [storyboard]
+      summary: Pause the active batch video generation queue
+      responses:
+        "200":
+          description: Pause acknowledged
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BatchControlResponse"
+
+  /storyboard/batch-generate-videos/resume:
+    post:
+      operationId: resumeBatchVideoGeneration
+      tags: [storyboard]
+      summary: Resume a paused batch video generation queue
+      responses:
+        "200":
+          description: Resume acknowledged
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BatchControlResponse"
+
+  /storyboard/batch-generate-videos/cancel:
+    post:
+      operationId: cancelBatchVideoGeneration
+      tags: [storyboard]
+      summary: Cancel the active batch video generation queue
+      responses:
+        "200":
+          description: Cancel acknowledged
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BatchControlResponse"
+
+  /storyboard/analytics:
+    get:
+      operationId: getProductionAnalytics
+      tags: [storyboard]
+      summary: Get production analytics for a storyboard
+      parameters:
+        - name: storyboardId
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Production analytics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProductionAnalytics"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
 components:
   schemas:
     HealthStatus:
@@ -646,25 +762,27 @@ components:
           description: "English only. Per-character facial expression descriptions"
         cinematicMood:
           type: string
-          description: "English only. Overall emotional and visual mood compound phrase"
+          description: "English only. Compound phrase capturing the scene's cinematic atmosphere"
         visualEffects:
-          type: array
-          items:
-            type: string
-          description: "English only. Specific visual effects to apply in image generation"
+          type: string
+          description: "English only. Specific visual effects or post-processing notes"
         renderStyle:
           type: string
-          description: "English only. Render style specification"
+          description: "English only. Preferred render style (e.g. photorealistic, cel-shaded, watercolor)"
         animationStyle:
           type: string
-          description: "English only. Animation movement and style guidance"
+          description: "English only. Animation style if applicable"
         visualEngine:
           type: string
-          enum: [PresentEngine, FlashbackEngine, DreamEngine, ImaginationEngine]
-          description: Scene-type visual engine applied
+          description: "English only. Declared visual engine for this scene (PresentEngine, FlashbackEngine, DreamEngine, ImaginationEngine)"
         characterVisualContinuity:
           type: string
-          description: "English only. Per-character visual continuity state (clothing condition, injury, wetness, emotional carry-over from previous scene)"
+          description: "English only. Per-character visual continuity state summary carried from memory"
+        imageGenerationScore:
+          type: number
+          minimum: 0
+          maximum: 100
+          description: "Float 0-100. Estimated suitability score for AI image generation (detail, clarity, prompt quality)"
       required:
         - sceneImagePrompt
         - colorPalette
@@ -677,75 +795,72 @@ components:
         - animationStyle
         - visualEngine
         - characterVisualContinuity
+        - imageGenerationScore
 
     # ─── Storyboard Frame Metadata ─────────────────────────────────────────────
     StoryboardFrameMetadata:
       type: object
-      description: Technical frame metadata for storyboard rendering (all fields English only)
+      description: Technical frame-level metadata for storyboard rendering (all fields English only)
       properties:
         aspectRatio:
           type: string
-          description: "English only. Suggested aspect ratio (e.g. '2.39:1 CinemaScope', '16:9 Widescreen', '1.85:1 Theatrical')"
+          description: "English only. Frame aspect ratio (e.g. 16:9 Cinematic, 2.39:1 Anamorphic)"
         focalLength:
           type: string
-          description: "English only. Suggested focal length (e.g. '28mm ultra wide', '85mm portrait', '200mm telephoto compression')"
+          description: "English only. Simulated focal length (e.g. 35mm, 85mm)"
         depthOfField:
           type: string
-          description: "English only. Depth of field specification (e.g. 'shallow — subject sharp, background soft bokeh at f/1.8')"
-        lensStyle:
+          description: "English only. Depth of field description"
+        lensStyleFrame:
           type: string
-          description: "English only. Lens rendering style (e.g. 'anamorphic — oval bokeh and horizontal flares', 'vintage — edge softness and vignette')"
-        cinematicCompositionNotes:
+          description: "English only. Lens style for this frame"
+        compositionNotes:
           type: string
-          description: "English only. Specific composition instructions for the image artist"
+          description: "English only. Composition-specific direction for frame layout"
       required:
         - aspectRatio
         - focalLength
         - depthOfField
-        - lensStyle
-        - cinematicCompositionNotes
+        - lensStyleFrame
+        - compositionNotes
 
-    # ─── Visual Production Report ─────────────────────────────────────────────
+    # ─── Visual Production Report ───────────────────────────────────────────────
     VisualProductionReport:
       type: object
-      description: Visual production assessment and recommendations (all fields English only)
+      description: Cross-scene visual production assessment (all fields English only)
       properties:
         strongestVisualScenes:
           type: array
           items:
-            type: string
-          description: "English only. Scene identifiers with strongest visual generation potential"
+            type: integer
+          description: "English only. Scene numbers with the highest image generation score"
         weakestVisualScenes:
           type: array
           items:
-            type: string
-          description: "English only. Scene identifiers with weakest visual execution or lowest generation confidence"
+            type: integer
+          description: "English only. Scene numbers needing the most visual improvement"
         consistencyRisks:
           type: array
           items:
             type: string
-          description: "English only. Specific visual consistency risks across scenes"
-        animationComplexityNotes:
-          type: array
-          items:
-            type: string
-          description: "English only. Per-scene or per-character animation complexity notes"
-        renderingDifficultyNotes:
-          type: array
-          items:
-            type: string
-          description: "English only. Rendering difficulty and resource intensity notes per scene"
+          description: "English only. Cross-scene visual consistency risks"
+        animationComplexity:
+          type: string
+          description: "English only. Overall animation complexity assessment"
+        renderingDifficulty:
+          type: string
+          description: "English only. Estimated rendering difficulty"
         cinematicStrengths:
           type: array
           items:
             type: string
-          description: "English only. Overall cinematic strengths for visual production"
+          description: "English only. Strong cinematic elements across all scenes"
       required:
         - strongestVisualScenes
         - weakestVisualScenes
         - consistencyRisks
-        - animationComplexityNotes
-        - renderingDifficultyNotes
+        - animationComplexity
+        - renderingDifficulty
         - cinematicStrengths
 
     # ─── Scene Schema ──────────────────────────────────────────────────────────
@@ -757,110 +872,101 @@ components:
           description: Sequential scene number starting from 1
         sceneType:
           $ref: "#/components/schemas/SceneType"
-          default: Present
         title:
           type: string
-          description: Short scene title in output language
-        description:
+          description: Short scene title in the output language
+        setting:
           type: string
-          description: 2-3 sentence scene description in output language
-        characters:
-          type: array
-          items:
-            type: string
-          description: Character names exactly as in their profiles
-        visualPrompt:
-          type: string
-          description: "English only. 40-80 words. Vivid 3D cartoon production prompt referencing distinctiveFeatures."
+          description: Where and when the scene takes place in the output language
         narration:
-          type: array
-          items:
-            type: string
-          default: []
-          description: External narrator passages in output language
+          type: string
+          description: Narrator's voice-over or descriptive narration in the output language. Empty string if none.
         dialogue:
           type: array
           items:
             $ref: "#/components/schemas/DialogueLine"
-          default: []
-          description: Audible spoken dialogue with full voice performance metadata
-        thoughts:
+        internalThoughts:
           type: array
           items:
             $ref: "#/components/schemas/InternalThought"
-          default: []
-          description: Brief reactive private reflections
         internalMonologue:
           type: array
           items:
             $ref: "#/components/schemas/InternalMonologueLine"
-          default: []
-          description: Extended inner voice stream-of-consciousness passages
-        actions:
+        characterActions:
           type: array
           items:
             $ref: "#/components/schemas/CharacterAction"
-          default: []
-          description: Physical actions by named characters only
-        emotions:
+        characterEmotions:
           type: array
           items:
             $ref: "#/components/schemas/CharacterEmotion"
-          default: []
-          description: Detected emotional states with confidence scores
         audio:
           $ref: "#/components/schemas/SceneAudio"
         continuityCheck:
           $ref: "#/components/schemas/SceneContinuityCheck"
-        continuityMemory:
-          $ref: "#/components/schemas/SceneContinuityMemory"
         cinematicCamera:
           $ref: "#/components/schemas/CinematicCamera"
         shotList:
           type: array
           items:
             $ref: "#/components/schemas/ShotListItem"
-          description: Production-ready shotlist for the scene (English only)
+          description: Ordered list of shots for this scene
         tensionAnalysis:
           $ref: "#/components/schemas/TensionAnalysis"
-        imagePrompt:
+        continuityMemory:
+          $ref: "#/components/schemas/SceneContinuityMemory"
+        exportReadiness:
+          $ref: "#/components/schemas/ExportReadiness"
+        sceneImagePrompt:
           $ref: "#/components/schemas/SceneImagePrompt"
         storyboardFrameMetadata:
           $ref: "#/components/schemas/StoryboardFrameMetadata"
-        flashbackVisualStyle:
+        directorNote:
           type: string
-          description: "Flashback scenes only. English only. Color grade, film treatment, camera characteristics."
-        flashbackAudioStyle:
-          type: string
-          description: "Flashback scenes only. English only. Audio treatment suggesting memory."
-        dreamVisualStyle:
-          type: string
-          description: "Dream scenes only. English only. Visual treatment distinguishing dream from reality."
-        dreamAudioStyle:
-          type: string
-          description: "Dream scenes only. English only. Audio treatment inside the dream."
+          description: Director's note in the output language. May be empty.
         flashbackIndicator:
           type: string
-          description: "Flashback/Dream/Imagination only. English on-screen text card. Under 6 words."
-        transitionInstructions:
+          description: What triggers this flashback (present only when sceneType is Flashback)
+        transitionIn:
           type: string
-          description: "Flashback/Dream/Imagination only. English only. Cinematic entry technique."
-        returnToPresentInstructions:
+          description: How this non-present scene begins (present only for non-Present scenes)
+        returnToPresent:
           type: string
-          description: "Flashback/Dream/Imagination only. English only. Cinematic exit technique."
+          description: How the scene ends and returns to present (present only for non-Present scenes)
+        dreamVisualStyle:
+          type: string
+          description: Visual style for dream sequences (present only when sceneType is Dream)
+        dreamAudioStyle:
+          type: string
+          description: Audio style for dream sequences (present only when sceneType is Dream)
+        flashbackVisualStyle:
+          type: string
+          description: Visual style for flashback sequences (present only when sceneType is Flashback)
+        flashbackAudioStyle:
+          type: string
+          description: Audio style for flashback sequences (present only when sceneType is Flashback)
       required:
         - sceneNumber
         - sceneType
         - title
-        - description
-        - characters
-        - visualPrompt
+        - setting
         - narration
         - dialogue
-        - thoughts
+        - internalThoughts
         - internalMonologue
-        - actions
-        - emotions
+        - characterActions
+        - characterEmotions
+        - audio
+        - continuityCheck
+        - cinematicCamera
+        - shotList
+        - tensionAnalysis
+        - continuityMemory
+        - exportReadiness
+        - sceneImagePrompt
+        - storyboardFrameMetadata
+        - directorNote
 
     # ─── Storyboard Schema ─────────────────────────────────────────────────────
     Storyboard:
@@ -868,38 +974,45 @@ components:
       properties:
         storyboardId:
           type: string
-          description: Unique identifier for storyboard asset persistence
+          description: Unique identifier for this storyboard session
         title:
           type: string
-          description: Short cinematic title in output language
+          description: Story title in the output language
+        genre:
+          type: string
+          description: Story genre in the output language
+        logline:
+          type: string
+          description: One-sentence story summary in the output language
         characters:
           type: array
           items:
             $ref: "#/components/schemas/CharacterProfile"
+          description: All character profiles
         scenes:
           type: array
           items:
             $ref: "#/components/schemas/Scene"
-        productionReadinessScore:
-          type: integer
+          description: All story scenes
+        productionScore:
+          type: number
           minimum: 0
           maximum: 100
-          description: "Overall production readiness: 90-100 festival-ready, 70-89 solid draft, 50-69 promising, <50 needs development"
+          description: Overall production readiness score (0-100)
         movieReadinessReport:
           $ref: "#/components/schemas/MovieReadinessReport"
-        exportReadiness:
-          $ref: "#/components/schemas/ExportReadiness"
-        imageGenerationScore:
-          type: integer
-          minimum: 0
-          maximum: 100
-          description: "Overall image generation readiness score 0-100. 90-100: all scenes fully prompt-ready; 70-89: minor gaps; 50-69: moderate; <50: significant gaps"
         visualProductionReport:
           $ref: "#/components/schemas/VisualProductionReport"
       required:
+        - storyboardId
         - title
+        - genre
+        - logline
         - characters
         - scenes
+        - productionScore
+        - movieReadinessReport
+        - visualProductionReport
 
     # ─── Video Generation Schemas ──────────────────────────────────────────────
     VideoProvider:
@@ -909,7 +1022,7 @@ components:
 
     VideoGenerationRequest:
       type: object
-      description: Request to generate a video clip for a scene
+      description: Request to generate an AI video clip for a storyboard scene
       properties:
         storyboardId:
           type: string
@@ -919,12 +1032,12 @@ components:
           description: Scene number to generate video for
         videoPrompt:
           type: string
-          description: Main video generation prompt
+          description: Base video generation prompt
         provider:
           $ref: "#/components/schemas/VideoProvider"
         imageUrl:
           type: string
-          description: Optional first-frame image URL (from image generation)
+          description: Optional reference image URL for image-to-video generation
         duration:
           type: integer
           enum: [5, 10]
@@ -934,63 +1047,49 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/CharacterProfile"
-          description: Character profiles for continuity locking
+          description: Character profiles for visual continuity
         characterVisualContinuity:
           type: string
           description: Per-character visual continuity state
         cameraMovement:
           type: string
-          description: Camera movement instruction from cinematicCamera
+          description: Camera movement from CinematicCamera
         cinematicMood:
           type: string
-          description: Cinematic mood compound phrase
         lightingStyle:
           type: string
-          description: Lighting mood and direction
         animationStyle:
           type: string
-          description: Animation movement and style guidance
         dominantEmotion:
           type: string
-          description: Primary emotional tone of the scene
         emotionalIntensity:
           type: number
           minimum: 0
           maximum: 1
-          description: Emotional intensity level
         shotType:
           type: string
-          description: Primary shot type
         pacingStyle:
           type: string
-          description: Editorial pacing feel
         characterMovements:
           type: array
           items:
             type: string
-          description: Per-character action descriptions for motion direction
         environmentalMotion:
           type: string
-          description: Environmental and weather motion description
         cinematicTransition:
           type: string
-          description: Transition type for the clip
         clothingState:
           type: array
           items:
             type: string
-          description: Current clothing state per character for visual continuity
         lightingState:
           type: string
-          description: Current lighting state carried from previous scenes
         environmentState:
           type: string
-          description: Current environment state
         emotionalCarryOver:
           type: array
           items:
             type: string
-          description: Emotional states carried into this scene
       required:
         - sceneNumber
         - videoPrompt
@@ -1166,6 +1265,156 @@ components:
         - completedScenes
         - failedScenes
         - queueProgress
+
+    BatchControlResponse:
+      type: object
+      description: Response from batch queue control operations (pause/resume/cancel)
+      properties:
+        success:
+          type: boolean
+        status:
+          type: string
+          enum: [idle, running, paused, completed, cancelled]
+      required:
+        - success
+        - status
+
+    # ─── Production Analytics ──────────────────────────────────────────────────
+    SceneRenderAnalytics:
+      type: object
+      description: Per-scene render analytics
+      properties:
+        sceneNumber:
+          type: integer
+        hasImage:
+          type: boolean
+        hasVideo:
+          type: boolean
+        imageProvider:
+          type: string
+        videoProvider:
+          type: string
+        imageGenerationTime:
+          type: number
+        videoGenerationTime:
+          type: number
+        videoStatus:
+          type: string
+          enum: [success, error, processing, pending]
+        imageStatus:
+          type: string
+          enum: [success, error, pending]
+        generationError:
+          type: string
+      required:
+        - sceneNumber
+        - hasImage
+        - hasVideo
+
+    ProductionAnalytics:
+      type: object
+      description: Comprehensive production analytics for a storyboard
+      properties:
+        storyboardId:
+          type: string
+        totalScenes:
+          type: integer
+          description: Total number of scenes with generated assets
+        renderProgress:
+          type: number
+          minimum: 0
+          maximum: 100
+          description: Percentage of scenes with successful video renders
+        imageProgress:
+          type: number
+          minimum: 0
+          maximum: 100
+          description: Percentage of scenes with successful images
+        estimatedRenderTime:
+          type: number
+          description: Estimated seconds to render remaining scenes (based on average generation time)
+        averageVideoGenTime:
+          type: number
+          description: Average video generation time in seconds across successful renders
+        averageImageGenTime:
+          type: number
+          description: Average image generation time in seconds across successful renders
+        failedScenes:
+          type: array
+          items:
+            type: integer
+          description: Scene numbers that failed video generation
+        failedImageScenes:
+          type: array
+          items:
+            type: integer
+          description: Scene numbers that failed image generation
+        visualContinuityScore:
+          type: number
+          minimum: 0
+          maximum: 100
+          description: Score (0-100) measuring how consistently scenes have both image and video generated
+        cinematicConsistencyScore:
+          type: number
+          minimum: 0
+          maximum: 100
+          description: Score (0-100) measuring provider consistency and generation quality across scenes
+        exportDiagnostics:
+          type: object
+          description: Summary of export status
+          properties:
+            totalExports:
+              type: integer
+            completedExports:
+              type: integer
+            failedExports:
+              type: integer
+            processingExports:
+              type: integer
+            latestExportId:
+              type: string
+            latestExportStatus:
+              type: string
+            latestExportProgress:
+              type: integer
+          required:
+            - totalExports
+            - completedExports
+            - failedExports
+            - processingExports
+        sceneAnalytics:
+          type: array
+          items:
+            $ref: "#/components/schemas/SceneRenderAnalytics"
+          description: Per-scene detailed analytics
+        providerBreakdown:
+          type: object
+          description: Count of generated assets per provider
+          additionalProperties:
+            type: integer
+        batchStatus:
+          type: string
+          enum: [idle, running, paused, completed, cancelled]
+          description: Current or last batch generation status
+        generatedAt:
+          type: string
+          description: ISO timestamp of when analytics were computed
+      required:
+        - storyboardId
+        - totalScenes
+        - renderProgress
+        - imageProgress
+        - estimatedRenderTime
+        - averageVideoGenTime
+        - averageImageGenTime
+        - failedScenes
+        - failedImageScenes
+        - visualContinuityScore
+        - cinematicConsistencyScore
+        - exportDiagnostics
+        - sceneAnalytics
+        - providerBreakdown
+        - generatedAt
 
     # ─── Image Generation Schemas ──────────────────────────────────────────────
     ImageProvider:

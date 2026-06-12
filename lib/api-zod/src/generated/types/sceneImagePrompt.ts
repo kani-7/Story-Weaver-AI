@@ -5,7 +5,6 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
-import type { SceneImagePromptVisualEngine } from './sceneImagePromptVisualEngine';
 
 /**
  * Platform-neutral image generation prompt for this scene (all fields English only)
@@ -21,16 +20,22 @@ export interface SceneImagePrompt {
   characterPositioning: string;
   /** English only. Per-character facial expression descriptions */
   facialExpressionDetail: string;
-  /** English only. Overall emotional and visual mood compound phrase */
+  /** English only. Compound phrase capturing the scene's cinematic atmosphere */
   cinematicMood: string;
-  /** English only. Specific visual effects to apply in image generation */
-  visualEffects: string[];
-  /** English only. Render style specification */
+  /** English only. Specific visual effects or post-processing notes */
+  visualEffects: string;
+  /** English only. Preferred render style (e.g. photorealistic, cel-shaded, watercolor) */
   renderStyle: string;
-  /** English only. Animation movement and style guidance */
+  /** English only. Animation style if applicable */
   animationStyle: string;
-  /** Scene-type visual engine applied */
-  visualEngine: SceneImagePromptVisualEngine;
-  /** English only. Per-character visual continuity state (clothing condition, injury, wetness, emotional carry-over from previous scene) */
+  /** English only. Declared visual engine for this scene (PresentEngine, FlashbackEngine, DreamEngine, ImaginationEngine) */
+  visualEngine: string;
+  /** English only. Per-character visual continuity state summary carried from memory */
   characterVisualContinuity: string;
+  /**
+     * Float 0-100. Estimated suitability score for AI image generation (detail, clarity, prompt quality)
+     * @minimum 0
+     * @maximum 100
+     */
+  imageGenerationScore: number;
 }

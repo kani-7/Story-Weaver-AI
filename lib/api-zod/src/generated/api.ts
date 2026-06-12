@@ -29,9 +29,9 @@ export const generateSceneVideoBodyEmotionalIntensityMax = 1;
 export const GenerateSceneVideoBody = zod.object({
   "storyboardId": zod.string().optional().describe('Storyboard identifier for asset persistence'),
   "sceneNumber": zod.number().describe('Scene number to generate video for'),
-  "videoPrompt": zod.string().describe('Main video generation prompt'),
+  "videoPrompt": zod.string().describe('Base video generation prompt'),
   "provider": zod.enum(['runway', 'kling', 'luma', 'pika', 'haiper', 'stability', 'pixverse']).optional().describe('AI video generation provider'),
-  "imageUrl": zod.string().optional().describe('Optional first-frame image URL (from image generation)'),
+  "imageUrl": zod.string().optional().describe('Optional reference image URL for image-to-video generation'),
   "duration": zod.union([zod.literal(5),zod.literal(10)]).default(generateSceneVideoBodyDurationDefault).describe('Clip duration in seconds'),
   "characterProfiles": zod.array(zod.object({
   "characterId": zod.string().describe('English lowercase hyphenated slug, unique across all characters'),
@@ -42,24 +42,24 @@ export const GenerateSceneVideoBody = zod.object({
   "personality": zod.string().describe('2-3 sentences covering motivation, baseline, and behavioral tell'),
   "distinctiveFeatures": zod.string().describe('2-4 precise, artist-reproducible visual markers'),
   "voiceStyle": zod.string().optional().describe('English only. One sentence: pitch, tempo, texture, accent, delivery style.')
-})).optional().describe('Character profiles for continuity locking'),
+})).optional().describe('Character profiles for visual continuity'),
   "characterVisualContinuity": zod.string().optional().describe('Per-character visual continuity state'),
-  "cameraMovement": zod.string().optional().describe('Camera movement instruction from cinematicCamera'),
-  "cinematicMood": zod.string().optional().describe('Cinematic mood compound phrase'),
-  "lightingStyle": zod.string().optional().describe('Lighting mood and direction'),
-  "animationStyle": zod.string().optional().describe('Animation movement and style guidance'),
-  "dominantEmotion": zod.string().optional().describe('Primary emotional tone of the scene'),
-  "emotionalIntensity": zod.number().min(generateSceneVideoBodyEmotionalIntensityMin).max(generateSceneVideoBodyEmotionalIntensityMax).optional().describe('Emotional intensity level'),
-  "shotType": zod.string().optional().describe('Primary shot type'),
-  "pacingStyle": zod.string().optional().describe('Editorial pacing feel'),
-  "characterMovements": zod.array(zod.string()).optional().describe('Per-character action descriptions for motion direction'),
-  "environmentalMotion": zod.string().optional().describe('Environmental and weather motion description'),
-  "cinematicTransition": zod.string().optional().describe('Transition type for the clip'),
-  "clothingState": zod.array(zod.string()).optional().describe('Current clothing state per character for visual continuity'),
-  "lightingState": zod.string().optional().describe('Current lighting state carried from previous scenes'),
-  "environmentState": zod.string().optional().describe('Current environment state'),
-  "emotionalCarryOver": zod.array(zod.string()).optional().describe('Emotional states carried into this scene')
-}).describe('Request to generate a video clip for a scene')
+  "cameraMovement": zod.string().optional().describe('Camera movement from CinematicCamera'),
+  "cinematicMood": zod.string().optional(),
+  "lightingStyle": zod.string().optional(),
+  "animationStyle": zod.string().optional(),
+  "dominantEmotion": zod.string().optional(),
+  "emotionalIntensity": zod.number().min(generateSceneVideoBodyEmotionalIntensityMin).max(generateSceneVideoBodyEmotionalIntensityMax).optional(),
+  "shotType": zod.string().optional(),
+  "pacingStyle": zod.string().optional(),
+  "characterMovements": zod.array(zod.string()).optional(),
+  "environmentalMotion": zod.string().optional(),
+  "cinematicTransition": zod.string().optional(),
+  "clothingState": zod.array(zod.string()).optional(),
+  "lightingState": zod.string().optional(),
+  "environmentState": zod.string().optional(),
+  "emotionalCarryOver": zod.array(zod.string()).optional()
+}).describe('Request to generate an AI video clip for a storyboard scene')
 
 export const generateSceneVideoResponseGenerationProgressMin = 0;
 export const generateSceneVideoResponseGenerationProgressMax = 100;
@@ -213,6 +213,32 @@ export const CreateMovieExportResponse = zod.object({
 
 
 /**
+ * @summary Get movie export status and result by ID
+ */
+export const GetMovieExportParams = zod.object({
+  "exportId": zod.coerce.string()
+})
+
+export const getMovieExportResponseExportProgressMin = 0;
+export const getMovieExportResponseExportProgressMax = 100;
+
+
+
+export const GetMovieExportResponse = zod.object({
+  "exportId": zod.string(),
+  "storyboardId": zod.string(),
+  "format": zod.enum(['mp4', 'vertical_shorts', 'youtube', 'tiktok', 'cinematic_widescreen']).describe('Export format for assembled movie'),
+  "status": zod.enum(['processing', 'completed', 'failed']),
+  "exportUrl": zod.string().optional(),
+  "exportProgress": zod.number().min(getMovieExportResponseExportProgressMin).max(getMovieExportResponseExportProgressMax).optional(),
+  "exportError": zod.string().optional(),
+  "fileSize": zod.number().optional(),
+  "duration": zod.number().optional(),
+  "createdAt": zod.string().optional()
+}).describe('Movie export status and result')
+
+
+/**
  * @summary Analyze a story and generate storyboard scenes
  */
 export const analyzeStoryBodyStoryMin = 10;
@@ -224,33 +250,28 @@ export const AnalyzeStoryBody = zod.object({
   "outputLanguage": zod.enum(['en', 'si', 'ta']).default(analyzeStoryBodyOutputLanguageDefault)
 })
 
-export const analyzeStoryResponseScenesItemSceneTypeDefault = `Present`;
-export const analyzeStoryResponseScenesItemNarrationDefault = [];
 export const analyzeStoryResponseScenesItemDialogueItemVocalIntensityMin = 0;
 export const analyzeStoryResponseScenesItemDialogueItemVocalIntensityMax = 1;
 
-export const analyzeStoryResponseScenesItemDialogueDefault = [];
-export const analyzeStoryResponseScenesItemThoughtsDefault = [];
-export const analyzeStoryResponseScenesItemInternalMonologueDefault = [];
-export const analyzeStoryResponseScenesItemActionsDefault = [];
-export const analyzeStoryResponseScenesItemEmotionsItemConfidenceMin = 0;
-export const analyzeStoryResponseScenesItemEmotionsItemConfidenceMax = 1;
+export const analyzeStoryResponseScenesItemCharacterEmotionsItemConfidenceMin = 0;
+export const analyzeStoryResponseScenesItemCharacterEmotionsItemConfidenceMax = 1;
 
-export const analyzeStoryResponseScenesItemEmotionsDefault = [];
 export const analyzeStoryResponseScenesItemTensionAnalysisEmotionalIntensityMin = 0;
 export const analyzeStoryResponseScenesItemTensionAnalysisEmotionalIntensityMax = 1;
 
-export const analyzeStoryResponseProductionReadinessScoreMin = 0;
-export const analyzeStoryResponseProductionReadinessScoreMax = 100;
+export const analyzeStoryResponseScenesItemSceneImagePromptImageGenerationScoreMin = 0;
+export const analyzeStoryResponseScenesItemSceneImagePromptImageGenerationScoreMax = 100;
 
-export const analyzeStoryResponseImageGenerationScoreMin = 0;
-export const analyzeStoryResponseImageGenerationScoreMax = 100;
+export const analyzeStoryResponseProductionScoreMin = 0;
+export const analyzeStoryResponseProductionScoreMax = 100;
 
 
 
 export const AnalyzeStoryResponse = zod.object({
-  "storyboardId": zod.string().optional().describe('Unique identifier for storyboard asset persistence'),
-  "title": zod.string().describe('Short cinematic title in output language'),
+  "storyboardId": zod.string().describe('Unique identifier for this storyboard session'),
+  "title": zod.string().describe('Story title in the output language'),
+  "genre": zod.string().describe('Story genre in the output language'),
+  "logline": zod.string().describe('One-sentence story summary in the output language'),
   "characters": zod.array(zod.object({
   "characterId": zod.string().describe('English lowercase hyphenated slug, unique across all characters'),
   "name": zod.string().describe('Character name in the output language'),
@@ -260,15 +281,13 @@ export const AnalyzeStoryResponse = zod.object({
   "personality": zod.string().describe('2-3 sentences covering motivation, baseline, and behavioral tell'),
   "distinctiveFeatures": zod.string().describe('2-4 precise, artist-reproducible visual markers'),
   "voiceStyle": zod.string().optional().describe('English only. One sentence: pitch, tempo, texture, accent, delivery style.')
-})),
+})).describe('All character profiles'),
   "scenes": zod.array(zod.object({
   "sceneNumber": zod.number().describe('Sequential scene number starting from 1'),
-  "sceneType": zod.enum(['Present', 'Flashback', 'Dream', 'Imagination']).default(analyzeStoryResponseScenesItemSceneTypeDefault),
-  "title": zod.string().describe('Short scene title in output language'),
-  "description": zod.string().describe('2-3 sentence scene description in output language'),
-  "characters": zod.array(zod.string()).describe('Character names exactly as in their profiles'),
-  "visualPrompt": zod.string().describe('English only. 40-80 words. Vivid 3D cartoon production prompt referencing distinctiveFeatures.'),
-  "narration": zod.array(zod.string()).default(analyzeStoryResponseScenesItemNarrationDefault).describe('External narrator passages in output language'),
+  "sceneType": zod.enum(['Present', 'Flashback', 'Dream', 'Imagination']),
+  "title": zod.string().describe('Short scene title in the output language'),
+  "setting": zod.string().describe('Where and when the scene takes place in the output language'),
+  "narration": zod.string().describe('Narrator\'s voice-over or descriptive narration in the output language. Empty string if none.'),
   "dialogue": zod.array(zod.object({
   "character": zod.string().describe('Exact character name from profile'),
   "line": zod.string().describe('Spoken words only, no quotation marks'),
@@ -278,33 +297,54 @@ export const AnalyzeStoryResponse = zod.object({
   "pauseTiming": zod.string().optional().describe('English only. Pause quality before or within the line (e.g. dramatic pause, hesitant, no pause, long silence before)'),
   "whisperDetection": zod.boolean().optional().describe('True if the line is delivered as a whisper'),
   "shoutDetection": zod.boolean().optional().describe('True if the line is delivered as a shout or raised voice')
-}).describe('A single spoken line with full voice performance metadata')).default(analyzeStoryResponseScenesItemDialogueDefault).describe('Audible spoken dialogue with full voice performance metadata'),
-  "thoughts": zod.array(zod.object({
+}).describe('A single spoken line with full voice performance metadata')),
+  "internalThoughts": zod.array(zod.object({
   "character": zod.string(),
   "thought": zod.string()
-})).default(analyzeStoryResponseScenesItemThoughtsDefault).describe('Brief reactive private reflections'),
+})),
   "internalMonologue": zod.array(zod.object({
   "character": zod.string().describe('Exact character name from profile'),
   "monologue": zod.string().describe('Extended inner voice passage, may be fragmented')
-})).default(analyzeStoryResponseScenesItemInternalMonologueDefault).describe('Extended inner voice stream-of-consciousness passages'),
-  "actions": zod.array(zod.object({
+})),
+  "characterActions": zod.array(zod.object({
   "character": zod.string().describe('Named character only — never \"Narrator\"'),
   "action": zod.string().describe('Concise present-tense physical action')
-})).default(analyzeStoryResponseScenesItemActionsDefault).describe('Physical actions by named characters only'),
-  "emotions": zod.array(zod.object({
+})),
+  "characterEmotions": zod.array(zod.object({
   "character": zod.string().describe('Exact character name from profile'),
   "emotion": zod.string().describe('Short, precise emotional state label'),
-  "confidence": zod.number().min(analyzeStoryResponseScenesItemEmotionsItemConfidenceMin).max(analyzeStoryResponseScenesItemEmotionsItemConfidenceMax).describe('Float 0.00–1.00: 0.90–1.00 explicit, 0.60–0.89 implied, 0.30–0.59 inferred')
-})).default(analyzeStoryResponseScenesItemEmotionsDefault).describe('Detected emotional states with confidence scores'),
+  "confidence": zod.number().min(analyzeStoryResponseScenesItemCharacterEmotionsItemConfidenceMin).max(analyzeStoryResponseScenesItemCharacterEmotionsItemConfidenceMax).describe('Float 0.00–1.00: 0.90–1.00 explicit, 0.60–0.89 implied, 0.30–0.59 inferred')
+})),
   "audio": zod.object({
   "backgroundAmbience": zod.array(zod.string()).describe('2-5 continuous environmental sound descriptions (English only)'),
   "backgroundMusic": zod.string().describe('Tempo, instrumentation, emotional tone, genre reference (English only)'),
   "soundEffects": zod.array(zod.string()).describe('1-6 event-triggered sound effects (English only)')
-}).optional(),
+}),
   "continuityCheck": zod.object({
   "status": zod.enum(['Pass', 'Warning', 'Fail']),
   "issues": zod.array(zod.string()).describe('List of continuity issues. Empty if status is Pass.')
-}).optional(),
+}),
+  "cinematicCamera": zod.object({
+  "shotType": zod.string().describe('Primary shot type: Close-up | Medium Shot | Wide Shot | Extreme Wide Shot | POV Shot | Tracking Shot'),
+  "cameraAngle": zod.string().describe('Camera angle: Low Angle | High Angle | Eye Level | Dutch Angle | Over-the-Shoulder'),
+  "cameraMovement": zod.string().describe('Camera movement: Static | Dolly In | Dolly Out | Crane Up | Handheld | Tracking | Orbit'),
+  "lensStyle": zod.string().describe('Lens style: 35mm cinematic | 50mm portrait | ultra wide | telephoto compression'),
+  "framingStyle": zod.string().describe('English only. Framing composition note (e.g. rule of thirds, centered symmetry, negative space)'),
+  "lightingStyle": zod.string().describe('English only. Lighting mood and direction (e.g. cinematic glow, storm shadows, warm sunrise, moody contrast)'),
+  "pacingStyle": zod.string().describe('English only. Editorial pacing feel (e.g. emotional slow pacing, tension pacing, dream pacing)')
+}).describe('Structured cinematic camera direction for the scene (English only)'),
+  "shotList": zod.array(zod.object({
+  "shotNumber": zod.number().describe('Shot number within the scene, starting from 1'),
+  "shotDescription": zod.string().describe('English only. Concise visual description of what the camera captures'),
+  "shotPurpose": zod.string().describe('English only. Narrative or emotional purpose of this shot'),
+  "estimatedDuration": zod.string().describe('English only. Estimated screen time (e.g. 3 seconds, 8–12 seconds)'),
+  "transitionType": zod.string().describe('Transition into the next shot: Fade In | Fade Out | Dissolve | Match Cut | Hard Cut | Iris Transition | Dream Ripple')
+}).describe('A single production shot entry in the scene shotlist (English only)')).describe('Ordered list of shots for this scene'),
+  "tensionAnalysis": zod.object({
+  "tensionCurve": zod.string().describe('English only. Description of the tension arc within this scene (e.g. builds steadily, sharp spike at midpoint, slow release)'),
+  "emotionalIntensity": zod.number().min(analyzeStoryResponseScenesItemTensionAnalysisEmotionalIntensityMin).max(analyzeStoryResponseScenesItemTensionAnalysisEmotionalIntensityMax).describe('Float 0.00–1.00. Overall emotional intensity of the scene relative to the full story'),
+  "pacingBalance": zod.string().describe('English only. Editorial pacing assessment (e.g. well-balanced, front-loaded tension, needs breathing room)')
+}).describe('Emotional and cinematic tension tracking for the scene (English only)'),
   "continuityMemory": zod.object({
   "clothingState": zod.array(zod.string()).describe('English only. Current clothing\/costume state of each character present (e.g. \'Kael: torn jacket, missing left glove\')'),
   "weatherState": zod.string().describe('English only. Current weather conditions carried from previous scenes'),
@@ -316,79 +356,59 @@ export const AnalyzeStoryResponse = zod.object({
   "timeOfDay": zod.string().describe('English only. Time of day continuity (e.g. dusk, night, early morning)'),
   "continuityWarnings": zod.array(zod.string()).describe('English only. Specific continuity violations or risks detected in this scene'),
   "continuityResolutionSuggestions": zod.array(zod.string()).describe('English only. Director suggestions to resolve or address continuity warnings')
-}).optional().describe('Persistent state memory tracked from previous scenes for continuity enforcement'),
-  "cinematicCamera": zod.object({
-  "shotType": zod.string().describe('Primary shot type: Close-up | Medium Shot | Wide Shot | Extreme Wide Shot | POV Shot | Tracking Shot'),
-  "cameraAngle": zod.string().describe('Camera angle: Low Angle | High Angle | Eye Level | Dutch Angle | Over-the-Shoulder'),
-  "cameraMovement": zod.string().describe('Camera movement: Static | Dolly In | Dolly Out | Crane Up | Handheld | Tracking | Orbit'),
-  "lensStyle": zod.string().describe('Lens style: 35mm cinematic | 50mm portrait | ultra wide | telephoto compression'),
-  "framingStyle": zod.string().describe('English only. Framing composition note (e.g. rule of thirds, centered symmetry, negative space)'),
-  "lightingStyle": zod.string().describe('English only. Lighting mood and direction (e.g. cinematic glow, storm shadows, warm sunrise, moody contrast)'),
-  "pacingStyle": zod.string().describe('English only. Editorial pacing feel (e.g. emotional slow pacing, tension pacing, dream pacing)')
-}).optional().describe('Structured cinematic camera direction for the scene (English only)'),
-  "shotList": zod.array(zod.object({
-  "shotNumber": zod.number().describe('Shot number within the scene, starting from 1'),
-  "shotDescription": zod.string().describe('English only. Concise visual description of what the camera captures'),
-  "shotPurpose": zod.string().describe('English only. Narrative or emotional purpose of this shot'),
-  "estimatedDuration": zod.string().describe('English only. Estimated screen time (e.g. 3 seconds, 8–12 seconds)'),
-  "transitionType": zod.string().describe('Transition into the next shot: Fade In | Fade Out | Dissolve | Match Cut | Hard Cut | Iris Transition | Dream Ripple')
-}).describe('A single production shot entry in the scene shotlist (English only)')).optional().describe('Production-ready shotlist for the scene (English only)'),
-  "tensionAnalysis": zod.object({
-  "tensionCurve": zod.string().describe('English only. Description of the tension arc within this scene (e.g. builds steadily, sharp spike at midpoint, slow release)'),
-  "emotionalIntensity": zod.number().min(analyzeStoryResponseScenesItemTensionAnalysisEmotionalIntensityMin).max(analyzeStoryResponseScenesItemTensionAnalysisEmotionalIntensityMax).describe('Float 0.00–1.00. Overall emotional intensity of the scene relative to the full story'),
-  "pacingBalance": zod.string().describe('English only. Editorial pacing assessment (e.g. well-balanced, front-loaded tension, needs breathing room)')
-}).optional().describe('Emotional and cinematic tension tracking for the scene (English only)'),
-  "imagePrompt": zod.object({
-  "sceneImagePrompt": zod.string().describe('English only. Full platform-neutral image prompt (80-150 words) compatible with Midjourney, Stable Diffusion, DALL-E, Flux, Leonardo AI, Runway, Kling, Veo.'),
-  "colorPalette": zod.string().describe('English only. Specific color palette for this scene'),
-  "environmentDetail": zod.string().describe('English only. Detailed environment and setting description'),
-  "characterPositioning": zod.string().describe('English only. Exact character positions, poses, and spatial relationships'),
-  "facialExpressionDetail": zod.string().describe('English only. Per-character facial expression descriptions'),
-  "cinematicMood": zod.string().describe('English only. Overall emotional and visual mood compound phrase'),
-  "visualEffects": zod.array(zod.string()).describe('English only. Specific visual effects to apply in image generation'),
-  "renderStyle": zod.string().describe('English only. Render style specification'),
-  "animationStyle": zod.string().describe('English only. Animation movement and style guidance'),
-  "visualEngine": zod.enum(['PresentEngine', 'FlashbackEngine', 'DreamEngine', 'ImaginationEngine']).describe('Scene-type visual engine applied'),
-  "characterVisualContinuity": zod.string().describe('English only. Per-character visual continuity state (clothing condition, injury, wetness, emotional carry-over from previous scene)')
-}).optional().describe('Platform-neutral image generation prompt for this scene (all fields English only)'),
-  "storyboardFrameMetadata": zod.object({
-  "aspectRatio": zod.string().describe('English only. Suggested aspect ratio (e.g. \'2.39:1 CinemaScope\', \'16:9 Widescreen\', \'1.85:1 Theatrical\')'),
-  "focalLength": zod.string().describe('English only. Suggested focal length (e.g. \'28mm ultra wide\', \'85mm portrait\', \'200mm telephoto compression\')'),
-  "depthOfField": zod.string().describe('English only. Depth of field specification (e.g. \'shallow — subject sharp, background soft bokeh at f\/1.8\')'),
-  "lensStyle": zod.string().describe('English only. Lens rendering style (e.g. \'anamorphic — oval bokeh and horizontal flares\', \'vintage — edge softness and vignette\')'),
-  "cinematicCompositionNotes": zod.string().describe('English only. Specific composition instructions for the image artist')
-}).optional().describe('Technical frame metadata for storyboard rendering (all fields English only)'),
-  "flashbackVisualStyle": zod.string().optional().describe('Flashback scenes only. English only. Color grade, film treatment, camera characteristics.'),
-  "flashbackAudioStyle": zod.string().optional().describe('Flashback scenes only. English only. Audio treatment suggesting memory.'),
-  "dreamVisualStyle": zod.string().optional().describe('Dream scenes only. English only. Visual treatment distinguishing dream from reality.'),
-  "dreamAudioStyle": zod.string().optional().describe('Dream scenes only. English only. Audio treatment inside the dream.'),
-  "flashbackIndicator": zod.string().optional().describe('Flashback\/Dream\/Imagination only. English on-screen text card. Under 6 words.'),
-  "transitionInstructions": zod.string().optional().describe('Flashback\/Dream\/Imagination only. English only. Cinematic entry technique.'),
-  "returnToPresentInstructions": zod.string().optional().describe('Flashback\/Dream\/Imagination only. English only. Cinematic exit technique.')
-})),
-  "productionReadinessScore": zod.number().min(analyzeStoryResponseProductionReadinessScoreMin).max(analyzeStoryResponseProductionReadinessScoreMax).optional().describe('Overall production readiness: 90-100 festival-ready, 70-89 solid draft, 50-69 promising, <50 needs development'),
-  "movieReadinessReport": zod.object({
-  "strengths": zod.array(zod.string()).describe('2-5 specific strengths of this story as a film project'),
-  "weaknesses": zod.array(zod.string()).describe('1-4 specific weaknesses or underdeveloped elements'),
-  "missingElements": zod.array(zod.string()).describe('0-3 story elements that would strengthen the film but are absent'),
-  "productionNotes": zod.string().describe('English only. 2-4 sentence paragraph of practical production advice.')
-}).optional(),
+}).describe('Persistent state memory tracked from previous scenes for continuity enforcement'),
   "exportReadiness": zod.object({
   "screenplayReady": zod.boolean().describe('True if dialogue, narration, and scene structure are complete enough for screenplay formatting'),
   "storyboardReady": zod.boolean().describe('True if visual prompts and shot lists are complete enough for storyboard rendering'),
   "animationPipelineReady": zod.boolean().describe('True if character profiles and visual prompts meet animation pre-production standards'),
   "voicePipelineReady": zod.boolean().describe('True if dialogue and voice metadata are complete enough for voice direction and dubbing'),
   "editingPipelineReady": zod.boolean().describe('True if shotlists and transition types are complete enough for editorial planning')
-}).optional().describe('Pipeline readiness assessment for downstream production export'),
-  "imageGenerationScore": zod.number().min(analyzeStoryResponseImageGenerationScoreMin).max(analyzeStoryResponseImageGenerationScoreMax).optional().describe('Overall image generation readiness score 0-100. 90-100: all scenes fully prompt-ready; 70-89: minor gaps; 50-69: moderate; <50: significant gaps'),
+}).describe('Pipeline readiness assessment for downstream production export'),
+  "sceneImagePrompt": zod.object({
+  "sceneImagePrompt": zod.string().describe('English only. Full platform-neutral image prompt (80-150 words) compatible with Midjourney, Stable Diffusion, DALL-E, Flux, Leonardo AI, Runway, Kling, Veo.'),
+  "colorPalette": zod.string().describe('English only. Specific color palette for this scene'),
+  "environmentDetail": zod.string().describe('English only. Detailed environment and setting description'),
+  "characterPositioning": zod.string().describe('English only. Exact character positions, poses, and spatial relationships'),
+  "facialExpressionDetail": zod.string().describe('English only. Per-character facial expression descriptions'),
+  "cinematicMood": zod.string().describe('English only. Compound phrase capturing the scene\'s cinematic atmosphere'),
+  "visualEffects": zod.string().describe('English only. Specific visual effects or post-processing notes'),
+  "renderStyle": zod.string().describe('English only. Preferred render style (e.g. photorealistic, cel-shaded, watercolor)'),
+  "animationStyle": zod.string().describe('English only. Animation style if applicable'),
+  "visualEngine": zod.string().describe('English only. Declared visual engine for this scene (PresentEngine, FlashbackEngine, DreamEngine, ImaginationEngine)'),
+  "characterVisualContinuity": zod.string().describe('English only. Per-character visual continuity state summary carried from memory'),
+  "imageGenerationScore": zod.number().min(analyzeStoryResponseScenesItemSceneImagePromptImageGenerationScoreMin).max(analyzeStoryResponseScenesItemSceneImagePromptImageGenerationScoreMax).describe('Float 0-100. Estimated suitability score for AI image generation (detail, clarity, prompt quality)')
+}).describe('Platform-neutral image generation prompt for this scene (all fields English only)'),
+  "storyboardFrameMetadata": zod.object({
+  "aspectRatio": zod.string().describe('English only. Frame aspect ratio (e.g. 16:9 Cinematic, 2.39:1 Anamorphic)'),
+  "focalLength": zod.string().describe('English only. Simulated focal length (e.g. 35mm, 85mm)'),
+  "depthOfField": zod.string().describe('English only. Depth of field description'),
+  "lensStyleFrame": zod.string().describe('English only. Lens style for this frame'),
+  "compositionNotes": zod.string().describe('English only. Composition-specific direction for frame layout')
+}).describe('Technical frame-level metadata for storyboard rendering (all fields English only)'),
+  "directorNote": zod.string().describe('Director\'s note in the output language. May be empty.'),
+  "flashbackIndicator": zod.string().optional().describe('What triggers this flashback (present only when sceneType is Flashback)'),
+  "transitionIn": zod.string().optional().describe('How this non-present scene begins (present only for non-Present scenes)'),
+  "returnToPresent": zod.string().optional().describe('How the scene ends and returns to present (present only for non-Present scenes)'),
+  "dreamVisualStyle": zod.string().optional().describe('Visual style for dream sequences (present only when sceneType is Dream)'),
+  "dreamAudioStyle": zod.string().optional().describe('Audio style for dream sequences (present only when sceneType is Dream)'),
+  "flashbackVisualStyle": zod.string().optional().describe('Visual style for flashback sequences (present only when sceneType is Flashback)'),
+  "flashbackAudioStyle": zod.string().optional().describe('Audio style for flashback sequences (present only when sceneType is Flashback)')
+})).describe('All story scenes'),
+  "productionScore": zod.number().min(analyzeStoryResponseProductionScoreMin).max(analyzeStoryResponseProductionScoreMax).describe('Overall production readiness score (0-100)'),
+  "movieReadinessReport": zod.object({
+  "strengths": zod.array(zod.string()).describe('2-5 specific strengths of this story as a film project'),
+  "weaknesses": zod.array(zod.string()).describe('1-4 specific weaknesses or underdeveloped elements'),
+  "missingElements": zod.array(zod.string()).describe('0-3 story elements that would strengthen the film but are absent'),
+  "productionNotes": zod.string().describe('English only. 2-4 sentence paragraph of practical production advice.')
+}),
   "visualProductionReport": zod.object({
-  "strongestVisualScenes": zod.array(zod.string()).describe('English only. Scene identifiers with strongest visual generation potential'),
-  "weakestVisualScenes": zod.array(zod.string()).describe('English only. Scene identifiers with weakest visual execution or lowest generation confidence'),
-  "consistencyRisks": zod.array(zod.string()).describe('English only. Specific visual consistency risks across scenes'),
-  "animationComplexityNotes": zod.array(zod.string()).describe('English only. Per-scene or per-character animation complexity notes'),
-  "renderingDifficultyNotes": zod.array(zod.string()).describe('English only. Rendering difficulty and resource intensity notes per scene'),
-  "cinematicStrengths": zod.array(zod.string()).describe('English only. Overall cinematic strengths for visual production')
-}).optional().describe('Visual production assessment and recommendations (all fields English only)')
+  "strongestVisualScenes": zod.array(zod.number()).describe('English only. Scene numbers with the highest image generation score'),
+  "weakestVisualScenes": zod.array(zod.number()).describe('English only. Scene numbers needing the most visual improvement'),
+  "consistencyRisks": zod.array(zod.string()).describe('English only. Cross-scene visual consistency risks'),
+  "animationComplexity": zod.string().describe('English only. Overall animation complexity assessment'),
+  "renderingDifficulty": zod.string().describe('English only. Estimated rendering difficulty'),
+  "cinematicStrengths": zod.array(zod.string()).describe('English only. Strong cinematic elements across all scenes')
+}).describe('Cross-scene visual production assessment (all fields English only)')
 })
 
 
@@ -460,5 +480,118 @@ export const BatchGenerateVideosResponse = zod.object({
   "generationError": zod.string().optional()
 })).optional().describe('Per-scene results keyed by sceneNumber')
 }).describe('Real-time status of batch video generation')
+
+
+/**
+ * @summary Get real-time in-memory batch video generation status
+ */
+export const getBatchVideoStatusResponseQueueProgressMin = 0;
+export const getBatchVideoStatusResponseQueueProgressMax = 100;
+
+
+
+export const GetBatchVideoStatusResponse = zod.object({
+  "batchVideoStatus": zod.enum(['idle', 'running', 'paused', 'completed', 'cancelled']).describe('Current queue status'),
+  "completedScenes": zod.array(zod.number()).describe('Scene numbers that successfully generated'),
+  "failedScenes": zod.array(zod.number()).describe('Scene numbers that failed'),
+  "activeScene": zod.number().optional().describe('Scene currently being generated'),
+  "queueProgress": zod.number().min(getBatchVideoStatusResponseQueueProgressMin).max(getBatchVideoStatusResponseQueueProgressMax).describe('Overall queue progress percentage'),
+  "estimatedRemainingTime": zod.number().optional().describe('Estimated remaining time in seconds'),
+  "sceneResults": zod.record(zod.string(), zod.object({
+  "videoStatus": zod.string().optional(),
+  "videoUrl": zod.string().optional(),
+  "videoProvider": zod.string().optional(),
+  "videoDuration": zod.number().optional(),
+  "generationTime": zod.number().optional(),
+  "generationError": zod.string().optional()
+})).optional().describe('Per-scene results keyed by sceneNumber')
+}).describe('Real-time status of batch video generation')
+
+
+/**
+ * @summary Pause the active batch video generation queue
+ */
+export const PauseBatchVideoGenerationResponse = zod.object({
+  "success": zod.boolean(),
+  "status": zod.enum(['idle', 'running', 'paused', 'completed', 'cancelled'])
+}).describe('Response from batch queue control operations (pause\/resume\/cancel)')
+
+
+/**
+ * @summary Resume a paused batch video generation queue
+ */
+export const ResumeBatchVideoGenerationResponse = zod.object({
+  "success": zod.boolean(),
+  "status": zod.enum(['idle', 'running', 'paused', 'completed', 'cancelled'])
+}).describe('Response from batch queue control operations (pause\/resume\/cancel)')
+
+
+/**
+ * @summary Cancel the active batch video generation queue
+ */
+export const CancelBatchVideoGenerationResponse = zod.object({
+  "success": zod.boolean(),
+  "status": zod.enum(['idle', 'running', 'paused', 'completed', 'cancelled'])
+}).describe('Response from batch queue control operations (pause\/resume\/cancel)')
+
+
+/**
+ * @summary Get production analytics for a storyboard
+ */
+export const GetProductionAnalyticsQueryParams = zod.object({
+  "storyboardId": zod.coerce.string()
+})
+
+export const getProductionAnalyticsResponseRenderProgressMin = 0;
+export const getProductionAnalyticsResponseRenderProgressMax = 100;
+
+export const getProductionAnalyticsResponseImageProgressMin = 0;
+export const getProductionAnalyticsResponseImageProgressMax = 100;
+
+export const getProductionAnalyticsResponseVisualContinuityScoreMin = 0;
+export const getProductionAnalyticsResponseVisualContinuityScoreMax = 100;
+
+export const getProductionAnalyticsResponseCinematicConsistencyScoreMin = 0;
+export const getProductionAnalyticsResponseCinematicConsistencyScoreMax = 100;
+
+
+
+export const GetProductionAnalyticsResponse = zod.object({
+  "storyboardId": zod.string(),
+  "totalScenes": zod.number().describe('Total number of scenes with generated assets'),
+  "renderProgress": zod.number().min(getProductionAnalyticsResponseRenderProgressMin).max(getProductionAnalyticsResponseRenderProgressMax).describe('Percentage of scenes with successful video renders'),
+  "imageProgress": zod.number().min(getProductionAnalyticsResponseImageProgressMin).max(getProductionAnalyticsResponseImageProgressMax).describe('Percentage of scenes with successful images'),
+  "estimatedRenderTime": zod.number().describe('Estimated seconds to render remaining scenes (based on average generation time)'),
+  "averageVideoGenTime": zod.number().describe('Average video generation time in seconds across successful renders'),
+  "averageImageGenTime": zod.number().describe('Average image generation time in seconds across successful renders'),
+  "failedScenes": zod.array(zod.number()).describe('Scene numbers that failed video generation'),
+  "failedImageScenes": zod.array(zod.number()).describe('Scene numbers that failed image generation'),
+  "visualContinuityScore": zod.number().min(getProductionAnalyticsResponseVisualContinuityScoreMin).max(getProductionAnalyticsResponseVisualContinuityScoreMax).describe('Score (0-100) measuring how consistently scenes have both image and video generated'),
+  "cinematicConsistencyScore": zod.number().min(getProductionAnalyticsResponseCinematicConsistencyScoreMin).max(getProductionAnalyticsResponseCinematicConsistencyScoreMax).describe('Score (0-100) measuring provider consistency and generation quality across scenes'),
+  "exportDiagnostics": zod.object({
+  "totalExports": zod.number(),
+  "completedExports": zod.number(),
+  "failedExports": zod.number(),
+  "processingExports": zod.number(),
+  "latestExportId": zod.string().optional(),
+  "latestExportStatus": zod.string().optional(),
+  "latestExportProgress": zod.number().optional()
+}).describe('Summary of export status'),
+  "sceneAnalytics": zod.array(zod.object({
+  "sceneNumber": zod.number(),
+  "hasImage": zod.boolean(),
+  "hasVideo": zod.boolean(),
+  "imageProvider": zod.string().optional(),
+  "videoProvider": zod.string().optional(),
+  "imageGenerationTime": zod.number().optional(),
+  "videoGenerationTime": zod.number().optional(),
+  "videoStatus": zod.enum(['success', 'error', 'processing', 'pending']).optional(),
+  "imageStatus": zod.enum(['success', 'error', 'pending']).optional(),
+  "generationError": zod.string().optional()
+}).describe('Per-scene render analytics')).describe('Per-scene detailed analytics'),
+  "providerBreakdown": zod.record(zod.string(), zod.number()).describe('Count of generated assets per provider'),
+  "batchStatus": zod.enum(['idle', 'running', 'paused', 'completed', 'cancelled']).optional().describe('Current or last batch generation status'),
+  "generatedAt": zod.string().describe('ISO timestamp of when analytics were computed')
+}).describe('Comprehensive production analytics for a storyboard')
 
 

@@ -9,6 +9,7 @@ import type { CharacterAction } from './characterAction';
 import type { CharacterEmotion } from './characterEmotion';
 import type { CinematicCamera } from './cinematicCamera';
 import type { DialogueLine } from './dialogueLine';
+import type { ExportReadiness } from './exportReadiness';
 import type { InternalMonologueLine } from './internalMonologueLine';
 import type { InternalThought } from './internalThought';
 import type { SceneAudio } from './sceneAudio';
@@ -24,47 +25,41 @@ export interface Scene {
   /** Sequential scene number starting from 1 */
   sceneNumber: number;
   sceneType: SceneType;
-  /** Short scene title in output language */
+  /** Short scene title in the output language */
   title: string;
-  /** 2-3 sentence scene description in output language */
-  description: string;
-  /** Character names exactly as in their profiles */
-  characters: string[];
-  /** English only. 40-80 words. Vivid 3D cartoon production prompt referencing distinctiveFeatures. */
-  visualPrompt: string;
-  /** External narrator passages in output language */
-  narration: string[];
-  /** Audible spoken dialogue with full voice performance metadata */
+  /** Where and when the scene takes place in the output language */
+  setting: string;
+  /** Narrator's voice-over or descriptive narration in the output language. Empty string if none. */
+  narration: string;
   dialogue: DialogueLine[];
-  /** Brief reactive private reflections */
-  thoughts: InternalThought[];
-  /** Extended inner voice stream-of-consciousness passages */
+  internalThoughts: InternalThought[];
   internalMonologue: InternalMonologueLine[];
-  /** Physical actions by named characters only */
-  actions: CharacterAction[];
-  /** Detected emotional states with confidence scores */
-  emotions: CharacterEmotion[];
-  audio?: SceneAudio;
-  continuityCheck?: SceneContinuityCheck;
-  continuityMemory?: SceneContinuityMemory;
-  cinematicCamera?: CinematicCamera;
-  /** Production-ready shotlist for the scene (English only) */
-  shotList?: ShotListItem[];
-  tensionAnalysis?: TensionAnalysis;
-  imagePrompt?: SceneImagePrompt;
-  storyboardFrameMetadata?: StoryboardFrameMetadata;
-  /** Flashback scenes only. English only. Color grade, film treatment, camera characteristics. */
-  flashbackVisualStyle?: string;
-  /** Flashback scenes only. English only. Audio treatment suggesting memory. */
-  flashbackAudioStyle?: string;
-  /** Dream scenes only. English only. Visual treatment distinguishing dream from reality. */
-  dreamVisualStyle?: string;
-  /** Dream scenes only. English only. Audio treatment inside the dream. */
-  dreamAudioStyle?: string;
-  /** Flashback/Dream/Imagination only. English on-screen text card. Under 6 words. */
+  characterActions: CharacterAction[];
+  characterEmotions: CharacterEmotion[];
+  audio: SceneAudio;
+  continuityCheck: SceneContinuityCheck;
+  cinematicCamera: CinematicCamera;
+  /** Ordered list of shots for this scene */
+  shotList: ShotListItem[];
+  tensionAnalysis: TensionAnalysis;
+  continuityMemory: SceneContinuityMemory;
+  exportReadiness: ExportReadiness;
+  sceneImagePrompt: SceneImagePrompt;
+  storyboardFrameMetadata: StoryboardFrameMetadata;
+  /** Director's note in the output language. May be empty. */
+  directorNote: string;
+  /** What triggers this flashback (present only when sceneType is Flashback) */
   flashbackIndicator?: string;
-  /** Flashback/Dream/Imagination only. English only. Cinematic entry technique. */
-  transitionInstructions?: string;
-  /** Flashback/Dream/Imagination only. English only. Cinematic exit technique. */
-  returnToPresentInstructions?: string;
+  /** How this non-present scene begins (present only for non-Present scenes) */
+  transitionIn?: string;
+  /** How the scene ends and returns to present (present only for non-Present scenes) */
+  returnToPresent?: string;
+  /** Visual style for dream sequences (present only when sceneType is Dream) */
+  dreamVisualStyle?: string;
+  /** Audio style for dream sequences (present only when sceneType is Dream) */
+  dreamAudioStyle?: string;
+  /** Visual style for flashback sequences (present only when sceneType is Flashback) */
+  flashbackVisualStyle?: string;
+  /** Audio style for flashback sequences (present only when sceneType is Flashback) */
+  flashbackAudioStyle?: string;
 }

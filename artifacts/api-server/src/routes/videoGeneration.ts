@@ -1,9 +1,79 @@
 import { Router, type IRouter } from "express";
 import { db } from "@workspace/db";
-import { sceneVideosTable, batchQueueStateTable } from "@workspace/db/schema";
+import { sceneVideosTable, batchQueueStateTable, type InsertSceneVideo } from "@workspace/db/schema";
 import { eq, and } from "drizzle-orm";
 
 const router: IRouter = Router();
+
+// ─── Runtime Validation ────────────────────────────────────────────────────────
+
+function isValidVideoUrl(url: unknown): url is string {
+  if (typeof url !== "string" || url.trim() === "") return false;
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === "http:" || parsed.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
+function assertValidVideoUrl(url: unknown, provider: string): string {
+  if (!isValidVideoUrl(url)) {
+    throw new Error(
+      `${provider} returned a malformed or missing video URL: ${JSON.stringify(url)}`
+    );
+  }
+  return url;
+}
+
+// ─── DB Persistence Helper ────────────────────────────────────────────────────
+
+async function persistSceneVideoToDB(
+  storyboardId: string,
+  sceneNumber: number,
+  result: VideoProviderResult | null,
+  errorMsg: string | null,
+  generationTime: number,
+  prompt: string,
+  cinematicMood?: string,
+  lightingStyle?: string,
+  animationStyle?: string
+): Promise<void> {
+  const payload: InsertSceneVideo = {
+    storyboardId,
+    sceneNumber,
+    videoUrl: result?.url ?? null,
+    videoProvider: result?.provider ?? "luma",
+    videoDuration: result?.duration ?? 0,
+    generationTime: Math.round(generationTime),
+    generationError: errorMsg,
+    generationProgress: result ? 100 : 0,
+    videoStatus: result ? "success" : "error",
+    prompt,
+    cinematicMood: cinematicMood ?? null,
+    lightingStyle: lightingStyle ?? null,
+    animationStyle: animationStyle ?? null,
+  };
+
+  const existing = await db
+    .select()
+    .from(sceneVideosTable)
+    .where(
+      and(
+        eq(sceneVideosTable.storyboardId, storyboardId),
+        eq(sceneVideosTable.sceneNumber, sceneNumber)
+      )
+    );
+
+  if (existing.length > 0) {
+    await db
+      .update(sceneVideosTable)
+      .set(payload)
+      .where(eq(sceneVideosTable.id, existing[0]!.id));
+  } else {
+    await db.insert(sceneVideosTable).values(payload);
+  }
+}
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -504,23 +574,34 @@ async function generateVideo(
   imageUrl: string | undefined,
   duration: number
 ): Promise<VideoProviderResult> {
+  let result: VideoProviderResult;
   switch (provider) {
     case "runway":
-      return generateWithRunway(prompt, imageUrl, duration);
+      result = await generateWithRunway(prompt, imageUrl, duration);
+      break;
     case "kling":
-      return generateWithKling(prompt, imageUrl, duration);
+      result = await generateWithKling(prompt, imageUrl, duration);
+      break;
     case "pika":
-      return generateWithPika(prompt, imageUrl, duration);
+      result = await generateWithPika(prompt, imageUrl, duration);
+      break;
     case "haiper":
-      return generateWithHaiper(prompt, imageUrl, duration);
+      result = await generateWithHaiper(prompt, imageUrl, duration);
+      break;
     case "stability":
-      return generateWithStabilityVideo(prompt, imageUrl, duration);
+      result = await generateWithStabilityVideo(prompt, imageUrl, duration);
+      break;
     case "pixverse":
-      return generateWithPixverse(prompt, imageUrl, duration);
+      result = await generateWithPixverse(prompt, imageUrl, duration);
+      break;
     case "luma":
     default:
-      return generateWithLuma(prompt, imageUrl, duration);
+      result = await generateWithLuma(prompt, imageUrl, duration);
   }
+
+  // Runtime validation: ensure the provider returned a real, well-formed URL
+  result.url = assertValidVideoUrl(result.url, provider);
+  return result;
 }
 
 // ─── In-memory dedup (keyed by sceneNumber + provider) ────────────────────────
@@ -625,7 +706,8 @@ router.post("/storyboard/generate-video", async (req, res): Promise<void> => {
         if (existing.length > 0) {
           await db.update(sceneVideosTable).set(payload).where(eq(sceneVideosTable.id, existing[0].id));
         } else {
-          await db.insert(sceneVideosTable).values(payload as any);
+          const insertPayload: InsertSceneVideo = payload;
+          await db.insert(sceneVideosTable).values(insertPayload);
         }
       } catch (dbErr) {
         req.log.warn({ err: dbErr }, "Failed to persist video error");
@@ -1031,6 +1113,8 @@ interface BatchQueueState {
   }>;
   startTime: number;
   totalScenes: number;
+  queueProgress: number;
+  estimatedRemainingTime: number;
 }
 
 const batchQueueState: BatchQueueState = {
@@ -1041,6 +1125,8 @@ const batchQueueState: BatchQueueState = {
   sceneResults: {},
   startTime: 0,
   totalScenes: 0,
+  queueProgress: 0,
+  estimatedRemainingTime: 0,
 };
 
 let batchCancelFlag = false;
@@ -1111,6 +1197,21 @@ router.post("/storyboard/batch-generate-videos", async (req, res): Promise<void>
           videoDuration: result.duration,
           generationTime,
         };
+
+        // Persist successful scene result to DB
+        if (storyboardId) {
+          persistSceneVideoToDB(
+            storyboardId,
+            sceneNum,
+            result,
+            null,
+            generationTime,
+            scene.videoPrompt,
+            scene.cinematicMood,
+            scene.lightingStyle,
+            scene.animationStyle
+          ).catch(() => {});
+        }
       } catch (err: unknown) {
         const errorMsg = err instanceof Error ? err.message : "Unknown video generation error";
         const generationTime = (Date.now() - startTime) / 1000;
@@ -1123,6 +1224,45 @@ router.post("/storyboard/batch-generate-videos", async (req, res): Promise<void>
           generationTime,
           generationError: errorMsg,
         };
+
+        // Persist failed scene result to DB
+        if (storyboardId) {
+          persistSceneVideoToDB(
+            storyboardId,
+            sceneNum,
+            null,
+            errorMsg,
+            generationTime,
+            scene.videoPrompt,
+            scene.cinematicMood,
+            scene.lightingStyle,
+            scene.animationStyle
+          ).catch(() => {});
+        }
+      }
+
+      // Update batch queue progress in DB after every scene
+      if (storyboardId) {
+        const completed = batchQueueState.completedScenes.length;
+        const failed = batchQueueState.failedScenes.length;
+        const progress = Math.round(((completed + failed) / total) * 100);
+        batchQueueState.queueProgress = progress;
+        const avgTime = 45;
+        const remaining = (total - completed - failed) * avgTime;
+        batchQueueState.estimatedRemainingTime = remaining;
+
+        db.update(batchQueueStateTable)
+          .set({
+            status: batchQueueState.status,
+            completedScenes: batchQueueState.completedScenes,
+            failedScenes: batchQueueState.failedScenes,
+            activeScene: batchQueueState.activeScene,
+            sceneResults: batchQueueState.sceneResults,
+            queueProgress: progress,
+            estimatedRemainingTime: remaining,
+          })
+          .where(eq(batchQueueStateTable.storyboardId, storyboardId))
+          .catch(() => {});
       }
     }
 

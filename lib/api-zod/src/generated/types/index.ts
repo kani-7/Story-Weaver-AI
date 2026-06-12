@@ -7,6 +7,8 @@
  */
 
 export * from './apiError';
+export * from './batchControlResponse';
+export * from './batchControlResponseStatus';
 export * from './batchQueueState';
 export * from './batchQueueStateStatus';
 export * from './batchVideoGenerationRequest';
@@ -25,6 +27,7 @@ export * from './dialogueLine';
 export * from './dialogueLineSpeechSpeed';
 export * from './exportReadiness';
 export * from './getBatchStatusParams';
+export * from './getProductionAnalyticsParams';
 export * from './getStoryboardAssetsParams';
 export * from './healthStatus';
 export * from './imageGenerationRequest';
@@ -41,6 +44,10 @@ export * from './movieExportRequestSubtitleConfig';
 export * from './movieExportRequestTransitionType';
 export * from './movieExportStatus';
 export * from './movieReadinessReport';
+export * from './productionAnalytics';
+export * from './productionAnalyticsBatchStatus';
+export * from './productionAnalyticsExportDiagnostics';
+export * from './productionAnalyticsProviderBreakdown';
 export * from './scene';
 export * from './sceneAsset';
 export * from './sceneAssetImageStatus';
@@ -50,7 +57,9 @@ export * from './sceneAudio';
 export * from './sceneContinuityCheck';
 export * from './sceneContinuityMemory';
 export * from './sceneImagePrompt';
-export * from './sceneImagePromptVisualEngine';
+export * from './sceneRenderAnalytics';
+export * from './sceneRenderAnalyticsImageStatus';
+export * from './sceneRenderAnalyticsVideoStatus';
 export * from './sceneType';
 export * from './shotListItem';
 export * from './storyboard';

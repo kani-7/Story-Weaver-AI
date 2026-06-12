@@ -7,19 +7,19 @@
  */
 
 /**
- * Visual production assessment and recommendations (all fields English only)
+ * Cross-scene visual production assessment (all fields English only)
  */
 export interface VisualProductionReport {
-  /** English only. Scene identifiers with strongest visual generation potential */
-  strongestVisualScenes: string[];
-  /** English only. Scene identifiers with weakest visual execution or lowest generation confidence */
-  weakestVisualScenes: string[];
-  /** English only. Specific visual consistency risks across scenes */
+  /** English only. Scene numbers with the highest image generation score */
+  strongestVisualScenes: number[];
+  /** English only. Scene numbers needing the most visual improvement */
+  weakestVisualScenes: number[];
+  /** English only. Cross-scene visual consistency risks */
   consistencyRisks: string[];
-  /** English only. Per-scene or per-character animation complexity notes */
-  animationComplexityNotes: string[];
-  /** English only. Rendering difficulty and resource intensity notes per scene */
-  renderingDifficultyNotes: string[];
-  /** English only. Overall cinematic strengths for visual production */
+  /** English only. Overall animation complexity assessment */
+  animationComplexity: string;
+  /** English only. Estimated rendering difficulty */
+  renderingDifficulty: string;
+  /** English only. Strong cinematic elements across all scenes */
   cinematicStrengths: string[];
 }

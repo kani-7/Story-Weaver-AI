@@ -7,17 +7,17 @@
  */
 
 /**
- * Technical frame metadata for storyboard rendering (all fields English only)
+ * Technical frame-level metadata for storyboard rendering (all fields English only)
  */
 export interface StoryboardFrameMetadata {
-  /** English only. Suggested aspect ratio (e.g. '2.39:1 CinemaScope', '16:9 Widescreen', '1.85:1 Theatrical') */
+  /** English only. Frame aspect ratio (e.g. 16:9 Cinematic, 2.39:1 Anamorphic) */
   aspectRatio: string;
-  /** English only. Suggested focal length (e.g. '28mm ultra wide', '85mm portrait', '200mm telephoto compression') */
+  /** English only. Simulated focal length (e.g. 35mm, 85mm) */
   focalLength: string;
-  /** English only. Depth of field specification (e.g. 'shallow — subject sharp, background soft bokeh at f/1.8') */
+  /** English only. Depth of field description */
   depthOfField: string;
-  /** English only. Lens rendering style (e.g. 'anamorphic — oval bokeh and horizontal flares', 'vintage — edge softness and vignette') */
-  lensStyle: string;
-  /** English only. Specific composition instructions for the image artist */
-  cinematicCompositionNotes: string;
+  /** English only. Lens style for this frame */
+  lensStyleFrame: string;
+  /** English only. Composition-specific direction for frame layout */
+  compositionNotes: string;
 }

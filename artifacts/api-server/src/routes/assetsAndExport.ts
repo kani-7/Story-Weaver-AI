@@ -232,4 +232,139 @@ router.get("/storyboard/movie-export/:exportId", async (req, res): Promise<void>
   }
 });
 
+// ─── Production Analytics ──────────────────────────────────────────────────────
+
+router.get("/storyboard/analytics", async (req, res): Promise<void> => {
+  const storyboardId = req.query["storyboardId"] as string | undefined;
+  if (!storyboardId) {
+    res.status(400).json({ error: "storyboardId query parameter is required" });
+    return;
+  }
+
+  try {
+    const [images, videos, batchRow, exports_] = await Promise.all([
+      db.select().from(sceneImagesTable).where(eq(sceneImagesTable.storyboardId, storyboardId)),
+      db.select().from(sceneVideosTable).where(eq(sceneVideosTable.storyboardId, storyboardId)),
+      db.select().from(batchQueueStateTable).where(eq(batchQueueStateTable.storyboardId, storyboardId)).then(rows => rows[0] ?? null),
+      db.select().from(movieExportsTable).where(eq(movieExportsTable.storyboardId, storyboardId)),
+    ]);
+
+    // Merge scenes
+    const sceneNumbers = new Set<number>([
+      ...images.map(i => i.sceneNumber),
+      ...videos.map(v => v.sceneNumber),
+    ]);
+    const totalScenes = sceneNumbers.size;
+
+    // Video metrics
+    const successVideos = videos.filter(v => v.videoStatus === "success");
+    const failedVideos = videos.filter(v => v.videoStatus === "error");
+    const renderProgress = totalScenes === 0 ? 0 : Math.round((successVideos.length / totalScenes) * 100);
+
+    const videoGenTimes = successVideos.map(v => v.generationTime ?? 0).filter(t => t > 0);
+    const averageVideoGenTime = videoGenTimes.length > 0
+      ? videoGenTimes.reduce((a, b) => a + b, 0) / videoGenTimes.length
+      : 0;
+
+    // Image metrics
+    const successImages = images.filter(i => i.imageStatus === "success");
+    const failedImages = images.filter(i => i.imageStatus === "error");
+    const imageProgress = totalScenes === 0 ? 0 : Math.round((successImages.length / totalScenes) * 100);
+
+    const imageGenTimes = successImages.map(i => i.generationTime ?? 0).filter(t => t > 0);
+    const averageImageGenTime = imageGenTimes.length > 0
+      ? imageGenTimes.reduce((a, b) => a + b, 0) / imageGenTimes.length
+      : 0;
+
+    // Estimated remaining render time
+    const remainingVideoScenes = totalScenes - successVideos.length;
+    const estimatedRenderTime = remainingVideoScenes * (averageVideoGenTime > 0 ? averageVideoGenTime : 45);
+
+    // Visual continuity score: % of scenes that have BOTH a successful image AND video
+    const imageSuccessSet = new Set(successImages.map(i => i.sceneNumber));
+    const videoSuccessSet = new Set(successVideos.map(v => v.sceneNumber));
+    let bothCount = 0;
+    for (const sn of sceneNumbers) {
+      if (imageSuccessSet.has(sn) && videoSuccessSet.has(sn)) bothCount++;
+    }
+    const visualContinuityScore = totalScenes === 0 ? 0 : Math.round((bothCount / totalScenes) * 100);
+
+    // Cinematic consistency score: penalize provider variation and failed scenes
+    const videoProviders = successVideos.map(v => v.videoProvider);
+    const uniqueProviders = new Set(videoProviders).size;
+    const providerConsistencyPenalty = uniqueProviders > 1 ? (uniqueProviders - 1) * 10 : 0;
+    const failurePenalty = totalScenes === 0 ? 0 : Math.round((failedVideos.length / totalScenes) * 40);
+    const cinematicConsistencyScore = Math.max(0, 100 - providerConsistencyPenalty - failurePenalty);
+
+    // Provider breakdown (videos + images)
+    const providerBreakdown: Record<string, number> = {};
+    for (const v of videos) {
+      const key = v.videoProvider;
+      providerBreakdown[key] = (providerBreakdown[key] ?? 0) + 1;
+    }
+    for (const i of images) {
+      const key = i.imageProvider ?? "unknown";
+      providerBreakdown[key] = (providerBreakdown[key] ?? 0) + 1;
+    }
+
+    // Per-scene analytics
+    const sceneAnalytics = Array.from(sceneNumbers).sort((a, b) => a - b).map(sn => {
+      const img = images.find(i => i.sceneNumber === sn);
+      const vid = videos.find(v => v.sceneNumber === sn);
+      return {
+        sceneNumber: sn,
+        hasImage: !!img && img.imageStatus === "success",
+        hasVideo: !!vid && vid.videoStatus === "success",
+        imageProvider: img?.imageProvider ?? undefined,
+        videoProvider: vid?.videoProvider ?? undefined,
+        imageGenerationTime: img?.generationTime ?? undefined,
+        videoGenerationTime: vid?.generationTime ?? undefined,
+        videoStatus: vid?.videoStatus ?? "pending",
+        imageStatus: img?.imageStatus ?? "pending",
+        generationError: vid?.generationError ?? img?.generationError ?? undefined,
+      };
+    });
+
+    // Export diagnostics
+    const completedExports = exports_.filter(e => e.status === "completed");
+    const failedExports = exports_.filter(e => e.status === "failed");
+    const processingExports = exports_.filter(e => e.status === "processing");
+    const latestExport = exports_.sort((a, b) =>
+      (b.createdAt?.getTime() ?? 0) - (a.createdAt?.getTime() ?? 0)
+    )[0] ?? null;
+
+    const exportDiagnostics = {
+      totalExports: exports_.length,
+      completedExports: completedExports.length,
+      failedExports: failedExports.length,
+      processingExports: processingExports.length,
+      latestExportId: latestExport?.exportId ?? undefined,
+      latestExportStatus: latestExport?.status ?? undefined,
+      latestExportProgress: latestExport?.exportProgress ?? undefined,
+    };
+
+    res.json({
+      storyboardId,
+      totalScenes,
+      renderProgress,
+      imageProgress,
+      estimatedRenderTime,
+      averageVideoGenTime,
+      averageImageGenTime,
+      failedScenes: failedVideos.map(v => v.sceneNumber),
+      failedImageScenes: failedImages.map(i => i.sceneNumber),
+      visualContinuityScore,
+      cinematicConsistencyScore,
+      exportDiagnostics,
+      sceneAnalytics,
+      providerBreakdown,
+      batchStatus: batchRow?.status ?? "idle",
+      generatedAt: new Date().toISOString(),
+    });
+  } catch (err) {
+    req.log.warn({ err }, "Failed to compute production analytics");
+    res.status(500).json({ error: "Failed to compute analytics" });
+  }
+});
+
 export default router;
