@@ -13,6 +13,8 @@ import type { VideoProvider } from './videoProvider';
  * Request to batch generate videos for all storyboard scenes
  */
 export interface BatchVideoGenerationRequest {
+  /** Storyboard identifier for asset persistence */
+  storyboardId?: string;
   /** Array of scene data for sequential generation */
   scenes: BatchVideoGenerationRequestScenesItem[];
   provider?: VideoProvider;

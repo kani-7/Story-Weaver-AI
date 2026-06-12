@@ -12,6 +12,8 @@ import type { ImageProvider } from './imageProvider';
  * Request to generate an image for a scene
  */
 export interface ImageGenerationRequest {
+  /** Storyboard identifier for asset persistence */
+  storyboardId?: string;
   /** Scene number to generate image for */
   sceneNumber: number;
   /** Main image prompt from SceneImagePrompt.sceneImagePrompt */

@@ -1,4 +1,7 @@
 import { Router, type IRouter } from "express";
+import { db } from "@workspace/db";
+import { sceneImagesTable } from "@workspace/db/schema";
+import { eq, and } from "drizzle-orm";
 
 const router: IRouter = Router();
 
@@ -15,6 +18,7 @@ interface CharacterProfileRef {
 }
 
 interface ImageGenerationRequestBody {
+  storyboardId?: string;
   sceneNumber: number;
   sceneImagePrompt: string;
   provider?: ImageProvider;
@@ -351,6 +355,35 @@ router.post("/storyboard/generate-image", async (req, res): Promise<void> => {
     const result = await generationPromise;
     const generationTime = (Date.now() - startTime) / 1000;
 
+    if (body.storyboardId) {
+      try {
+        const existing = await db.select().from(sceneImagesTable).where(
+          and(eq(sceneImagesTable.storyboardId, body.storyboardId), eq(sceneImagesTable.sceneNumber, body.sceneNumber))
+        );
+        const payload = {
+          storyboardId: body.storyboardId,
+          sceneNumber: body.sceneNumber,
+          imageUrl: result.url,
+          imageProvider: result.provider,
+          generationTime: Math.round(generationTime),
+          imageStatus: "success" as const,
+          prompt: body.sceneImagePrompt,
+          colorPalette: body.colorPalette ?? null,
+          cinematicMood: body.cinematicMood ?? null,
+          renderStyle: body.renderStyle ?? null,
+          visualEngine: body.visualEngine ?? null,
+          characterVisualContinuity: body.characterVisualContinuity ?? null,
+        };
+        if (existing.length > 0) {
+          await db.update(sceneImagesTable).set(payload).where(eq(sceneImagesTable.id, existing[0].id));
+        } else {
+          await db.insert(sceneImagesTable).values(payload);
+        }
+      } catch (dbErr) {
+        req.log.warn({ err: dbErr }, "Failed to persist image result");
+      }
+    }
+
     res.json({
       imageStatus: "success",
       imageUrl: result.url,
@@ -360,6 +393,36 @@ router.post("/storyboard/generate-image", async (req, res): Promise<void> => {
   } catch (err: unknown) {
     const generationTime = (Date.now() - startTime) / 1000;
     const errorMsg = err instanceof Error ? err.message : "Unknown generation error";
+
+    if (body.storyboardId) {
+      try {
+        const existing = await db.select().from(sceneImagesTable).where(
+          and(eq(sceneImagesTable.storyboardId, body.storyboardId), eq(sceneImagesTable.sceneNumber, body.sceneNumber))
+        );
+        const payload = {
+          storyboardId: body.storyboardId,
+          sceneNumber: body.sceneNumber,
+          imageUrl: undefined as string | undefined,
+          imageProvider: provider,
+          generationTime: Math.round(generationTime),
+          generationError: errorMsg,
+          imageStatus: "error" as const,
+          prompt: body.sceneImagePrompt,
+          colorPalette: body.colorPalette ?? null,
+          cinematicMood: body.cinematicMood ?? null,
+          renderStyle: body.renderStyle ?? null,
+          visualEngine: body.visualEngine ?? null,
+          characterVisualContinuity: body.characterVisualContinuity ?? null,
+        };
+        if (existing.length > 0) {
+          await db.update(sceneImagesTable).set(payload).where(eq(sceneImagesTable.id, existing[0].id));
+        } else {
+          await db.insert(sceneImagesTable).values(payload as any);
+        }
+      } catch (dbErr) {
+        req.log.warn({ err: dbErr }, "Failed to persist image error");
+      }
+    }
 
     res.json({
       imageStatus: "error",

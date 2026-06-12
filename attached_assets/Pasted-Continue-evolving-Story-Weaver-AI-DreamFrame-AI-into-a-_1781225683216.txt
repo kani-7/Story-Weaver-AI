@@ -1,0 +1,201 @@
+Continue evolving Story-Weaver-AI / DreamFrame-AI into a production-grade AI cinematic storytelling platform.
+
+Do NOT rebuild existing systems.
+Do NOT remove existing UI.
+Preserve all current pipelines.
+
+Existing systems that MUST remain stable:
+
+- Story Analysis Engine
+- Storyboard Generation
+- Character Consistency System
+- Scene Intelligence
+- Flashback Detection
+- Dream Detection
+- Imagination Detection
+- Audio Intelligence
+- Director Notes
+- Image Generation Pipeline
+- Runtime Validation Layer
+- OpenAPI Sync
+- TypeScript Safety
+- Multi-language Support
+- Continuity Engine
+
+Now implement the next-generation cinematic pipeline.
+
+==================================================
+PHASE 1 — VIDEO GENERATION SYSTEM
+==================================================
+
+Implement:
+
+- Per-scene video generation
+- Modular provider architecture
+
+Prepare providers for:
+- Runway
+- Luma
+- Kling
+- Pika
+- PixVerse
+- Stability Video
+- Haiper
+- Fal.ai
+
+Generate:
+- videoStatus
+- videoUrl
+- videoProvider
+- videoDuration
+- generationTime
+- generationError
+
+Add:
+- loading states
+- retry states
+- failed states
+- persistence after refresh
+- provider switching
+- duplicate prevention
+
+==================================================
+PHASE 2 — BATCH VIDEO ENGINE
+==================================================
+
+Implement:
+
+- Generate All Videos
+- Sequential cinematic generation
+- Queue manager
+- Pause / Resume / Cancel queue
+- Retry failed scenes
+- Skip completed scenes
+
+Generate:
+- queueProgress
+- estimatedRemainingTime
+- activeScene
+- completedScenes
+- failedScenes
+
+==================================================
+PHASE 3 — CINEMATIC CONTINUITY SYSTEM
+==================================================
+
+Maintain continuity across scenes:
+
+- character appearance
+- emotional progression
+- camera movement
+- cinematic mood
+- lighting
+- weather
+- environment state
+- color grading
+- scene pacing
+
+Track:
+- previous scene memory
+- camera memory
+- emotional memory
+- visual palette memory
+
+==================================================
+PHASE 4 — TRANSITION INTELLIGENCE
+==================================================
+
+Generate transition metadata:
+
+- cinematic cut
+- dissolve
+- fade
+- dream dissolve
+- flashback blur
+- match cut
+- whip pan
+- cinematic zoom transition
+
+==================================================
+PHASE 5 — MOVIE EXPORT SYSTEM
+==================================================
+
+Implement:
+
+- Full movie timeline assembly
+- Scene ordering
+- Transition rendering
+- Audio layering
+- Music continuity
+- Subtitle rendering
+- Export progress system
+
+Prepare exports for:
+- MP4
+- Vertical Shorts
+- YouTube format
+- TikTok format
+- Cinematic widescreen
+
+==================================================
+PHASE 6 — PERFORMANCE OPTIMIZATION
+==================================================
+
+Optimize:
+
+- memory usage
+- queue performance
+- render performance
+- React rendering
+- API response handling
+- image caching
+- video caching
+
+==================================================
+PHASE 7 — ANDROID READINESS
+==================================================
+
+Prepare architecture for:
+
+- Capacitor
+- React Native wrapper compatibility
+- mobile-safe rendering
+- touch-friendly controls
+- responsive cinematic UI
+
+==================================================
+STRICT REQUIREMENTS
+==================================================
+
+Maintain:
+- OpenAPI sync
+- runtime validation
+- modular architecture
+- TypeScript safety
+- existing UI
+- existing pipelines
+- existing translations
+- existing API routes
+
+Do NOT:
+- remove existing features
+- replace working systems
+- downgrade current functionality
+
+After implementation:
+
+1. Run codegen
+2. Run full TypeScript typecheck
+3. Fix ALL errors
+4. Restart workflows
+5. Verify frontend rendering
+6. Verify API server startup
+7. Verify queue systems
+8. Verify persistence systems
+9. Verify no schema mismatch exists
+
+Return:
+- implementation report
+- architecture report
+- remaining gaps
+- production readiness status

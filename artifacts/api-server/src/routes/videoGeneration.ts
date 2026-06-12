@@ -1,4 +1,7 @@
 import { Router, type IRouter } from "express";
+import { db } from "@workspace/db";
+import { sceneVideosTable, batchQueueStateTable } from "@workspace/db/schema";
+import { eq, and } from "drizzle-orm";
 
 const router: IRouter = Router();
 
@@ -14,6 +17,7 @@ interface CharacterProfileRef {
 }
 
 interface VideoGenerationRequestBody {
+  storyboardId?: string;
   sceneNumber: number;
   videoPrompt: string;
   provider?: VideoProvider;
@@ -555,8 +559,37 @@ router.post("/storyboard/generate-video", async (req, res): Promise<void> => {
 
   try {
     const result = await generationPromise;
-
     const generationTime = ((Date.now() - startTime) / 1000);
+
+    if (body.storyboardId) {
+      try {
+        const existing = await db.select().from(sceneVideosTable).where(
+          and(eq(sceneVideosTable.storyboardId, body.storyboardId), eq(sceneVideosTable.sceneNumber, body.sceneNumber))
+        );
+        const payload = {
+          storyboardId: body.storyboardId,
+          sceneNumber: body.sceneNumber,
+          videoUrl: result.url,
+          videoProvider: result.provider,
+          videoDuration: result.duration,
+          generationTime: Math.round(generationTime),
+          generationProgress: 100,
+          videoStatus: "success" as const,
+          prompt: body.videoPrompt,
+          cinematicMood: body.cinematicMood ?? null,
+          lightingStyle: body.lightingStyle ?? null,
+          animationStyle: body.animationStyle ?? null,
+        };
+        if (existing.length > 0) {
+          await db.update(sceneVideosTable).set(payload).where(eq(sceneVideosTable.id, existing[0].id));
+        } else {
+          await db.insert(sceneVideosTable).values(payload);
+        }
+      } catch (dbErr) {
+        req.log.warn({ err: dbErr }, "Failed to persist video result");
+      }
+    }
+
     res.json({
       videoStatus: "success",
       videoUrl: result.url,
@@ -567,8 +600,38 @@ router.post("/storyboard/generate-video", async (req, res): Promise<void> => {
     });
   } catch (err: unknown) {
     const errorMsg = err instanceof Error ? err.message : "Unknown video generation error";
-
     const generationTime = ((Date.now() - startTime) / 1000);
+
+    if (body.storyboardId) {
+      try {
+        const existing = await db.select().from(sceneVideosTable).where(
+          and(eq(sceneVideosTable.storyboardId, body.storyboardId), eq(sceneVideosTable.sceneNumber, body.sceneNumber))
+        );
+        const payload = {
+          storyboardId: body.storyboardId,
+          sceneNumber: body.sceneNumber,
+          videoUrl: null,
+          videoProvider: provider,
+          videoDuration: 0,
+          generationTime: Math.round(generationTime),
+          generationError: errorMsg,
+          generationProgress: 0,
+          videoStatus: "error" as const,
+          prompt: body.videoPrompt,
+          cinematicMood: body.cinematicMood ?? null,
+          lightingStyle: body.lightingStyle ?? null,
+          animationStyle: body.animationStyle ?? null,
+        };
+        if (existing.length > 0) {
+          await db.update(sceneVideosTable).set(payload).where(eq(sceneVideosTable.id, existing[0].id));
+        } else {
+          await db.insert(sceneVideosTable).values(payload as any);
+        }
+      } catch (dbErr) {
+        req.log.warn({ err: dbErr }, "Failed to persist video error");
+      }
+    }
+
     res.json({
       videoStatus: "error",
       videoProvider: provider,
@@ -946,6 +1009,7 @@ function buildCinematicEnhancedPrompt(scene: SceneWithTimeline): string {
 // ─── Batch Video Generation Endpoint ─────────────────────────────────────────
 
 interface BatchVideoGenerationBody {
+  storyboardId?: string;
   scenes: SceneWithTimeline[];
   provider?: VideoProvider;
   duration?: 5 | 10;
@@ -1008,6 +1072,9 @@ router.post("/storyboard/batch-generate-videos", async (req, res): Promise<void>
   batchQueueState.totalScenes = body.scenes.length;
   batchCancelFlag = false;
 
+  const storyboardId = body.storyboardId ?? null;
+  const total = body.scenes.length;
+
   // Start sequential generation in background
   const runBatch = async () => {
     for (let i = 0; i < body.scenes.length; i++) {
@@ -1069,6 +1136,36 @@ router.post("/storyboard/batch-generate-videos", async (req, res): Promise<void>
   runBatch().catch(() => {
     batchQueueState.status = "completed";
   });
+
+  // Persist initial state
+  if (storyboardId) {
+    const persist = async () => {
+      try {
+        const existing = await db.select().from(batchQueueStateTable).where(eq(batchQueueStateTable.storyboardId, storyboardId));
+        const payload = {
+          storyboardId,
+          status: "running" as const,
+          completedScenes: [],
+          failedScenes: [],
+          activeScene: body.scenes[0]?.sceneNumber ?? null,
+          sceneResults: {},
+          queueProgress: 0,
+          estimatedRemainingTime: total * 45,
+          totalScenes: total,
+          provider,
+          duration,
+        };
+        if (existing.length > 0) {
+          await db.update(batchQueueStateTable).set(payload).where(eq(batchQueueStateTable.id, existing[0].id));
+        } else {
+          await db.insert(batchQueueStateTable).values(payload);
+        }
+      } catch (e) {
+        req.log.warn({ err: e }, "Failed to persist batch initial state");
+      }
+    };
+    persist();
+  }
 
   // Return initial status immediately
   res.json({

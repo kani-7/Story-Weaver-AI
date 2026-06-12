@@ -21,11 +21,17 @@ import type {
 
 import type {
   ApiError,
+  BatchQueueState,
   BatchVideoGenerationRequest,
   BatchVideoGenerationStatus,
+  GetBatchStatusParams,
+  GetStoryboardAssetsParams,
   HealthStatus,
   ImageGenerationRequest,
   ImageGenerationResult,
+  MovieExport,
+  MovieExportRequest,
+  SceneAssetList,
   StoryInput,
   Storyboard,
   VideoGenerationRequest,
@@ -262,6 +268,245 @@ export const useGenerateSceneImage = <TError = ErrorType<ApiError>,
         TContext
       > => {
       return useMutation(getGenerateSceneImageMutationOptions(options));
+    }
+
+export const getGetStoryboardAssetsUrl = (params: GetStoryboardAssetsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/storyboard/assets?${stringifiedParams}` : `/api/storyboard/assets`
+}
+
+/**
+ * @summary Get all persisted assets for a storyboard
+ */
+export const getStoryboardAssets = async (params: GetStoryboardAssetsParams, options?: RequestInit): Promise<SceneAssetList> => {
+
+  return customFetch<SceneAssetList>(getGetStoryboardAssetsUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetStoryboardAssetsQueryKey = (params?: GetStoryboardAssetsParams,) => {
+    return [
+    `/api/storyboard/assets`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetStoryboardAssetsQueryOptions = <TData = Awaited<ReturnType<typeof getStoryboardAssets>>, TError = ErrorType<ApiError>>(params: GetStoryboardAssetsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getStoryboardAssets>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetStoryboardAssetsQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getStoryboardAssets>>> = ({ signal }) => getStoryboardAssets(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getStoryboardAssets>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetStoryboardAssetsQueryResult = NonNullable<Awaited<ReturnType<typeof getStoryboardAssets>>>
+export type GetStoryboardAssetsQueryError = ErrorType<ApiError>
+
+
+/**
+ * @summary Get all persisted assets for a storyboard
+ */
+
+export function useGetStoryboardAssets<TData = Awaited<ReturnType<typeof getStoryboardAssets>>, TError = ErrorType<ApiError>>(
+ params: GetStoryboardAssetsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getStoryboardAssets>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetStoryboardAssetsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGetBatchStatusUrl = (params: GetBatchStatusParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/storyboard/batch-status?${stringifiedParams}` : `/api/storyboard/batch-status`
+}
+
+/**
+ * @summary Get persisted batch queue status
+ */
+export const getBatchStatus = async (params: GetBatchStatusParams, options?: RequestInit): Promise<BatchQueueState> => {
+
+  return customFetch<BatchQueueState>(getGetBatchStatusUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetBatchStatusQueryKey = (params?: GetBatchStatusParams,) => {
+    return [
+    `/api/storyboard/batch-status`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetBatchStatusQueryOptions = <TData = Awaited<ReturnType<typeof getBatchStatus>>, TError = ErrorType<ApiError>>(params: GetBatchStatusParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getBatchStatus>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetBatchStatusQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getBatchStatus>>> = ({ signal }) => getBatchStatus(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getBatchStatus>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetBatchStatusQueryResult = NonNullable<Awaited<ReturnType<typeof getBatchStatus>>>
+export type GetBatchStatusQueryError = ErrorType<ApiError>
+
+
+/**
+ * @summary Get persisted batch queue status
+ */
+
+export function useGetBatchStatus<TData = Awaited<ReturnType<typeof getBatchStatus>>, TError = ErrorType<ApiError>>(
+ params: GetBatchStatusParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getBatchStatus>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetBatchStatusQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getCreateMovieExportUrl = () => {
+
+
+
+
+  return `/api/storyboard/movie-export`
+}
+
+/**
+ * @summary Create a movie export from storyboard scenes
+ */
+export const createMovieExport = async (movieExportRequest: MovieExportRequest, options?: RequestInit): Promise<MovieExport> => {
+
+  return customFetch<MovieExport>(getCreateMovieExportUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      movieExportRequest,)
+  }
+);}
+
+
+
+
+export const getCreateMovieExportMutationOptions = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createMovieExport>>, TError,{data: BodyType<MovieExportRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createMovieExport>>, TError,{data: BodyType<MovieExportRequest>}, TContext> => {
+
+const mutationKey = ['createMovieExport'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createMovieExport>>, {data: BodyType<MovieExportRequest>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createMovieExport(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateMovieExportMutationResult = NonNullable<Awaited<ReturnType<typeof createMovieExport>>>
+    export type CreateMovieExportMutationBody = BodyType<MovieExportRequest>
+    export type CreateMovieExportMutationError = ErrorType<ApiError>
+
+    /**
+ * @summary Create a movie export from storyboard scenes
+ */
+export const useCreateMovieExport = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createMovieExport>>, TError,{data: BodyType<MovieExportRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createMovieExport>>,
+        TError,
+        {data: BodyType<MovieExportRequest>},
+        TContext
+      > => {
+      return useMutation(getCreateMovieExportMutationOptions(options));
     }
 
 export const getAnalyzeStoryUrl = () => {

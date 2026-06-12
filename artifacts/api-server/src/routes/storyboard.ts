@@ -1,6 +1,7 @@
 import { Router, type IRouter } from "express";
 import { ai } from "@workspace/integrations-gemini-ai";
 import { AnalyzeStoryBody, AnalyzeStoryResponse } from "@workspace/api-zod";
+import { randomUUID } from "node:crypto";
 
 const router: IRouter = Router();
 
@@ -626,7 +627,12 @@ Final rules:
     );
   }
 
-  res.json(validated.data);
+  // Add a unique storyboardId for asset persistence
+  const storyboardId = randomUUID();
+  const response = validated.data as Record<string, unknown>;
+  response.storyboardId = storyboardId;
+
+  res.json(response);
 });
 
 export default router;

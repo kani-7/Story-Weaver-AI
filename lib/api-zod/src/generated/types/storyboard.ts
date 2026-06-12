@@ -12,6 +12,8 @@ import type { Scene } from './scene';
 import type { VisualProductionReport } from './visualProductionReport';
 
 export interface Storyboard {
+  /** Unique identifier for storyboard asset persistence */
+  storyboardId?: string;
   /** Short cinematic title in output language */
   title: string;
   characters: CharacterProfile[];

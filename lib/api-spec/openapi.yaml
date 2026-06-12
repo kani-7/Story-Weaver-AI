@@ -88,6 +88,87 @@ paths:
               schema:
                 $ref: "#/components/schemas/ApiError"
 
+  /storyboard/assets:
+    get:
+      operationId: getStoryboardAssets
+      tags: [storyboard]
+      summary: Get all persisted assets for a storyboard
+      parameters:
+        - name: storyboardId
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Persisted scene assets
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SceneAssetList"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
+  /storyboard/batch-status:
+    get:
+      operationId: getBatchStatus
+      tags: [storyboard]
+      summary: Get persisted batch queue status
+      parameters:
+        - name: storyboardId
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Batch queue state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BatchQueueState"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
+  /storyboard/movie-export:
+    post:
+      operationId: createMovieExport
+      tags: [storyboard]
+      summary: Create a movie export from storyboard scenes
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MovieExportRequest"
+      responses:
+        "200":
+          description: Export created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MovieExport"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
   /storyboard/analyze:
     post:
       operationId: analyzeStory
@@ -785,6 +866,9 @@ components:
     Storyboard:
       type: object
       properties:
+        storyboardId:
+          type: string
+          description: Unique identifier for storyboard asset persistence
         title:
           type: string
           description: Short cinematic title in output language
@@ -827,6 +911,9 @@ components:
       type: object
       description: Request to generate a video clip for a scene
       properties:
+        storyboardId:
+          type: string
+          description: Storyboard identifier for asset persistence
         sceneNumber:
           type: integer
           description: Scene number to generate video for
@@ -947,6 +1034,9 @@ components:
       type: object
       description: Request to batch generate videos for all storyboard scenes
       properties:
+        storyboardId:
+          type: string
+          description: Storyboard identifier for asset persistence
         scenes:
           type: array
           items:
@@ -1087,6 +1177,9 @@ components:
       type: object
       description: Request to generate an image for a scene
       properties:
+        storyboardId:
+          type: string
+          description: Storyboard identifier for asset persistence
         sceneNumber:
           type: integer
           description: Scene number to generate image for
@@ -1142,6 +1235,166 @@ components:
         - imageStatus
         - imageProvider
         - generationTime
+
+    # ─── Asset Persistence ──────────────────────────────────────────────────────────
+    SceneAsset:
+      type: object
+      description: Persisted generation asset for a single scene
+      properties:
+        sceneNumber:
+          type: integer
+        imageUrl:
+          type: string
+        imageProvider:
+          type: string
+        imageStatus:
+          type: string
+          enum: [success, error]
+        videoUrl:
+          type: string
+        videoProvider:
+          type: string
+        videoStatus:
+          type: string
+          enum: [success, error, processing]
+        videoDuration:
+          type: integer
+        generationTime:
+          type: number
+        generationProgress:
+          type: number
+          minimum: 0
+          maximum: 100
+          description: Generation progress percentage (0-100)
+        generationError:
+          type: string
+        createdAt:
+          type: string
+      required:
+        - sceneNumber
+
+    SceneAssetList:
+      type: object
+      description: All persisted assets for a storyboard
+      properties:
+        storyboardId:
+          type: string
+        scenes:
+          type: array
+          items:
+            $ref: "#/components/schemas/SceneAsset"
+        batchQueue:
+          $ref: "#/components/schemas/BatchQueueState"
+      required:
+        - storyboardId
+        - scenes
+
+    BatchQueueState:
+      type: object
+      description: Persisted batch queue state
+      properties:
+        status:
+          type: string
+          enum: [idle, running, paused, completed, cancelled]
+        completedScenes:
+          type: array
+          items:
+            type: integer
+        failedScenes:
+          type: array
+          items:
+            type: integer
+        activeScene:
+          type: integer
+        queueProgress:
+          type: integer
+        estimatedRemainingTime:
+          type: integer
+        totalScenes:
+          type: integer
+        provider:
+          type: string
+        duration:
+          type: integer
+      required:
+        - status
+
+    # ─── Movie Export ──────────────────────────────────────────────────────────
+    MovieExportFormat:
+      type: string
+      enum: [mp4, vertical_shorts, youtube, tiktok, cinematic_widescreen]
+      description: Export format for assembled movie
+
+    MovieExportRequest:
+      type: object
+      description: Request to assemble and export a movie from storyboard scenes
+      properties:
+        storyboardId:
+          type: string
+        format:
+          $ref: "#/components/schemas/MovieExportFormat"
+        sceneOrder:
+          type: array
+          items:
+            type: integer
+          description: Scene numbers in order to assemble
+        transitionType:
+          type: string
+          enum: [cinematic_cut, dissolve, fade, dream_dissolve, flashback_blur, match_cut, whip_pan]
+        subtitleConfig:
+          type: object
+          properties:
+            enabled:
+              type: boolean
+            language:
+              type: string
+            style:
+              type: string
+        audioLayer:
+          type: object
+          properties:
+            musicEnabled:
+              type: boolean
+            voiceEnabled:
+              type: boolean
+            effectsEnabled:
+              type: boolean
+      required:
+        - storyboardId
+        - format
+
+    MovieExport:
+      type: object
+      description: Movie export status and result
+      properties:
+        exportId:
+          type: string
+        storyboardId:
+          type: string
+        format:
+          $ref: "#/components/schemas/MovieExportFormat"
+        status:
+          type: string
+          enum: [processing, completed, failed]
+        exportUrl:
+          type: string
+        exportProgress:
+          type: integer
+          minimum: 0
+          maximum: 100
+        exportError:
+          type: string
+        fileSize:
+          type: integer
+        duration:
+          type: integer
+        createdAt:
+          type: string
+      required:
+        - exportId
+        - storyboardId
+        - format
+        - status
 
     ApiError:
       type: object

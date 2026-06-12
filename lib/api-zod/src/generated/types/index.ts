@@ -7,6 +7,8 @@
  */
 
 export * from './apiError';
+export * from './batchQueueState';
+export * from './batchQueueStateStatus';
 export * from './batchVideoGenerationRequest';
 export * from './batchVideoGenerationRequestDuration';
 export * from './batchVideoGenerationRequestScenesItem';
@@ -22,6 +24,8 @@ export * from './continuityStatus';
 export * from './dialogueLine';
 export * from './dialogueLineSpeechSpeed';
 export * from './exportReadiness';
+export * from './getBatchStatusParams';
+export * from './getStoryboardAssetsParams';
 export * from './healthStatus';
 export * from './imageGenerationRequest';
 export * from './imageGenerationResult';
@@ -29,8 +33,19 @@ export * from './imageGenerationResultImageStatus';
 export * from './imageProvider';
 export * from './internalMonologueLine';
 export * from './internalThought';
+export * from './movieExport';
+export * from './movieExportFormat';
+export * from './movieExportRequest';
+export * from './movieExportRequestAudioLayer';
+export * from './movieExportRequestSubtitleConfig';
+export * from './movieExportRequestTransitionType';
+export * from './movieExportStatus';
 export * from './movieReadinessReport';
 export * from './scene';
+export * from './sceneAsset';
+export * from './sceneAssetImageStatus';
+export * from './sceneAssetList';
+export * from './sceneAssetVideoStatus';
 export * from './sceneAudio';
 export * from './sceneContinuityCheck';
 export * from './sceneContinuityMemory';

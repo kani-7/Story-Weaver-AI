@@ -27,6 +27,7 @@ export const generateSceneVideoBodyEmotionalIntensityMax = 1;
 
 
 export const GenerateSceneVideoBody = zod.object({
+  "storyboardId": zod.string().optional().describe('Storyboard identifier for asset persistence'),
   "sceneNumber": zod.number().describe('Scene number to generate video for'),
   "videoPrompt": zod.string().describe('Main video generation prompt'),
   "provider": zod.enum(['runway', 'kling', 'luma', 'pika', 'haiper', 'stability', 'pixverse']).optional().describe('AI video generation provider'),
@@ -80,6 +81,7 @@ export const GenerateSceneVideoResponse = zod.object({
  * @summary Generate an AI image for a storyboard scene
  */
 export const GenerateSceneImageBody = zod.object({
+  "storyboardId": zod.string().optional().describe('Storyboard identifier for asset persistence'),
   "sceneNumber": zod.number().describe('Scene number to generate image for'),
   "sceneImagePrompt": zod.string().describe('Main image prompt from SceneImagePrompt.sceneImagePrompt'),
   "provider": zod.enum(['stability', 'openai', 'replicate', 'fal', 'pollinations']).optional().describe('AI image generation provider'),
@@ -107,6 +109,107 @@ export const GenerateSceneImageResponse = zod.object({
   "generationTime": zod.number().describe('Time taken to generate the image in seconds'),
   "generationError": zod.string().optional().describe('Error message (present when imageStatus is error)')
 }).describe('Result of an image generation request')
+
+
+/**
+ * @summary Get all persisted assets for a storyboard
+ */
+export const GetStoryboardAssetsQueryParams = zod.object({
+  "storyboardId": zod.coerce.string()
+})
+
+export const getStoryboardAssetsResponseScenesItemGenerationProgressMin = 0;
+export const getStoryboardAssetsResponseScenesItemGenerationProgressMax = 100;
+
+
+
+export const GetStoryboardAssetsResponse = zod.object({
+  "storyboardId": zod.string(),
+  "scenes": zod.array(zod.object({
+  "sceneNumber": zod.number(),
+  "imageUrl": zod.string().optional(),
+  "imageProvider": zod.string().optional(),
+  "imageStatus": zod.enum(['success', 'error']).optional(),
+  "videoUrl": zod.string().optional(),
+  "videoProvider": zod.string().optional(),
+  "videoStatus": zod.enum(['success', 'error', 'processing']).optional(),
+  "videoDuration": zod.number().optional(),
+  "generationTime": zod.number().optional(),
+  "generationProgress": zod.number().min(getStoryboardAssetsResponseScenesItemGenerationProgressMin).max(getStoryboardAssetsResponseScenesItemGenerationProgressMax).optional().describe('Generation progress percentage (0-100)'),
+  "generationError": zod.string().optional(),
+  "createdAt": zod.string().optional()
+}).describe('Persisted generation asset for a single scene')),
+  "batchQueue": zod.object({
+  "status": zod.enum(['idle', 'running', 'paused', 'completed', 'cancelled']),
+  "completedScenes": zod.array(zod.number()).optional(),
+  "failedScenes": zod.array(zod.number()).optional(),
+  "activeScene": zod.number().optional(),
+  "queueProgress": zod.number().optional(),
+  "estimatedRemainingTime": zod.number().optional(),
+  "totalScenes": zod.number().optional(),
+  "provider": zod.string().optional(),
+  "duration": zod.number().optional()
+}).optional().describe('Persisted batch queue state')
+}).describe('All persisted assets for a storyboard')
+
+
+/**
+ * @summary Get persisted batch queue status
+ */
+export const GetBatchStatusQueryParams = zod.object({
+  "storyboardId": zod.coerce.string()
+})
+
+export const GetBatchStatusResponse = zod.object({
+  "status": zod.enum(['idle', 'running', 'paused', 'completed', 'cancelled']),
+  "completedScenes": zod.array(zod.number()).optional(),
+  "failedScenes": zod.array(zod.number()).optional(),
+  "activeScene": zod.number().optional(),
+  "queueProgress": zod.number().optional(),
+  "estimatedRemainingTime": zod.number().optional(),
+  "totalScenes": zod.number().optional(),
+  "provider": zod.string().optional(),
+  "duration": zod.number().optional()
+}).describe('Persisted batch queue state')
+
+
+/**
+ * @summary Create a movie export from storyboard scenes
+ */
+export const CreateMovieExportBody = zod.object({
+  "storyboardId": zod.string(),
+  "format": zod.enum(['mp4', 'vertical_shorts', 'youtube', 'tiktok', 'cinematic_widescreen']).describe('Export format for assembled movie'),
+  "sceneOrder": zod.array(zod.number()).optional().describe('Scene numbers in order to assemble'),
+  "transitionType": zod.enum(['cinematic_cut', 'dissolve', 'fade', 'dream_dissolve', 'flashback_blur', 'match_cut', 'whip_pan']).optional(),
+  "subtitleConfig": zod.object({
+  "enabled": zod.boolean().optional(),
+  "language": zod.string().optional(),
+  "style": zod.string().optional()
+}).optional(),
+  "audioLayer": zod.object({
+  "musicEnabled": zod.boolean().optional(),
+  "voiceEnabled": zod.boolean().optional(),
+  "effectsEnabled": zod.boolean().optional()
+}).optional()
+}).describe('Request to assemble and export a movie from storyboard scenes')
+
+export const createMovieExportResponseExportProgressMin = 0;
+export const createMovieExportResponseExportProgressMax = 100;
+
+
+
+export const CreateMovieExportResponse = zod.object({
+  "exportId": zod.string(),
+  "storyboardId": zod.string(),
+  "format": zod.enum(['mp4', 'vertical_shorts', 'youtube', 'tiktok', 'cinematic_widescreen']).describe('Export format for assembled movie'),
+  "status": zod.enum(['processing', 'completed', 'failed']),
+  "exportUrl": zod.string().optional(),
+  "exportProgress": zod.number().min(createMovieExportResponseExportProgressMin).max(createMovieExportResponseExportProgressMax).optional(),
+  "exportError": zod.string().optional(),
+  "fileSize": zod.number().optional(),
+  "duration": zod.number().optional(),
+  "createdAt": zod.string().optional()
+}).describe('Movie export status and result')
 
 
 /**
@@ -146,6 +249,7 @@ export const analyzeStoryResponseImageGenerationScoreMax = 100;
 
 
 export const AnalyzeStoryResponse = zod.object({
+  "storyboardId": zod.string().optional().describe('Unique identifier for storyboard asset persistence'),
   "title": zod.string().describe('Short cinematic title in output language'),
   "characters": zod.array(zod.object({
   "characterId": zod.string().describe('English lowercase hyphenated slug, unique across all characters'),
@@ -294,6 +398,7 @@ export const AnalyzeStoryResponse = zod.object({
 export const batchGenerateVideosBodyDurationDefault = 5;
 
 export const BatchGenerateVideosBody = zod.object({
+  "storyboardId": zod.string().optional().describe('Storyboard identifier for asset persistence'),
   "scenes": zod.array(zod.object({
   "sceneNumber": zod.number(),
   "videoPrompt": zod.string(),

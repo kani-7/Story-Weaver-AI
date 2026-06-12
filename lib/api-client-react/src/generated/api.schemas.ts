@@ -377,6 +377,8 @@ export interface Scene {
 }
 
 export interface Storyboard {
+  /** Unique identifier for storyboard asset persistence */
+  storyboardId?: string;
   /** Short cinematic title in output language */
   title: string;
   characters: CharacterProfile[];
@@ -429,6 +431,8 @@ export const VideoGenerationRequestDuration = {
  * Request to generate a video clip for a scene
  */
 export interface VideoGenerationRequest {
+  /** Storyboard identifier for asset persistence */
+  storyboardId?: string;
   /** Scene number to generate video for */
   sceneNumber: number;
   /** Main video generation prompt */
@@ -566,6 +570,8 @@ export const BatchVideoGenerationRequestDuration = {
  * Request to batch generate videos for all storyboard scenes
  */
 export interface BatchVideoGenerationRequest {
+  /** Storyboard identifier for asset persistence */
+  storyboardId?: string;
   /** Array of scene data for sequential generation */
   scenes: BatchVideoGenerationRequestScenesItem[];
   provider?: VideoProvider;
@@ -640,6 +646,8 @@ export const ImageProvider = {
  * Request to generate an image for a scene
  */
 export interface ImageGenerationRequest {
+  /** Storyboard identifier for asset persistence */
+  storyboardId?: string;
   /** Scene number to generate image for */
   sceneNumber: number;
   /** Main image prompt from SceneImagePrompt.sceneImagePrompt */
@@ -685,7 +693,171 @@ export interface ImageGenerationResult {
   generationError?: string;
 }
 
+export type SceneAssetImageStatus = typeof SceneAssetImageStatus[keyof typeof SceneAssetImageStatus];
+
+
+export const SceneAssetImageStatus = {
+  success: 'success',
+  error: 'error',
+} as const;
+
+export type SceneAssetVideoStatus = typeof SceneAssetVideoStatus[keyof typeof SceneAssetVideoStatus];
+
+
+export const SceneAssetVideoStatus = {
+  success: 'success',
+  error: 'error',
+  processing: 'processing',
+} as const;
+
+/**
+ * Persisted generation asset for a single scene
+ */
+export interface SceneAsset {
+  sceneNumber: number;
+  imageUrl?: string;
+  imageProvider?: string;
+  imageStatus?: SceneAssetImageStatus;
+  videoUrl?: string;
+  videoProvider?: string;
+  videoStatus?: SceneAssetVideoStatus;
+  videoDuration?: number;
+  generationTime?: number;
+  /**
+     * Generation progress percentage (0-100)
+     * @minimum 0
+     * @maximum 100
+     */
+  generationProgress?: number;
+  generationError?: string;
+  createdAt?: string;
+}
+
+export type BatchQueueStateStatus = typeof BatchQueueStateStatus[keyof typeof BatchQueueStateStatus];
+
+
+export const BatchQueueStateStatus = {
+  idle: 'idle',
+  running: 'running',
+  paused: 'paused',
+  completed: 'completed',
+  cancelled: 'cancelled',
+} as const;
+
+/**
+ * Persisted batch queue state
+ */
+export interface BatchQueueState {
+  status: BatchQueueStateStatus;
+  completedScenes?: number[];
+  failedScenes?: number[];
+  activeScene?: number;
+  queueProgress?: number;
+  estimatedRemainingTime?: number;
+  totalScenes?: number;
+  provider?: string;
+  duration?: number;
+}
+
+/**
+ * All persisted assets for a storyboard
+ */
+export interface SceneAssetList {
+  storyboardId: string;
+  scenes: SceneAsset[];
+  batchQueue?: BatchQueueState;
+}
+
+/**
+ * Export format for assembled movie
+ */
+export type MovieExportFormat = typeof MovieExportFormat[keyof typeof MovieExportFormat];
+
+
+export const MovieExportFormat = {
+  mp4: 'mp4',
+  vertical_shorts: 'vertical_shorts',
+  youtube: 'youtube',
+  tiktok: 'tiktok',
+  cinematic_widescreen: 'cinematic_widescreen',
+} as const;
+
+export type MovieExportRequestTransitionType = typeof MovieExportRequestTransitionType[keyof typeof MovieExportRequestTransitionType];
+
+
+export const MovieExportRequestTransitionType = {
+  cinematic_cut: 'cinematic_cut',
+  dissolve: 'dissolve',
+  fade: 'fade',
+  dream_dissolve: 'dream_dissolve',
+  flashback_blur: 'flashback_blur',
+  match_cut: 'match_cut',
+  whip_pan: 'whip_pan',
+} as const;
+
+export type MovieExportRequestSubtitleConfig = {
+  enabled?: boolean;
+  language?: string;
+  style?: string;
+};
+
+export type MovieExportRequestAudioLayer = {
+  musicEnabled?: boolean;
+  voiceEnabled?: boolean;
+  effectsEnabled?: boolean;
+};
+
+/**
+ * Request to assemble and export a movie from storyboard scenes
+ */
+export interface MovieExportRequest {
+  storyboardId: string;
+  format: MovieExportFormat;
+  /** Scene numbers in order to assemble */
+  sceneOrder?: number[];
+  transitionType?: MovieExportRequestTransitionType;
+  subtitleConfig?: MovieExportRequestSubtitleConfig;
+  audioLayer?: MovieExportRequestAudioLayer;
+}
+
+export type MovieExportStatus = typeof MovieExportStatus[keyof typeof MovieExportStatus];
+
+
+export const MovieExportStatus = {
+  processing: 'processing',
+  completed: 'completed',
+  failed: 'failed',
+} as const;
+
+/**
+ * Movie export status and result
+ */
+export interface MovieExport {
+  exportId: string;
+  storyboardId: string;
+  format: MovieExportFormat;
+  status: MovieExportStatus;
+  exportUrl?: string;
+  /**
+     * @minimum 0
+     * @maximum 100
+     */
+  exportProgress?: number;
+  exportError?: string;
+  fileSize?: number;
+  duration?: number;
+  createdAt?: string;
+}
+
 export interface ApiError {
   error: string;
 }
+
+export type GetStoryboardAssetsParams = {
+storyboardId: string;
+};
+
+export type GetBatchStatusParams = {
+storyboardId: string;
+};
 

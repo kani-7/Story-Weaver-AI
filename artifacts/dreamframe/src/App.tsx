@@ -10,6 +10,8 @@ import {
   useGenerateSceneImage,
   useGenerateSceneVideo,
   useBatchGenerateVideos,
+  useGetStoryboardAssets,
+  useCreateMovieExport,
   type Storyboard,
   type CharacterProfile,
   type Scene,
@@ -28,6 +30,7 @@ import {
   type VisualProductionReport,
   type ImageProvider,
   type VideoProvider,
+  type MovieExportFormat,
 } from "@workspace/api-client-react";
 const API_BASE_URL = import.meta.env.VITE_API_URL || "";
 import { Button } from "@/components/ui/button";
@@ -35,7 +38,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { motion, AnimatePresence } from "framer-motion";
-import { Film, Sparkles, User, Clapperboard, RotateCcw, Video, Brain, Settings2, ChevronDown, Eye, Zap, Fingerprint, Clock, Moon, Lightbulb, ArrowLeftRight, BookOpen, MessageSquare, Swords, Heart, Music, Volume2, Waves, Mic2, Palette, CheckCircle2, AlertTriangle, XCircle, Trophy, ScrollText, Radio, Camera, Layers, BarChart3, Star, TrendingDown, Loader2, RefreshCw, ImageIcon, Wand2 } from "lucide-react";
+import { Film, Sparkles, User, Clapperboard, RotateCcw, Video, Brain, Settings2, ChevronDown, Eye, Zap, Fingerprint, Clock, Moon, Lightbulb, ArrowLeftRight, BookOpen, MessageSquare, Swords, Heart, Music, Volume2, Waves, Mic2, Palette, CheckCircle2, AlertTriangle, XCircle, Trophy, ScrollText, Radio, Camera, Layers, BarChart3, Star, TrendingDown, Loader2, RefreshCw, ImageIcon, Wand2, Download } from "lucide-react";
 
 const queryClient = new QueryClient();
 
@@ -209,6 +212,17 @@ const translations: Record<UILang, Record<string, string>> = {
     batchPaused: "Paused",
     batchCancelled: "Cancelled",
     batchCompleted: "Completed",
+    movieExport: "Export Movie",
+    movieExportDesc: "Assemble scenes into a cinematic movie",
+    movieExportFormat: "Format",
+    movieExportProgress: "Exporting...",
+    movieExportComplete: "Export Complete",
+    movieExportFailed: "Export Failed",
+    movieExportDownload: "Download",
+    movieExportSubtitle: "Subtitles",
+    movieExportMusic: "Background Music",
+    movieExportVoice: "Voiceover",
+    movieExportEffects: "Sound Effects",
   },
   si: {
     subtitle: "අධ්‍යක්ෂකගේ පුටුවට ඇතුළු වන්න. ඔබේ කතාව ඇතුළු කර ක්ෂණිකව ස්ටෝරිබෝර්ඩ් එකක් ලබා ගන්න.",
@@ -366,6 +380,17 @@ const translations: Record<UILang, Record<string, string>> = {
     batchPaused: "විරාමයේ",
     batchCancelled: "අවලංගු කළ",
     batchCompleted: "සම්පූර්ණයි",
+    movieExport: "චිත්‍රපටය අපනයනය",
+    movieExportDesc: "දර්ශන චිත්‍රපටයක් ලෙස සම්පාදනය කරන්න",
+    movieExportFormat: "ආකෘතිය",
+    movieExportProgress: "අපනයනය කරමින්...",
+    movieExportComplete: "අපනයනය සම්පූර්ණයි",
+    movieExportFailed: "අපනයනය අසාර්ථකයි",
+    movieExportDownload: "බාගත කරන්න",
+    movieExportSubtitle: "උපසිරැසි",
+    movieExportMusic: "ප‍සුබ‍ර‍බ‍ම සංගීතය",
+    movieExportVoice: "අවඥාන හඬ",
+    movieExportEffects: "ධ‍වනි ප‍ර‍බ‍වයන්",
   },
   ta: {
     subtitle: "இயக்குனரின் இருக்கையில் அமருங்கள். உங்கள் கதையை ஒட்டவும், நொடியில் திரைக்கதை உருவாகும்.",
@@ -523,6 +548,17 @@ const translations: Record<UILang, Record<string, string>> = {
     batchPaused: "இடைநிறுத்தப்பட்டது",
     batchCancelled: "ரத்து செய்யப்பட்டது",
     batchCompleted: "முடிந்தது",
+    movieExport: "படம் எடுத்து",
+    movieExportDesc: "காட்சிகளை சினிமா படமாக உருவாக்கு",
+    movieExportFormat: "வடிவம்",
+    movieExportProgress: "எடுத்துகொண்டுள்ளது...",
+    movieExportComplete: "எடுத்தல் முழுமையானது",
+    movieExportFailed: "எடுத்தல் தொல்வி",
+    movieExportDownload: "பதிவிறக்க",
+    movieExportSubtitle: "உபதைரிசைகள்",
+    movieExportMusic: "பின்னணி இசை",
+    movieExportVoice: "குரல்",
+    movieExportEffects: "ஒலி பழங்கள்",
   },
 };
 
@@ -651,9 +687,15 @@ function Home() {
   const analyzeMutation = useAnalyzeStory();
   const generateImageMutation = useGenerateSceneImage();
   const generateVideoMutation = useGenerateSceneVideo();
+  const createMovieExportMutation = useCreateMovieExport();
 
   const [story, setStory] = useState("");
   const [storyboard, setStoryboard] = useState<Storyboard | null>(null);
+
+  const assetsQuery = useGetStoryboardAssets(
+    { storyboardId: storyboard?.storyboardId ?? "" },
+    { query: { queryKey: ["storyboardAssets", storyboard?.storyboardId ?? ""], enabled: !!storyboard?.storyboardId } }
+  );
   const [uiLanguage, setUiLanguage] = useState<UILang>("en");
   const [outputLanguage, setOutputLanguage] = useState<OutputLang>("en");
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -700,6 +742,12 @@ function Home() {
 
   const [selectedVideoProvider, setSelectedVideoProvider] = useState<VideoProvider>("luma");
   const [videoDuration, setVideoDuration] = useState<5 | 10>(5);
+  const [movieExportFormat, setMovieExportFormat] = useState<MovieExportFormat>("mp4");
+  const [movieExportSubtitle, setMovieExportSubtitle] = useState<boolean>(false);
+  const [movieExportMusic, setMovieExportMusic] = useState<boolean>(true);
+  const [movieExportVoice, setMovieExportVoice] = useState<boolean>(false);
+  const [movieExportEffects, setMovieExportEffects] = useState<boolean>(true);
+  const [movieExportState, setMovieExportState] = useState<{ status: string; progress: number; exportUrl?: string; exportError?: string } | null>(null);
 
   useEffect(() => {
     try {
@@ -729,6 +777,69 @@ function Home() {
     }
   }, [videoStates]);
 
+  // Load persisted assets from DB when storyboard changes
+  useEffect(() => {
+    if (!assetsQuery.data || !storyboard) return;
+    const data = assetsQuery.data;
+    if (data.scenes && data.scenes.length > 0) {
+      setImageStates(prev => {
+        const next = { ...prev };
+        for (const s of data.scenes) {
+          if (s.imageUrl && s.imageStatus === "success") {
+            next[s.sceneNumber] = {
+              status: "success",
+              imageUrl: s.imageUrl,
+              imageProvider: s.imageProvider,
+              generationTime: s.generationTime,
+            };
+          }
+        }
+        return next;
+      });
+      setVideoStates(prev => {
+        const next = { ...prev };
+        for (const s of data.scenes) {
+          if (s.videoUrl && s.videoStatus === "success") {
+            next[s.sceneNumber] = {
+              status: "success",
+              videoUrl: s.videoUrl,
+              videoProvider: s.videoProvider,
+              videoDuration: s.videoDuration,
+              generationTime: s.generationTime,
+              generationProgress: 100,
+            };
+          } else if (s.videoStatus === "error") {
+            next[s.sceneNumber] = {
+              status: "error",
+              videoProvider: s.videoProvider,
+              generationTime: s.generationTime,
+              generationProgress: 0,
+              generationError: s.generationError,
+            };
+          } else if (s.videoStatus === "processing") {
+            next[s.sceneNumber] = {
+              status: "loading",
+              videoProvider: s.videoProvider,
+              generationProgress: s.generationProgress ?? 0,
+            };
+          }
+        }
+        return next;
+      });
+    }
+    if (data.batchQueue) {
+      setVideoQueue({
+        status: data.batchQueue.status as QueueStatus,
+        completedScenes: data.batchQueue.completedScenes ?? [],
+        failedScenes: data.batchQueue.failedScenes ?? [],
+        activeScene: data.batchQueue.activeScene ?? null,
+        queueProgress: data.batchQueue.queueProgress ?? 0,
+        estimatedRemainingTime: data.batchQueue.estimatedRemainingTime ?? 0,
+        totalScenes: data.batchQueue.totalScenes ?? 0,
+      });
+    }
+  }, [assetsQuery.data, storyboard]);
+
   const handleGenerateImage = (scene: Scene) => {
     const sceneNum = scene.sceneNumber;
     if (imageStates[sceneNum]?.status === "loading") return;
@@ -742,6 +853,7 @@ function Home() {
     generateImageMutation.mutate(
       {
         data: {
+          storyboardId: storyboard?.storyboardId,
           sceneNumber: sceneNum,
           sceneImagePrompt: scene.imagePrompt.sceneImagePrompt,
           provider: selectedProvider,
@@ -843,6 +955,7 @@ function Home() {
     generateVideoMutation.mutate(
       {
         data: {
+          storyboardId: storyboard?.storyboardId,
           sceneNumber: sceneNum,
           videoPrompt,
           provider: selectedVideoProvider,
@@ -1066,6 +1179,7 @@ function Home() {
     batchVideoMutation.mutate(
       {
         data: {
+          storyboardId: storyboard?.storyboardId,
           scenes: timelineScenes,
           provider: selectedVideoProvider,
           duration: videoDuration,
@@ -1250,6 +1364,7 @@ function Home() {
     batchVideoMutation.mutate(
       {
         data: {
+          storyboardId: storyboard?.storyboardId,
           scenes: timelineScenes,
           provider: selectedVideoProvider,
           duration: videoDuration,
@@ -1294,6 +1409,54 @@ function Home() {
     setStoryboard(null);
     setStory("");
     window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const handleMovieExport = () => {
+    if (!storyboard?.storyboardId) {
+      toast({ title: "No storyboard", description: "Generate a storyboard first", variant: "destructive" });
+      return;
+    }
+    setMovieExportState({ status: "processing", progress: 0 });
+    createMovieExportMutation.mutate(
+      {
+        data: {
+          storyboardId: storyboard.storyboardId,
+          format: movieExportFormat,
+          subtitleConfig: {
+            enabled: movieExportSubtitle,
+            language: outputLanguage,
+          },
+          audioLayer: {
+            musicEnabled: movieExportMusic,
+            voiceEnabled: movieExportVoice,
+            effectsEnabled: movieExportEffects,
+          },
+        },
+      },
+      {
+        onSuccess: (data) => {
+          setMovieExportState({ status: data.status, progress: data.exportProgress ?? 0 });
+          // Start polling for progress
+          const pollInterval = setInterval(() => {
+            fetch(`${API_BASE_URL}/storyboard/movie-export/${data.exportId}`, { method: "GET" })
+              .then(res => res.json())
+              .then((exportData: { status: string; exportProgress?: number; exportUrl?: string; exportError?: string }) => {
+                setMovieExportState({ status: exportData.status, progress: exportData.exportProgress ?? 0, exportUrl: exportData.exportUrl, exportError: exportData.exportError });
+                if (exportData.status === "completed" || exportData.status === "failed") {
+                  clearInterval(pollInterval);
+                }
+              })
+              .catch(() => {
+                clearInterval(pollInterval);
+                setMovieExportState(prev => ({ ...prev!, status: "failed", exportError: "Failed to check export status" }));
+              });
+          }, 2000);
+        },
+        onError: () => {
+          setMovieExportState({ status: "failed", progress: 0, exportError: "Export request failed" });
+        },
+      }
+    );
   };
 
   const containerVariants = {
@@ -2780,6 +2943,120 @@ function Home() {
                     </Card>
                   ))}
                 </div>
+              </motion.div>
+            )}
+
+            {/* Movie Export */}
+            {storyboard.scenes.length > 0 && (
+              <motion.div variants={itemVariants} className="space-y-4">
+                <div className="flex items-center gap-3">
+                  <Film className="w-6 h-6 text-rose-400" />
+                  <h3 className="text-2xl font-semibold">{t.movieExport}</h3>
+                </div>
+                <Card className="bg-card/60 backdrop-blur-md border-white/5 overflow-hidden">
+                  <CardContent className="p-5 space-y-4">
+                    <p className="text-sm text-white/50">{t.movieExportDesc}</p>
+
+                    {/* Format Select */}
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-bold uppercase tracking-widest text-white/40">{t.movieExportFormat}</label>
+                      <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+                        {([
+                          { value: "mp4" as const, label: "MP4" },
+                          { value: "vertical_shorts" as const, label: "Shorts" },
+                          { value: "youtube" as const, label: "YouTube" },
+                          { value: "tiktok" as const, label: "TikTok" },
+                          { value: "cinematic_widescreen" as const, label: "Cinema" },
+                        ] as { value: MovieExportFormat; label: string }[]).map((fmt) => (
+                          <button
+                            key={fmt.value}
+                            onClick={() => setMovieExportFormat(fmt.value)}
+                            className={`px-3 py-2 rounded-lg text-xs font-semibold transition-colors border ${
+                              movieExportFormat === fmt.value
+                                ? "bg-rose-400/20 text-rose-300 border-rose-400/30"
+                                : "bg-white/5 text-white/50 border-white/5 hover:bg-white/10"
+                            }`}
+                          >
+                            {fmt.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Audio / Subtitle Toggles */}
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                      {[
+                        { label: t.movieExportSubtitle, value: movieExportSubtitle, set: setMovieExportSubtitle },
+                        { label: t.movieExportMusic, value: movieExportMusic, set: setMovieExportMusic },
+                        { label: t.movieExportVoice, value: movieExportVoice, set: setMovieExportVoice },
+                        { label: t.movieExportEffects, value: movieExportEffects, set: setMovieExportEffects },
+                      ].map((toggle) => (
+                        <button
+                          key={toggle.label}
+                          onClick={() => toggle.set(!toggle.value)}
+                          className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold transition-colors border ${
+                            toggle.value
+                              ? "bg-amber-400/15 text-amber-300 border-amber-400/25"
+                              : "bg-white/5 text-white/40 border-white/5 hover:bg-white/10"
+                          }`}
+                        >
+                          <span className={`w-3.5 h-3.5 rounded-sm border flex items-center justify-center ${toggle.value ? "bg-amber-400 border-amber-400" : "border-white/30"}`}>
+                            {toggle.value && <CheckCircle2 className="w-3 h-3 text-black" />}
+                          </span>
+                          {toggle.label}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Export Button / Progress */}
+                    <div className="flex items-center gap-3">
+                      {movieExportState?.status === "processing" ? (
+                        <div className="flex-1 space-y-2">
+                          <div className="flex items-center gap-2 text-sm text-amber-300">
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            <span>{t.movieExportProgress}</span>
+                          </div>
+                          <div className="w-full h-2 rounded-full bg-white/10 overflow-hidden">
+                            <div className="h-full rounded-full bg-amber-400 transition-all" style={{ width: `${movieExportState.progress}%` }} />
+                          </div>
+                        </div>
+                      ) : movieExportState?.status === "completed" ? (
+                        <div className="flex-1 flex items-center gap-3">
+                          <div className="flex items-center gap-2 text-sm text-emerald-300">
+                            <CheckCircle2 className="w-4 h-4" />
+                            <span>{t.movieExportComplete}</span>
+                          </div>
+                          {movieExportState.exportUrl && (
+                            <a
+                              href={movieExportState.exportUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-400/20 text-emerald-300 border border-emerald-400/25 hover:bg-emerald-400/30 transition-colors"
+                            >
+                              <Download className="w-3.5 h-3.5" />
+                              {t.movieExportDownload}
+                            </a>
+                          )}
+                        </div>
+                      ) : movieExportState?.status === "failed" ? (
+                        <div className="flex-1 flex items-center gap-2 text-sm text-red-300">
+                          <XCircle className="w-4 h-4" />
+                          <span>{t.movieExportFailed}</span>
+                          <span className="text-xs text-red-300/50">{movieExportState.exportError}</span>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={handleMovieExport}
+                          disabled={createMovieExportMutation.isPending}
+                          className="px-4 py-2 rounded-lg text-sm font-semibold bg-rose-400/20 text-rose-300 border border-rose-400/30 hover:bg-rose-400/30 transition-colors flex items-center gap-2 disabled:opacity-50"
+                        >
+                          {createMovieExportMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Film className="w-4 h-4" />}
+                          {t.movieExport}
+                        </button>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
               </motion.div>
             )}
 

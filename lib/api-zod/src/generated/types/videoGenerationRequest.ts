@@ -13,6 +13,8 @@ import type { VideoProvider } from './videoProvider';
  * Request to generate a video clip for a scene
  */
 export interface VideoGenerationRequest {
+  /** Storyboard identifier for asset persistence */
+  storyboardId?: string;
   /** Scene number to generate video for */
   sceneNumber: number;
   /** Main video generation prompt */
