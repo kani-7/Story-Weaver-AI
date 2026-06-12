@@ -19,6 +19,8 @@ export interface VideoGenerationResult {
   videoProvider: VideoProvider;
   /** Actual clip duration in seconds */
   videoDuration: number;
+  /** Time taken to generate the video in seconds */
+  generationTime: number;
   /**
      * Generation progress percentage (0-100)
      * @minimum 0

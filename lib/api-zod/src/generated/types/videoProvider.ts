@@ -15,7 +15,9 @@ export type VideoProvider = typeof VideoProvider[keyof typeof VideoProvider];
 export const VideoProvider = {
   runway: 'runway',
   kling: 'kling',
-  veo: 'veo',
-  pika: 'pika',
   luma: 'luma',
+  pika: 'pika',
+  haiper: 'haiper',
+  stability: 'stability',
+  pixverse: 'pixverse',
 } as const;

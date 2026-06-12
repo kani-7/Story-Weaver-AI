@@ -407,9 +407,11 @@ export type VideoProvider = typeof VideoProvider[keyof typeof VideoProvider];
 export const VideoProvider = {
   runway: 'runway',
   kling: 'kling',
-  veo: 'veo',
-  pika: 'pika',
   luma: 'luma',
+  pika: 'pika',
+  haiper: 'haiper',
+  stability: 'stability',
+  pixverse: 'pixverse',
 } as const;
 
 /**
@@ -499,6 +501,8 @@ export interface VideoGenerationResult {
   videoProvider: VideoProvider;
   /** Actual clip duration in seconds */
   videoDuration: number;
+  /** Time taken to generate the video in seconds */
+  generationTime: number;
   /**
      * Generation progress percentage (0-100)
      * @minimum 0

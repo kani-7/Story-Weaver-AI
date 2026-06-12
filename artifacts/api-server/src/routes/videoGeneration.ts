@@ -4,7 +4,7 @@ const router: IRouter = Router();
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
-type VideoProvider = "runway" | "kling" | "veo" | "pika" | "luma";
+type VideoProvider = "runway" | "kling" | "luma" | "pika" | "haiper" | "stability" | "pixverse";
 
 interface CharacterProfileRef {
   name: string;
@@ -492,75 +492,6 @@ async function generateWithPika(
   throw new Error("Pika generation timed out after 200s");
 }
 
-// ─── Provider: Veo (Google) ───────────────────────────────────────────────────
-
-async function generateWithVeo(
-  prompt: string,
-  _imageUrl: string | undefined,
-  duration: number
-): Promise<VideoProviderResult> {
-  const apiKey = process.env["VEO_API_KEY"] ?? process.env["GOOGLE_AI_API_KEY"];
-  if (!apiKey) throw new Error("VEO_API_KEY (or GOOGLE_AI_API_KEY) is not set");
-
-  // Veo 2 via Google AI Developer API
-  const createRes = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/veo-2.0-generate-001:predictLongRunning?key=${apiKey}`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        instances: [{ prompt: prompt.slice(0, 1000) }],
-        parameters: {
-          aspectRatio: "16:9",
-          durationSeconds: duration,
-          personGeneration: "allow_adults",
-          numberOfVideos: 1,
-        },
-      }),
-      signal: AbortSignal.timeout(30000),
-    }
-  );
-
-  if (!createRes.ok) {
-    const err = await createRes.text();
-    throw new Error(`Veo error ${createRes.status}: ${err}`);
-  }
-
-  const created = (await createRes.json()) as { name?: string };
-  const operationName = created.name;
-  if (!operationName) throw new Error("Veo returned no operation name");
-
-  // Poll long-running operation
-  for (let attempt = 0; attempt < 40; attempt++) {
-    await new Promise((r) => setTimeout(r, 5000));
-
-    const pollRes = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/${operationName}?key=${apiKey}`,
-      { signal: AbortSignal.timeout(15000) }
-    );
-
-    if (!pollRes.ok) continue;
-
-    const poll = (await pollRes.json()) as {
-      done?: boolean;
-      error?: { message: string };
-      response?: { predictions?: Array<{ video?: { uri?: string; mimeType?: string } }> };
-    };
-
-    if (poll.error) throw new Error(`Veo operation error: ${poll.error.message}`);
-
-    if (poll.done && poll.response?.predictions?.[0]?.video?.uri) {
-      return {
-        url: poll.response.predictions[0].video.uri,
-        provider: "veo",
-        duration,
-      };
-    }
-  }
-
-  throw new Error("Veo generation timed out after 200s");
-}
-
 // ─── Provider Router ──────────────────────────────────────────────────────────
 
 async function generateVideo(
@@ -574,10 +505,14 @@ async function generateVideo(
       return generateWithRunway(prompt, imageUrl, duration);
     case "kling":
       return generateWithKling(prompt, imageUrl, duration);
-    case "veo":
-      return generateWithVeo(prompt, imageUrl, duration);
     case "pika":
       return generateWithPika(prompt, imageUrl, duration);
+    case "haiper":
+      return generateWithHaiper(prompt, imageUrl, duration);
+    case "stability":
+      return generateWithStabilityVideo(prompt, imageUrl, duration);
+    case "pixverse":
+      return generateWithPixverse(prompt, imageUrl, duration);
     case "luma":
     default:
       return generateWithLuma(prompt, imageUrl, duration);
@@ -599,7 +534,7 @@ router.post("/storyboard/generate-video", async (req, res): Promise<void> => {
   }
 
   const provider: VideoProvider = body.provider ?? "luma";
-  const validProviders: VideoProvider[] = ["runway", "kling", "veo", "pika", "luma"];
+  const validProviders: VideoProvider[] = ["runway", "kling", "luma", "pika", "haiper", "stability", "pixverse"];
   if (!validProviders.includes(provider)) {
     res.status(400).json({ error: `Invalid provider. Must be one of: ${validProviders.join(", ")}` });
     return;
@@ -621,24 +556,208 @@ router.post("/storyboard/generate-video", async (req, res): Promise<void> => {
   try {
     const result = await generationPromise;
 
+    const generationTime = ((Date.now() - startTime) / 1000);
     res.json({
       videoStatus: "success",
       videoUrl: result.url,
       videoProvider: result.provider,
       videoDuration: result.duration,
+      generationTime,
       generationProgress: 100,
     });
   } catch (err: unknown) {
     const errorMsg = err instanceof Error ? err.message : "Unknown video generation error";
 
+    const generationTime = ((Date.now() - startTime) / 1000);
     res.json({
       videoStatus: "error",
       videoProvider: provider,
       videoDuration: 0,
+      generationTime,
       generationProgress: 0,
       generationError: errorMsg,
     });
   }
 });
+
+// ─── Provider: Haiper (stub) ───────────────────────────────────────────────────
+
+async function generateWithHaiper(
+  prompt: string,
+  imageUrl: string | undefined,
+  duration: number
+): Promise<VideoProviderResult> {
+  const apiKey = process.env["HAIPER_API_KEY"];
+  if (!apiKey) throw new Error("HAIPER_API_KEY is not set");
+
+  const reqBody: Record<string, unknown> = {
+    prompt: prompt.slice(0, 2000),
+    duration,
+    aspectRatio: "16:9",
+  };
+  if (imageUrl) reqBody.imageUrl = imageUrl;
+
+  const createRes = await fetch("https://api.haiper.ai/v2/video", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(reqBody),
+    signal: AbortSignal.timeout(30000),
+  });
+
+  if (!createRes.ok) {
+    const err = await createRes.text();
+    throw new Error(`Haiper error ${createRes.status}: ${err}`);
+  }
+
+  const created = (await createRes.json()) as { id?: string; videoId?: string };
+  const videoId = created.id ?? created.videoId;
+  if (!videoId) throw new Error("Haiper returned no video id");
+
+  for (let attempt = 0; attempt < 40; attempt++) {
+    await new Promise((r) => setTimeout(r, 5000));
+
+    const pollRes = await fetch(`https://api.haiper.ai/v2/video/${videoId}`, {
+      headers: { Authorization: `Bearer ${apiKey}` },
+      signal: AbortSignal.timeout(15000),
+    });
+
+    if (!pollRes.ok) continue;
+
+    const poll = (await pollRes.json()) as { status?: string; videoUrl?: string; url?: string };
+    if ((poll.status === "completed" || poll.status === "succeeded") && (poll.videoUrl || poll.url)) {
+      return { url: poll.videoUrl || poll.url || "", provider: "haiper", duration };
+    }
+    if (poll.status === "failed" || poll.status === "error") {
+      throw new Error("Haiper generation failed");
+    }
+  }
+
+  throw new Error("Haiper generation timed out after 200s");
+}
+
+// ─── Provider: Stability Video (stub) ──────────────────────────────────────────
+
+async function generateWithStabilityVideo(
+  prompt: string,
+  imageUrl: string | undefined,
+  duration: number
+): Promise<VideoProviderResult> {
+  const apiKey = process.env["STABILITY_VIDEO_KEY"];
+  if (!apiKey) throw new Error("STABILITY_VIDEO_KEY is not set");
+
+  const reqBody: Record<string, unknown> = {
+    prompt: prompt.slice(0, 2000),
+    duration,
+    aspectRatio: "16:9",
+  };
+  if (imageUrl) reqBody.imageUrl = imageUrl;
+
+  const createRes = await fetch("https://api.stability.ai/v2beta/video/generation", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(reqBody),
+    signal: AbortSignal.timeout(30000),
+  });
+
+  if (!createRes.ok) {
+    const err = await createRes.text();
+    throw new Error(`Stability Video error ${createRes.status}: ${err}`);
+  }
+
+  const created = (await createRes.json()) as { id?: string; generationId?: string };
+  const generationId = created.id ?? created.generationId;
+  if (!generationId) throw new Error("Stability Video returned no generation id");
+
+  for (let attempt = 0; attempt < 40; attempt++) {
+    await new Promise((r) => setTimeout(r, 5000));
+
+    const pollRes = await fetch(`https://api.stability.ai/v2beta/video/generation/${generationId}`, {
+      headers: { Authorization: `Bearer ${apiKey}` },
+      signal: AbortSignal.timeout(15000),
+    });
+
+    if (!pollRes.ok) continue;
+
+    const poll = (await pollRes.json()) as {
+      status?: string;
+      videoUrl?: string;
+      url?: string;
+      assets?: { video?: string };
+    };
+    const url = poll.videoUrl || poll.url || poll.assets?.video;
+    if ((poll.status === "completed" || poll.status === "succeeded") && url) {
+      return { url, provider: "stability", duration };
+    }
+    if (poll.status === "failed" || poll.status === "error") {
+      throw new Error("Stability Video generation failed");
+    }
+  }
+
+  throw new Error("Stability Video generation timed out after 200s");
+}
+
+// ─── Provider: PixVerse (stub) ──────────────────────────────────────────────────
+
+async function generateWithPixverse(
+  prompt: string,
+  imageUrl: string | undefined,
+  duration: number
+): Promise<VideoProviderResult> {
+  const apiKey = process.env["PIXVERSE_API_KEY"];
+  if (!apiKey) throw new Error("PIXVERSE_API_KEY is not set");
+
+  const reqBody: Record<string, unknown> = {
+    prompt: prompt.slice(0, 2000),
+    duration,
+    aspectRatio: "16:9",
+  };
+  if (imageUrl) reqBody.imageUrl = imageUrl;
+
+  const createRes = await fetch("https://api.pixverse.ai/v2/video", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(reqBody),
+    signal: AbortSignal.timeout(30000),
+  });
+
+  if (!createRes.ok) {
+    const err = await createRes.text();
+    throw new Error(`PixVerse error ${createRes.status}: ${err}`);
+  }
+
+  const created = (await createRes.json()) as { id?: string; videoId?: string; taskId?: string };
+  const videoId = created.id ?? created.videoId ?? created.taskId;
+  if (!videoId) throw new Error("PixVerse returned no video id");
+
+  for (let attempt = 0; attempt < 40; attempt++) {
+    await new Promise((r) => setTimeout(r, 5000));
+
+    const pollRes = await fetch(`https://api.pixverse.ai/v2/video/${videoId}`, {
+      headers: { Authorization: `Bearer ${apiKey}` },
+      signal: AbortSignal.timeout(15000),
+    });
+
+    if (!pollRes.ok) continue;
+
+    const poll = (await pollRes.json()) as { status?: string; videoUrl?: string; url?: string };
+    if ((poll.status === "completed" || poll.status === "succeeded") && (poll.videoUrl || poll.url)) {
+      return { url: poll.videoUrl || poll.url || "", provider: "pixverse", duration };
+    }
+    if (poll.status === "failed" || poll.status === "error") {
+      throw new Error("PixVerse generation failed");
+    }
+  }
+
+  throw new Error("PixVerse generation timed out after 200s");
+}
 
 export default router;

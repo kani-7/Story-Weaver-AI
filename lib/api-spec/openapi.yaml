@@ -789,7 +789,7 @@ components:
     # ─── Video Generation Schemas ──────────────────────────────────────────────
     VideoProvider:
       type: string
-      enum: [runway, kling, veo, pika, luma]
+      enum: [runway, kling, luma, pika, haiper, stability, pixverse]
       description: AI video generation provider
 
     VideoGenerationRequest:
@@ -893,6 +893,9 @@ components:
         videoDuration:
           type: number
           description: Actual clip duration in seconds
+        generationTime:
+          type: number
+          description: Time taken to generate the video in seconds
         generationProgress:
           type: number
           minimum: 0
@@ -905,6 +908,7 @@ components:
         - videoStatus
         - videoProvider
         - videoDuration
+        - generationTime
         - generationProgress
 
     # ─── Image Generation Schemas ──────────────────────────────────────────────

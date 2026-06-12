@@ -29,7 +29,7 @@ export const generateSceneVideoBodyEmotionalIntensityMax = 1;
 export const GenerateSceneVideoBody = zod.object({
   "sceneNumber": zod.number().describe('Scene number to generate video for'),
   "videoPrompt": zod.string().describe('Main video generation prompt'),
-  "provider": zod.enum(['runway', 'kling', 'veo', 'pika', 'luma']).optional().describe('AI video generation provider'),
+  "provider": zod.enum(['runway', 'kling', 'luma', 'pika', 'haiper', 'stability', 'pixverse']).optional().describe('AI video generation provider'),
   "imageUrl": zod.string().optional().describe('Optional first-frame image URL (from image generation)'),
   "duration": zod.union([zod.literal(5),zod.literal(10)]).default(generateSceneVideoBodyDurationDefault).describe('Clip duration in seconds'),
   "characterProfiles": zod.array(zod.object({
@@ -68,8 +68,9 @@ export const generateSceneVideoResponseGenerationProgressMax = 100;
 export const GenerateSceneVideoResponse = zod.object({
   "videoStatus": zod.enum(['success', 'error', 'processing']).describe('Generation status'),
   "videoUrl": zod.string().optional().describe('URL of the generated video (present when videoStatus is success)'),
-  "videoProvider": zod.enum(['runway', 'kling', 'veo', 'pika', 'luma']).describe('AI video generation provider'),
+  "videoProvider": zod.enum(['runway', 'kling', 'luma', 'pika', 'haiper', 'stability', 'pixverse']).describe('AI video generation provider'),
   "videoDuration": zod.number().describe('Actual clip duration in seconds'),
+  "generationTime": zod.number().describe('Time taken to generate the video in seconds'),
   "generationProgress": zod.number().min(generateSceneVideoResponseGenerationProgressMin).max(generateSceneVideoResponseGenerationProgressMax).describe('Generation progress percentage (0-100)'),
   "generationError": zod.string().optional().describe('Error message (present when videoStatus is error)')
 }).describe('Result of a video generation request')

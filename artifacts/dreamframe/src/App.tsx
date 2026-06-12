@@ -195,6 +195,11 @@ const translations: Record<UILang, Record<string, string>> = {
     motionDirected: "Motion directed",
     continuitySynced: "Continuity synced",
     videoProgress: "Processing...",
+    generateAllVideos: "Generate All Videos",
+    batchProgress: "Batch progress",
+    batchComplete: "Batch complete",
+    batchFailed: "Batch failed",
+    batchRemaining: "remaining",
   },
   si: {
     subtitle: "අධ්‍යක්ෂකගේ පුටුවට ඇතුළු වන්න. ඔබේ කතාව ඇතුළු කර ක්ෂණිකව ස්ටෝරිබෝර්ඩ් එකක් ලබා ගන්න.",
@@ -340,6 +345,11 @@ const translations: Record<UILang, Record<string, string>> = {
     motionDirected: "චලනය හසුරුවා ඇත",
     continuitySynced: "අඛණ්ඩතාව සමමුහුර්ත",
     videoProgress: "සකස් කරමින්...",
+    generateAllVideos: "සියලු වීඩියෝ සාදන්න",
+    batchProgress: "කාණ්ඩ ප්‍රගතිය",
+    batchComplete: "කාණ්ඩය සම්පූර්ණයි",
+    batchFailed: "කාණ්ඩය අසාර්ථකයි",
+    batchRemaining: "ඉතිරිව ඇත",
   },
   ta: {
     subtitle: "இயக்குனரின் இருக்கையில் அமருங்கள். உங்கள் கதையை ஒட்டவும், நொடியில் திரைக்கதை உருவாகும்.",
@@ -485,6 +495,11 @@ const translations: Record<UILang, Record<string, string>> = {
     motionDirected: "இயக்கம் வழிநடத்தப்பட்டது",
     continuitySynced: "தொடர்ச்சி ஒத்திசைக்கப்பட்டது",
     videoProgress: "செயலாக்குகிறோம்...",
+    generateAllVideos: "அனைத்து வீடியோக்களை உருவாக்கு",
+    batchProgress: "குழு முன்னேற்றம்",
+    batchComplete: "குழு முழுமையானது",
+    batchFailed: "குழு தோல்வி",
+    batchRemaining: "மீதமுள்ள",
   },
 };
 
@@ -577,16 +592,19 @@ interface SceneVideoState {
   videoUrl?: string;
   videoProvider?: string;
   videoDuration?: number;
+  generationTime?: number;
   generationProgress?: number;
   generationError?: string;
 }
 
 const VIDEO_PROVIDERS: { value: VideoProvider; label: string; description: string }[] = [
-  { value: "luma",   label: "Luma AI Dream Machine", description: "LUMAAI_API_KEY" },
-  { value: "runway", label: "Runway Gen-4 Turbo",     description: "RUNWAY_API_KEY" },
-  { value: "kling",  label: "Kling AI v1",             description: "KLING_ACCESS_KEY + KLING_SECRET_KEY" },
-  { value: "pika",   label: "Pika 1.0",                description: "PIKA_API_KEY" },
-  { value: "veo",    label: "Google Veo 2",             description: "VEO_API_KEY" },
+  { value: "luma",      label: "Luma AI Dream Machine", description: "LUMAAI_API_KEY" },
+  { value: "runway",    label: "Runway Gen-4 Turbo",    description: "RUNWAY_API_KEY" },
+  { value: "kling",     label: "Kling AI v1.6",         description: "KLING_ACCESS_KEY + KLING_SECRET_KEY" },
+  { value: "pika",      label: "Pika 2.0",             description: "PIKA_API_KEY" },
+  { value: "haiper",    label: "Haiper 2.0",           description: "HAIPER_API_KEY" },
+  { value: "stability", label: "Stability Video",      description: "STABILITY_VIDEO_KEY" },
+  { value: "pixverse",  label: "PixVerse V4",          description: "PIXVERSE_API_KEY" },
 ];
 
 interface SceneImageState {
@@ -780,7 +798,11 @@ function Home() {
     const mem = scene.continuityMemory;
     const clothingState = mem?.clothingState;
 
-    setVideoStates(prev => ({ ...prev, [sceneNum]: { status: "loading", generationProgress: 0 } }));
+    // Increment retry count on error
+    const prevRetry = videoStates[sceneNum]?.status === "error" ? (videoStates[sceneNum]?.generationProgress ?? 0) : 0;
+    const retryCount = videoStates[sceneNum]?.status === "error" ? (prevRetry < 0 ? Math.abs(prevRetry) : 0) + 1 : 0;
+    // Use a temporary negative progress value to track retry count
+    setVideoStates(prev => ({ ...prev, [sceneNum]: { status: "loading", generationProgress: retryCount > 0 ? -retryCount : 0 } }));
 
     // Start client-side progress ticker
     let progressTick = 0;
@@ -836,6 +858,7 @@ function Home() {
                 videoUrl: data.videoUrl,
                 videoProvider: data.videoProvider,
                 videoDuration: data.videoDuration,
+                generationTime: data.generationTime,
                 generationProgress: 100,
               },
             }));
@@ -845,6 +868,7 @@ function Home() {
               [sceneNum]: {
                 status: "error",
                 videoProvider: data.videoProvider,
+                generationTime: data.generationTime,
                 generationProgress: 0,
                 generationError: data.generationError ?? "Video generation failed",
               },
@@ -864,6 +888,152 @@ function Home() {
         },
       }
     );
+  };
+
+  // Batch generate all scene videos (sequential)
+  const [batchVideoProgress, setBatchVideoProgress] = useState<{ total: number; completed: number; failed: number; active: number } | null>(null);
+
+  const handleGenerateAllVideos = () => {
+    if (!storyboard || storyboard.scenes.length === 0) return;
+    const scenes = storyboard.scenes;
+    const total = scenes.length;
+    setBatchVideoProgress({ total, completed: 0, failed: 0, active: 0 });
+
+    let completed = 0;
+    let failed = 0;
+    const activeScenes = new Set<number>();
+
+    const processNext = (idx: number) => {
+      if (idx >= scenes.length) {
+        setTimeout(() => {
+          setBatchVideoProgress({ total, completed, failed, active: activeScenes.size });
+          setTimeout(() => setBatchVideoProgress(null), 3000);
+        }, 500);
+        return;
+      }
+      const scene = scenes[idx]!;
+      const sceneNum = scene.sceneNumber;
+      // Skip already loaded or in-flight
+      if (videoStates[sceneNum]?.status === "loading" || videoStates[sceneNum]?.status === "success") {
+        processNext(idx + 1);
+        return;
+      }
+      activeScenes.add(sceneNum);
+      setBatchVideoProgress({ total, completed, failed, active: activeScenes.size });
+
+      // Use the same prompt building logic as handleGenerateVideo
+      const videoPrompt = scene.imagePrompt?.sceneImagePrompt ?? scene.description ?? `Scene ${sceneNum}`;
+      let dominantEmotion: string | undefined;
+      let emotionalIntensity: number | undefined;
+      if (scene.emotions && scene.emotions.length > 0) {
+        const sorted = [...scene.emotions].sort((a, b) => (b.confidence ?? 0) - (a.confidence ?? 0));
+        dominantEmotion = sorted[0]?.emotion;
+        emotionalIntensity = sorted[0]?.confidence;
+      }
+      const characterMovements: string[] = (scene.actions ?? []).map(
+        (a: CharacterAction) => `${a.character}: ${a.action}`
+      );
+      const environmentalMotion = scene.continuityMemory?.weatherState;
+      const lastShot = scene.shotList?.[scene.shotList.length - 1];
+      const cinematicTransition = lastShot?.transitionType;
+      const mem = scene.continuityMemory;
+      const clothingState = mem?.clothingState;
+
+      setVideoStates(prev => ({ ...prev, [sceneNum]: { status: "loading", generationProgress: 0 } }));
+
+      // Start client-side progress ticker
+      let progressTick = 0;
+      const progressInterval = setInterval(() => {
+        progressTick = Math.min(progressTick + 2, 90);
+        setVideoStates(prev => {
+          if (prev[sceneNum]?.status !== "loading") {
+            clearInterval(progressInterval);
+            return prev;
+          }
+          return { ...prev, [sceneNum]: { ...prev[sceneNum], generationProgress: progressTick } };
+        });
+      }, 3000);
+
+      generateVideoMutation.mutate(
+        {
+          data: {
+            sceneNumber: sceneNum,
+            videoPrompt,
+            provider: selectedVideoProvider,
+            imageUrl: imageStates[sceneNum]?.imageUrl,
+            duration: videoDuration,
+            characterProfiles: storyboard?.characters,
+            characterVisualContinuity: scene.imagePrompt?.characterVisualContinuity,
+            cameraMovement: scene.cinematicCamera?.cameraMovement,
+            cinematicMood: scene.imagePrompt?.cinematicMood,
+            lightingStyle: scene.cinematicCamera?.lightingStyle,
+            animationStyle: scene.imagePrompt?.animationStyle,
+            dominantEmotion,
+            emotionalIntensity,
+            shotType: scene.cinematicCamera?.shotType,
+            pacingStyle: scene.cinematicCamera?.pacingStyle,
+            characterMovements,
+            environmentalMotion,
+            cinematicTransition,
+            clothingState,
+            lightingState: mem?.lightingState,
+            environmentState: mem?.environmentState,
+            emotionalCarryOver: mem?.emotionalCarryOver,
+          },
+        },
+        {
+          onSuccess: (data) => {
+            clearInterval(progressInterval);
+            activeScenes.delete(sceneNum);
+            if (data.videoStatus === "success" && data.videoUrl) {
+              completed++;
+              setVideoStates(prev => ({
+                ...prev,
+                [sceneNum]: {
+                  status: "success",
+                  videoUrl: data.videoUrl,
+                  videoProvider: data.videoProvider,
+                  videoDuration: data.videoDuration,
+                  generationTime: data.generationTime,
+                  generationProgress: 100,
+                },
+              }));
+            } else {
+              failed++;
+              setVideoStates(prev => ({
+                ...prev,
+                [sceneNum]: {
+                  status: "error",
+                  videoProvider: data.videoProvider,
+                  generationTime: data.generationTime,
+                  generationProgress: 0,
+                  generationError: data.generationError ?? "Video generation failed",
+                },
+              }));
+            }
+            setBatchVideoProgress({ total, completed, failed, active: activeScenes.size });
+            processNext(idx + 1);
+          },
+          onError: (err) => {
+            clearInterval(progressInterval);
+            activeScenes.delete(sceneNum);
+            failed++;
+            setVideoStates(prev => ({
+              ...prev,
+              [sceneNum]: {
+                status: "error",
+                generationProgress: 0,
+                generationError: err instanceof Error ? err.message : "Video generation failed",
+              },
+            }));
+            setBatchVideoProgress({ total, completed, failed, active: activeScenes.size });
+            processNext(idx + 1);
+          },
+        }
+      );
+    };
+
+    processNext(0);
   };
 
   const t = translations[uiLanguage];
@@ -1097,10 +1267,47 @@ function Home() {
 
             {/* Scenes */}
             <motion.div variants={itemVariants} className="space-y-6">
-              <div className="flex items-center gap-3">
-                <Clapperboard className="w-6 h-6 text-primary" />
-                <h3 className="text-2xl font-semibold">{t.scenesTitle}</h3>
+              <div className="flex items-center justify-between gap-3 flex-wrap">
+                <div className="flex items-center gap-3">
+                  <Clapperboard className="w-6 h-6 text-primary" />
+                  <h3 className="text-2xl font-semibold">{t.scenesTitle}</h3>
+                </div>
+                <Button
+                  size="sm"
+                  onClick={handleGenerateAllVideos}
+                  disabled={!storyboard || storyboard.scenes.length === 0 || batchVideoProgress !== null}
+                  className="bg-gradient-to-r from-cyan-700 to-indigo-600 hover:from-cyan-600 hover:to-indigo-500 text-white border-0 text-xs font-semibold gap-1.5"
+                >
+                  <Film className="w-3.5 h-3.5" />
+                  {t.generateAllVideos}
+                </Button>
               </div>
+              {/* Batch progress bar */}
+              {batchVideoProgress && (
+                <div className="rounded-lg bg-cyan-950/20 border border-cyan-400/15 px-4 py-3 space-y-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-xs text-cyan-200/70 font-medium">{t.batchProgress}</span>
+                    <span className="text-[9px] text-cyan-400/40 tabular-nums">
+                      {batchVideoProgress.completed} / {batchVideoProgress.total}
+                    </span>
+                  </div>
+                  <div className="h-2 bg-cyan-950/40 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-gradient-to-r from-cyan-500 to-indigo-500 rounded-full transition-all duration-500"
+                      style={{
+                        width: `${batchVideoProgress.total > 0
+                          ? (batchVideoProgress.completed / batchVideoProgress.total) * 100
+                          : 0}%`,
+                      }}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between gap-2 text-[9px] text-cyan-400/40">
+                    <span>{t.batchComplete}: {batchVideoProgress.completed}</span>
+                    <span>{t.batchFailed}: {batchVideoProgress.failed}</span>
+                    <span>{batchVideoProgress.total - batchVideoProgress.completed - batchVideoProgress.failed} {t.batchRemaining}</span>
+                  </div>
+                </div>
+              )}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 {storyboard.scenes.map((scene: Scene, i: number) => {
                   const sceneType = scene.sceneType;
@@ -1917,6 +2124,9 @@ function Home() {
                                     {vidState.videoDuration !== undefined && vidState.videoDuration > 0 && (
                                       <span className="text-[9px] text-cyan-400/40">{t.videoDurationLabel}: {vidState.videoDuration}s</span>
                                     )}
+                                    {vidState.generationTime !== undefined && (
+                                      <span className="text-[9px] text-cyan-400/40">{t.generatedIn} {vidState.generationTime.toFixed(1)}{t.seconds}</span>
+                                    )}
                                   </div>
                                   <div className="flex items-center gap-2">
                                     <div className="relative">
@@ -1940,7 +2150,7 @@ function Home() {
                                       className="h-7 px-2 text-[10px] border-cyan-400/20 text-cyan-300/60 hover:bg-cyan-950/30 hover:text-cyan-200 gap-1"
                                     >
                                       <RefreshCw className="w-3 h-3" />
-                                      {t.regenerateImage}
+                                      {t.retryVideo}
                                     </Button>
                                   </div>
                                 </div>
