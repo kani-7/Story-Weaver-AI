@@ -960,6 +960,92 @@ export interface MovieExport {
   createdAt?: string;
 }
 
+/**
+ * Per-scene input for batch image generation with continuity context
+ */
+export interface BatchImageSceneInput {
+  sceneNumber: number;
+  sceneImagePrompt: string;
+  colorPalette?: string;
+  cinematicMood?: string;
+  renderStyle?: string;
+  visualEngine?: string;
+  characterVisualContinuity?: string;
+  /** Clothing state carried from previous scene for continuity */
+  previousClothingState?: string[];
+  /** Lighting state carried from previous scene */
+  previousLightingState?: string;
+  /** Weather state carried from previous scene */
+  previousWeatherState?: string;
+  /** Environment state carried from previous scene */
+  previousEnvironmentState?: string;
+  /** Emotional states carried from previous scene */
+  previousEmotionalCarryOver?: string[];
+  /** Character pose context from previous scene for pose continuity */
+  previousPoseContext?: string;
+}
+
+/**
+ * Request to batch generate images for all storyboard scenes sequentially
+ */
+export interface BatchImageGenerationRequest {
+  storyboardId?: string;
+  scenes: BatchImageSceneInput[];
+  provider?: ImageProvider;
+  characterProfiles?: CharacterProfile[];
+}
+
+/**
+ * Current queue status
+ */
+export type BatchImageGenerationStatusBatchGenerationStatus = typeof BatchImageGenerationStatusBatchGenerationStatus[keyof typeof BatchImageGenerationStatusBatchGenerationStatus];
+
+
+export const BatchImageGenerationStatusBatchGenerationStatus = {
+  idle: 'idle',
+  running: 'running',
+  completed: 'completed',
+  cancelled: 'cancelled',
+  failed: 'failed',
+} as const;
+
+/**
+ * Per-scene results keyed by sceneNumber
+ */
+export type BatchImageGenerationStatusSceneResults = {[key: string]: {
+  imageStatus?: string;
+  imageUrl?: string;
+  imageProvider?: string;
+  generationTime?: number;
+  generationError?: string;
+}};
+
+/**
+ * Real-time status of batch image generation
+ */
+export interface BatchImageGenerationStatus {
+  /** Current queue status */
+  batchGenerationStatus: BatchImageGenerationStatusBatchGenerationStatus;
+  /** Scene numbers that successfully generated */
+  completedScenes: number[];
+  /** Scene numbers that failed */
+  failedScenes: number[];
+  /** Scene numbers waiting in queue */
+  queuedScenes: number[];
+  /** Scene currently being generated */
+  activeScene?: number;
+  /**
+     * Overall queue progress percentage
+     * @minimum 0
+     * @maximum 100
+     */
+  queueProgress: number;
+  /** Estimated remaining time in seconds */
+  estimatedTimeRemaining?: number;
+  /** Per-scene results keyed by sceneNumber */
+  sceneResults?: BatchImageGenerationStatusSceneResults;
+}
+
 export interface ApiError {
   error: string;
 }

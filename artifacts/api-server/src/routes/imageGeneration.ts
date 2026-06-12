@@ -414,7 +414,277 @@ async function generateImage(
 
 const inFlightRequests = new Map<string, Promise<ProviderResult>>();
 
-// ─── Route ────────────────────────────────────────────────────────────────────
+// ─── Batch Image Generation State ─────────────────────────────────────────────
+
+interface BatchImageSceneInput {
+  sceneNumber: number;
+  sceneImagePrompt: string;
+  colorPalette?: string;
+  cinematicMood?: string;
+  renderStyle?: string;
+  visualEngine?: string;
+  characterVisualContinuity?: string;
+  previousClothingState?: string[];
+  previousLightingState?: string;
+  previousWeatherState?: string;
+  previousEnvironmentState?: string;
+  previousEmotionalCarryOver?: string[];
+  previousPoseContext?: string;
+}
+
+interface BatchImageSceneResult {
+  imageStatus: "pending" | "processing" | "success" | "error";
+  imageUrl?: string;
+  imageProvider?: string;
+  generationTime?: number;
+  generationError?: string;
+}
+
+interface BatchImageState {
+  batchGenerationStatus: "idle" | "running" | "completed" | "cancelled" | "failed";
+  completedScenes: number[];
+  failedScenes: number[];
+  queuedScenes: number[];
+  activeScene: number | undefined;
+  queueProgress: number;
+  estimatedTimeRemaining: number;
+  sceneResults: Record<number, BatchImageSceneResult>;
+}
+
+let batchImageState: BatchImageState = {
+  batchGenerationStatus: "idle",
+  completedScenes: [],
+  failedScenes: [],
+  queuedScenes: [],
+  activeScene: undefined,
+  queueProgress: 0,
+  estimatedTimeRemaining: 0,
+  sceneResults: {},
+};
+
+let batchImageCancelled = false;
+
+// ─── Continuity-Enhanced Prompt Builder ────────────────────────────────────────
+
+function buildContinuityEnhancedPrompt(
+  scene: BatchImageSceneInput,
+  characterProfiles?: CharacterProfileRef[]
+): string {
+  const parts: string[] = [scene.sceneImagePrompt];
+
+  // Character references
+  const charBlock = buildCharacterReferenceBlock(characterProfiles, scene.characterVisualContinuity);
+  if (charBlock) parts.push(charBlock);
+
+  // Color & mood
+  if (scene.colorPalette) parts.push(`color palette: ${scene.colorPalette}`);
+  if (scene.cinematicMood) parts.push(`mood: ${scene.cinematicMood}`);
+  if (scene.renderStyle) parts.push(`style: ${scene.renderStyle}`);
+
+  // Advanced Continuity Engine: inject previous scene's continuity state
+  const continuityParts: string[] = [];
+
+  if (scene.previousClothingState && scene.previousClothingState.length > 0) {
+    continuityParts.push(`clothing continuity: ${scene.previousClothingState.join(", ")}`);
+  }
+  if (scene.previousLightingState) {
+    continuityParts.push(`lighting continuity: ${scene.previousLightingState}`);
+  }
+  if (scene.previousWeatherState) {
+    continuityParts.push(`weather: ${scene.previousWeatherState}`);
+  }
+  if (scene.previousEnvironmentState) {
+    continuityParts.push(`environment: ${scene.previousEnvironmentState}`);
+  }
+  if (scene.previousEmotionalCarryOver && scene.previousEmotionalCarryOver.length > 0) {
+    continuityParts.push(`emotional state carry-over: ${scene.previousEmotionalCarryOver.join(", ")}`);
+  }
+  if (scene.previousPoseContext) {
+    continuityParts.push(`pose continuity: ${scene.previousPoseContext}`);
+  }
+
+  if (continuityParts.length > 0) {
+    parts.push(`CONTINUITY ENGINE — ${continuityParts.join(" | ")}`);
+  }
+
+  return parts.join(". ");
+}
+
+// ─── Batch Image Sequential Processor ─────────────────────────────────────────
+
+async function processBatchImages(
+  scenes: BatchImageSceneInput[],
+  provider: ImageProvider,
+  storyboardId: string | undefined,
+  characterProfiles?: CharacterProfileRef[]
+): Promise<void> {
+  batchImageCancelled = false;
+  const total = scenes.length;
+  const avgSecondsPerScene = 15; // Pollinations is relatively fast
+
+  for (let idx = 0; idx < scenes.length; idx++) {
+    if (batchImageCancelled) {
+      batchImageState.batchGenerationStatus = "cancelled";
+      batchImageState.activeScene = undefined;
+      // Mark remaining queued as pending
+      const remaining = scenes.slice(idx).map(s => s.sceneNumber);
+      batchImageState.queuedScenes = remaining;
+      return;
+    }
+
+    const scene = scenes[idx]!;
+    const sceneNum = scene.sceneNumber;
+
+    batchImageState.activeScene = sceneNum;
+    batchImageState.queuedScenes = scenes.slice(idx + 1).map(s => s.sceneNumber);
+    batchImageState.estimatedTimeRemaining = (total - idx - 1) * avgSecondsPerScene;
+    batchImageState.sceneResults[sceneNum] = { imageStatus: "processing" };
+
+    const startTime = Date.now();
+    const enhancedPrompt = buildContinuityEnhancedPrompt(scene, characterProfiles);
+
+    let result: ProviderResult | null = null;
+    let errorMsg: string | null = null;
+
+    try {
+      result = await withRetry(() => generateImage(provider, enhancedPrompt), 2, 2000);
+    } catch (err) {
+      errorMsg = err instanceof Error ? err.message : "Generation failed";
+      console.warn(`[batchImage] Scene ${sceneNum} primary provider failed: ${errorMsg}`);
+
+      // Fallback chain
+      const fallbacks = buildFallbackChain(provider);
+      for (const fb of fallbacks) {
+        try {
+          result = await withRetry(() => generateImage(fb, enhancedPrompt), 2, 1500);
+          console.info(`[batchImage] Scene ${sceneNum} fallback to ${fb} succeeded`);
+          break;
+        } catch {
+          // continue
+        }
+      }
+    }
+
+    const generationTime = (Date.now() - startTime) / 1000;
+
+    if (result) {
+      batchImageState.completedScenes.push(sceneNum);
+      batchImageState.sceneResults[sceneNum] = {
+        imageStatus: "success",
+        imageUrl: result.url,
+        imageProvider: result.provider,
+        generationTime,
+      };
+
+      // Persist to DB
+      if (storyboardId) {
+        try {
+          const { sceneImagesTable } = await import("@workspace/db/schema");
+          const { db } = await import("@workspace/db");
+          const { eq, and } = await import("drizzle-orm");
+          const existing = await db.select().from(sceneImagesTable).where(
+            and(eq(sceneImagesTable.storyboardId, storyboardId), eq(sceneImagesTable.sceneNumber, sceneNum))
+          );
+          const payload = {
+            storyboardId,
+            sceneNumber: sceneNum,
+            imageUrl: result.url,
+            imageProvider: result.provider,
+            generationTime: Math.round(generationTime),
+            imageStatus: "success" as const,
+            generationError: null,
+            prompt: scene.sceneImagePrompt,
+            colorPalette: scene.colorPalette ?? null,
+            cinematicMood: scene.cinematicMood ?? null,
+            renderStyle: scene.renderStyle ?? null,
+            visualEngine: scene.visualEngine ?? null,
+            characterVisualContinuity: scene.characterVisualContinuity ?? null,
+          };
+          if (existing.length > 0) {
+            await db.update(sceneImagesTable).set(payload).where(eq(sceneImagesTable.id, existing[0]!.id));
+          } else {
+            await db.insert(sceneImagesTable).values(payload);
+          }
+        } catch (dbErr) {
+          console.warn(`[batchImage] DB persist failed for scene ${sceneNum}: ${dbErr}`);
+        }
+      }
+    } else {
+      batchImageState.failedScenes.push(sceneNum);
+      batchImageState.sceneResults[sceneNum] = {
+        imageStatus: "error",
+        generationTime,
+        generationError: errorMsg ?? "All providers failed",
+      };
+    }
+
+    // Update progress
+    const completed = batchImageState.completedScenes.length + batchImageState.failedScenes.length;
+    batchImageState.queueProgress = Math.round((completed / total) * 100);
+  }
+
+  batchImageState.batchGenerationStatus = "completed";
+  batchImageState.activeScene = undefined;
+  batchImageState.queuedScenes = [];
+  batchImageState.estimatedTimeRemaining = 0;
+  batchImageState.queueProgress = 100;
+  console.info(`[batchImage] Batch complete: ${batchImageState.completedScenes.length} succeeded, ${batchImageState.failedScenes.length} failed`);
+}
+
+// ─── Batch Image Routes ────────────────────────────────────────────────────────
+
+router.post("/storyboard/batch-generate-images", async (req, res): Promise<void> => {
+  const { scenes, provider, characterProfiles, storyboardId } = req.body as {
+    scenes: BatchImageSceneInput[];
+    provider?: ImageProvider;
+    characterProfiles?: CharacterProfileRef[];
+    storyboardId?: string;
+  };
+
+  if (!scenes || scenes.length === 0) {
+    res.status(400).json({ error: "scenes array is required and must not be empty" });
+    return;
+  }
+
+  if (batchImageState.batchGenerationStatus === "running") {
+    res.json(batchImageState);
+    return;
+  }
+
+  const imageProvider: ImageProvider = provider ?? "pollinations";
+
+  // Reset state
+  batchImageState = {
+    batchGenerationStatus: "running",
+    completedScenes: [],
+    failedScenes: [],
+    queuedScenes: scenes.map(s => s.sceneNumber),
+    activeScene: undefined,
+    queueProgress: 0,
+    estimatedTimeRemaining: scenes.length * 15,
+    sceneResults: {},
+  };
+
+  // Start async processing (non-blocking)
+  processBatchImages(scenes, imageProvider, storyboardId, characterProfiles).catch(err => {
+    console.error(`[batchImage] Fatal error in batch processor: ${err}`);
+    batchImageState.batchGenerationStatus = "failed";
+  });
+
+  res.json(batchImageState);
+});
+
+router.get("/storyboard/batch-generate-images/status", (_req, res): void => {
+  res.json(batchImageState);
+});
+
+router.post("/storyboard/batch-generate-images/cancel", (_req, res): void => {
+  batchImageCancelled = true;
+  batchImageState.batchGenerationStatus = "cancelled";
+  res.json({ ok: true, status: "cancelled" });
+});
+
+// ─── Single Scene Route ────────────────────────────────────────────────────────
 
 router.post("/storyboard/generate-image", async (req, res): Promise<void> => {
   const body = req.body as ImageGenerationRequestBody;

@@ -536,6 +536,97 @@ export const CancelBatchVideoGenerationResponse = zod.object({
 
 
 /**
+ * @summary Batch generate images for all storyboard scenes sequentially with continuity engine
+ */
+export const BatchGenerateImagesBody = zod.object({
+  "storyboardId": zod.string().optional(),
+  "scenes": zod.array(zod.object({
+  "sceneNumber": zod.number(),
+  "sceneImagePrompt": zod.string(),
+  "colorPalette": zod.string().optional(),
+  "cinematicMood": zod.string().optional(),
+  "renderStyle": zod.string().optional(),
+  "visualEngine": zod.string().optional(),
+  "characterVisualContinuity": zod.string().optional(),
+  "previousClothingState": zod.array(zod.string()).optional().describe('Clothing state carried from previous scene for continuity'),
+  "previousLightingState": zod.string().optional().describe('Lighting state carried from previous scene'),
+  "previousWeatherState": zod.string().optional().describe('Weather state carried from previous scene'),
+  "previousEnvironmentState": zod.string().optional().describe('Environment state carried from previous scene'),
+  "previousEmotionalCarryOver": zod.array(zod.string()).optional().describe('Emotional states carried from previous scene'),
+  "previousPoseContext": zod.string().optional().describe('Character pose context from previous scene for pose continuity')
+}).describe('Per-scene input for batch image generation with continuity context')),
+  "provider": zod.enum(['stability', 'openai', 'replicate', 'fal', 'pollinations']).optional().describe('AI image generation provider'),
+  "characterProfiles": zod.array(zod.object({
+  "characterId": zod.string().describe('English lowercase hyphenated slug, unique across all characters'),
+  "name": zod.string().describe('Character name in the output language'),
+  "species": zod.string().describe('Species or archetype in the output language'),
+  "appearance": zod.string().describe('3-4 sentences describing the character visually'),
+  "clothing": zod.string().optional().describe('Garments, accessories, footwear in the output language. \"—\" if none.'),
+  "personality": zod.string().describe('2-3 sentences covering motivation, baseline, and behavioral tell'),
+  "distinctiveFeatures": zod.string().describe('2-4 precise, artist-reproducible visual markers'),
+  "voiceStyle": zod.string().optional().describe('English only. One sentence: pitch, tempo, texture, accent, delivery style.')
+})).optional()
+}).describe('Request to batch generate images for all storyboard scenes sequentially')
+
+export const batchGenerateImagesResponseQueueProgressMin = 0;
+export const batchGenerateImagesResponseQueueProgressMax = 100;
+
+
+
+export const BatchGenerateImagesResponse = zod.object({
+  "batchGenerationStatus": zod.enum(['idle', 'running', 'completed', 'cancelled', 'failed']).describe('Current queue status'),
+  "completedScenes": zod.array(zod.number()).describe('Scene numbers that successfully generated'),
+  "failedScenes": zod.array(zod.number()).describe('Scene numbers that failed'),
+  "queuedScenes": zod.array(zod.number()).describe('Scene numbers waiting in queue'),
+  "activeScene": zod.number().optional().describe('Scene currently being generated'),
+  "queueProgress": zod.number().min(batchGenerateImagesResponseQueueProgressMin).max(batchGenerateImagesResponseQueueProgressMax).describe('Overall queue progress percentage'),
+  "estimatedTimeRemaining": zod.number().optional().describe('Estimated remaining time in seconds'),
+  "sceneResults": zod.record(zod.string(), zod.object({
+  "imageStatus": zod.string().optional(),
+  "imageUrl": zod.string().optional(),
+  "imageProvider": zod.string().optional(),
+  "generationTime": zod.number().optional(),
+  "generationError": zod.string().optional()
+})).optional().describe('Per-scene results keyed by sceneNumber')
+}).describe('Real-time status of batch image generation')
+
+
+/**
+ * @summary Get real-time in-memory batch image generation status
+ */
+export const getBatchImageStatusResponseQueueProgressMin = 0;
+export const getBatchImageStatusResponseQueueProgressMax = 100;
+
+
+
+export const GetBatchImageStatusResponse = zod.object({
+  "batchGenerationStatus": zod.enum(['idle', 'running', 'completed', 'cancelled', 'failed']).describe('Current queue status'),
+  "completedScenes": zod.array(zod.number()).describe('Scene numbers that successfully generated'),
+  "failedScenes": zod.array(zod.number()).describe('Scene numbers that failed'),
+  "queuedScenes": zod.array(zod.number()).describe('Scene numbers waiting in queue'),
+  "activeScene": zod.number().optional().describe('Scene currently being generated'),
+  "queueProgress": zod.number().min(getBatchImageStatusResponseQueueProgressMin).max(getBatchImageStatusResponseQueueProgressMax).describe('Overall queue progress percentage'),
+  "estimatedTimeRemaining": zod.number().optional().describe('Estimated remaining time in seconds'),
+  "sceneResults": zod.record(zod.string(), zod.object({
+  "imageStatus": zod.string().optional(),
+  "imageUrl": zod.string().optional(),
+  "imageProvider": zod.string().optional(),
+  "generationTime": zod.number().optional(),
+  "generationError": zod.string().optional()
+})).optional().describe('Per-scene results keyed by sceneNumber')
+}).describe('Real-time status of batch image generation')
+
+
+/**
+ * @summary Cancel the active batch image generation queue
+ */
+export const CancelBatchImageGenerationResponse = zod.object({
+  "success": zod.boolean(),
+  "status": zod.enum(['idle', 'running', 'paused', 'completed', 'cancelled'])
+}).describe('Response from batch queue control operations (pause\/resume\/cancel)')
+
+
+/**
  * @summary Get production analytics for a storyboard
  */
 export const GetProductionAnalyticsQueryParams = zod.object({

@@ -10,6 +10,7 @@ import {
   useGenerateSceneImage,
   useGenerateSceneVideo,
   useBatchGenerateVideos,
+  useBatchGenerateImages,
   useGetStoryboardAssets,
   useCreateMovieExport,
   type Storyboard,
@@ -242,6 +243,22 @@ const translations: Record<UILang, Record<string, string>> = {
     exportPromptPack: "Export Prompt Pack",
     exportCSV: "Export CSV",
     exportProductionPkg: "Export Production Package",
+    generateAllImages: "Generate All Images",
+    batchImageProgress: "Image batch progress",
+    batchImageRunning: "Generating images sequentially...",
+    batchImageComplete: "All images done",
+    batchImageCancelled: "Image batch cancelled",
+    batchImageCompleted: "Batch complete",
+    batchImageFailed: "Some images failed",
+    batchImageCancel: "Cancel",
+    batchImageRetry: "Retry Failed",
+    batchImageActive: "Generating Scene",
+    imageHistory: "Image History",
+    imageVersion: "v",
+    favoriteImage: "Favorite",
+    unfavoriteImage: "Unfavorite",
+    continuityEngineLabel: "Continuity Engine",
+    continuityEnhanced: "Continuity enhanced",
   },
   si: {
     subtitle: "අධ්‍යක්ෂකගේ පුටුවට ඇතුළු වන්න. ඔබේ කතාව ඇතුළු කර ක්ෂණිකව ස්ටෝරිබෝර්ඩ් එකක් ලබා ගන්න.",
@@ -429,6 +446,22 @@ const translations: Record<UILang, Record<string, string>> = {
     exportPromptPack: "Prompt Pack අපනයනය",
     exportCSV: "CSV අපනයනය",
     exportProductionPkg: "නිෂ්පාදන පැකේජය",
+    generateAllImages: "සියලු රූප සාදන්න",
+    batchImageProgress: "රූප කාණ්ඩ ප්‍රගතිය",
+    batchImageRunning: "රූප අනුපිළිවෙලින් සාදමින්...",
+    batchImageComplete: "සියලු රූප සූදානම්",
+    batchImageCancelled: "රූප කාණ්ඩය අවලංගු",
+    batchImageCompleted: "කාණ්ඩය සම්පූර්ණයි",
+    batchImageFailed: "සමහර රූප අසාර්ථකයි",
+    batchImageCancel: "අවලංගු",
+    batchImageRetry: "අසාර්ථක නැවත",
+    batchImageActive: "දර්ශනය සාදමින්",
+    imageHistory: "රූප ඉතිහාසය",
+    imageVersion: "v",
+    favoriteImage: "ප්‍රිය",
+    unfavoriteImage: "ප්‍රිය ඉවත් කරන්න",
+    continuityEngineLabel: "අඛණ්ඩතා එන්ජිම",
+    continuityEnhanced: "අඛණ්ඩතාව වැඩිදියුණු",
   },
   ta: {
     subtitle: "இயக்குனரின் இருக்கையில் அமருங்கள். உங்கள் கதையை ஒட்டவும், நொடியில் திரைக்கதை உருவாகும்.",
@@ -616,6 +649,22 @@ const translations: Record<UILang, Record<string, string>> = {
     exportPromptPack: "Prompt Pack ஏற்றுமதி",
     exportCSV: "CSV ஏற்றுமதி",
     exportProductionPkg: "தயாரிப்பு தொகுப்பு",
+    generateAllImages: "அனைத்து படங்களையும் உருவாக்கு",
+    batchImageProgress: "படக்குழு முன்னேற்றம்",
+    batchImageRunning: "படங்களை வரிசையாக உருவாக்குகிறோம்...",
+    batchImageComplete: "அனைத்து படங்களும் தயார்",
+    batchImageCancelled: "படக்குழு ரத்து",
+    batchImageCompleted: "குழு முழுமையானது",
+    batchImageFailed: "சில படங்கள் தோல்வி",
+    batchImageCancel: "ரத்து",
+    batchImageRetry: "தோல்விகளை மீண்டும் முயற்சி",
+    batchImageActive: "காட்சி உருவாக்குகிறோம்",
+    imageHistory: "படக் வரலாறு",
+    imageVersion: "v",
+    favoriteImage: "விருப்பம்",
+    unfavoriteImage: "விருப்பம் நீக்கு",
+    continuityEngineLabel: "தொடர்ச்சி இயந்திரம்",
+    continuityEnhanced: "தொடர்ச்சி மேம்பட்டது",
   },
 };
 
@@ -699,6 +748,26 @@ function LoadingState({ t }: { t: Record<string, string> }) {
 // ─── Image Generation Types ────────────────────────────────────────────────────
 
 type SceneImageStatus = "idle" | "loading" | "success" | "error";
+
+interface SceneImageHistoryEntry {
+  imageUrl: string;
+  imageProvider?: string;
+  generationTime?: number;
+  timestamp: number;
+}
+
+type BatchImageStatus = "idle" | "running" | "completed" | "cancelled" | "failed";
+
+interface BatchImageQueueState {
+  status: BatchImageStatus;
+  completedScenes: number[];
+  failedScenes: number[];
+  queuedScenes: number[];
+  activeScene: number | null;
+  queueProgress: number;
+  estimatedTimeRemaining: number;
+  totalScenes: number;
+}
 // ─── Video Generation Types ────────────────────────────────────────────────────
 
 type SceneVideoStatus = "idle" | "loading" | "success" | "error";
@@ -745,6 +814,7 @@ function Home() {
   const generateImageMutation = useGenerateSceneImage();
   const generateVideoMutation = useGenerateSceneVideo();
   const createMovieExportMutation = useCreateMovieExport();
+  const batchImageMutation = useBatchGenerateImages();
 
   const [story, setStory] = useState("");
   const [storyboard, setStoryboard] = useState<Storyboard | null>(null);
@@ -779,6 +849,39 @@ function Home() {
   });
 
   const [selectedProvider, setSelectedProvider] = useState<ImageProvider>("pollinations");
+
+  // ─── Image History ─────────────────────────────────────────────────
+  const [imageHistory, setImageHistory] = useState<Record<number, SceneImageHistoryEntry[]>>(() => {
+    try {
+      const saved = localStorage.getItem("dreamframe-image-history");
+      if (!saved) return {};
+      return JSON.parse(saved) as Record<number, SceneImageHistoryEntry[]>;
+    } catch {
+      return {};
+    }
+  });
+  const [imageVersionIndex, setImageVersionIndex] = useState<Record<number, number>>({});
+  const [imageFavorites, setImageFavorites] = useState<Record<number, string>>(() => {
+    try {
+      const saved = localStorage.getItem("dreamframe-image-favorites");
+      if (!saved) return {};
+      return JSON.parse(saved) as Record<number, string>;
+    } catch {
+      return {};
+    }
+  });
+
+  // ─── Batch Image Queue ─────────────────────────────────────────────
+  const [batchImageQueue, setBatchImageQueue] = useState<BatchImageQueueState>({
+    status: "idle",
+    completedScenes: [],
+    failedScenes: [],
+    queuedScenes: [],
+    activeScene: null,
+    queueProgress: 0,
+    estimatedTimeRemaining: 0,
+    totalScenes: 0,
+  });
 
   const [videoStates, setVideoStates] = useState<Record<number, SceneVideoState>>(() => {
     try {
@@ -900,6 +1003,22 @@ function Home() {
 
   useEffect(() => {
     try {
+      localStorage.setItem("dreamframe-image-history", JSON.stringify(imageHistory));
+    } catch {
+      // localStorage unavailable
+    }
+  }, [imageHistory]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("dreamframe-image-favorites", JSON.stringify(imageFavorites));
+    } catch {
+      // localStorage unavailable
+    }
+  }, [imageFavorites]);
+
+  useEffect(() => {
+    try {
       const toSave: Record<number, SceneVideoState> = {};
       for (const [key, val] of Object.entries(videoStates)) {
         if (val.status === "success" && val.videoUrl) {
@@ -1003,15 +1122,27 @@ function Home() {
       {
         onSuccess: (data) => {
           if (data.imageStatus === "success" && data.imageUrl) {
-            setImageStates(prev => ({
-              ...prev,
-              [sceneNum]: {
-                status: "success",
-                imageUrl: data.imageUrl,
-                imageProvider: data.imageProvider,
-                generationTime: data.generationTime,
-              },
-            }));
+            const newState: SceneImageState = {
+              status: "success",
+              imageUrl: data.imageUrl,
+              imageProvider: data.imageProvider,
+              generationTime: data.generationTime,
+            };
+            setImageStates(prev => ({ ...prev, [sceneNum]: newState }));
+            // Push to history
+            const entry: SceneImageHistoryEntry = {
+              imageUrl: data.imageUrl!,
+              imageProvider: data.imageProvider,
+              generationTime: data.generationTime,
+              timestamp: Date.now(),
+            };
+            setImageHistory(prev => {
+              const existing = prev[sceneNum] ?? [];
+              const updated = [entry, ...existing].slice(0, 10);
+              return { ...prev, [sceneNum]: updated };
+            });
+            // Set version index to newest (0)
+            setImageVersionIndex(prev => ({ ...prev, [sceneNum]: 0 }));
           } else {
             setImageStates(prev => ({
               ...prev,
@@ -1512,6 +1643,159 @@ function Home() {
     );
   };
 
+  // ─── Batch Image Generation with Continuity Engine ────────────────
+  const handleGenerateAllImages = () => {
+    if (!storyboard || storyboard.scenes.length === 0) return;
+    const scenes = storyboard.scenes.filter(s => s.sceneImagePrompt?.sceneImagePrompt);
+    if (scenes.length === 0) return;
+
+    // Build scenes with continuity context from previous scene's memory
+    const batchScenes = scenes.map((scene, idx) => {
+      const prevScene = idx > 0 ? scenes[idx - 1] : undefined;
+      const prevMem = prevScene?.continuityMemory;
+      return {
+        sceneNumber: scene.sceneNumber,
+        sceneImagePrompt: scene.sceneImagePrompt!.sceneImagePrompt,
+        colorPalette: scene.sceneImagePrompt?.colorPalette,
+        cinematicMood: scene.sceneImagePrompt?.cinematicMood,
+        renderStyle: scene.sceneImagePrompt?.renderStyle,
+        visualEngine: scene.sceneImagePrompt?.visualEngine,
+        characterVisualContinuity: scene.sceneImagePrompt?.characterVisualContinuity,
+        // Advanced Continuity Engine: carry state from previous scene
+        previousClothingState: prevMem?.clothingState ?? undefined,
+        previousLightingState: prevMem?.lightingState ?? undefined,
+        previousWeatherState: prevMem?.weatherState ?? undefined,
+        previousEnvironmentState: prevMem?.environmentState ?? undefined,
+        previousEmotionalCarryOver: prevMem?.emotionalCarryOver ?? undefined,
+        previousPoseContext: prevMem ? `Scene ${prevScene!.sceneNumber} continuity state` : undefined,
+      };
+    });
+
+    // Initialize queue state
+    setBatchImageQueue({
+      status: "running",
+      completedScenes: [],
+      failedScenes: [],
+      queuedScenes: batchScenes.map(s => s.sceneNumber),
+      activeScene: null,
+      queueProgress: 0,
+      estimatedTimeRemaining: batchScenes.length * 15,
+      totalScenes: batchScenes.length,
+    });
+
+    // Mark all scenes as loading
+    for (const s of scenes) {
+      setImageStates(prev => ({ ...prev, [s.sceneNumber]: { status: "loading" } }));
+    }
+
+    batchImageMutation.mutate(
+      {
+        data: {
+          storyboardId: storyboard?.storyboardId,
+          scenes: batchScenes,
+          provider: selectedProvider,
+          characterProfiles: storyboard?.characters,
+        },
+      },
+      {
+        onSuccess: () => startBatchImagePolling(),
+        onError: () => {
+          setBatchImageQueue(prev => ({ ...prev, status: "idle" }));
+          for (const s of scenes) {
+            setImageStates(prev => ({ ...prev, [s.sceneNumber]: { status: "idle" } }));
+          }
+        },
+      }
+    );
+  };
+
+  const startBatchImagePolling = () => {
+    const pollInterval = setInterval(() => {
+      fetch(`${API_BASE_URL}/storyboard/batch-generate-images/status`, { method: "GET" })
+        .then(res => res.json())
+        .then((data: {
+          batchGenerationStatus: string;
+          completedScenes: number[];
+          failedScenes: number[];
+          queuedScenes: number[];
+          activeScene: number | null;
+          queueProgress: number;
+          estimatedTimeRemaining: number;
+          sceneResults: Record<number, {
+            imageStatus: string;
+            imageUrl?: string;
+            imageProvider?: string;
+            generationTime?: number;
+            generationError?: string;
+          }>;
+        }) => {
+          setBatchImageQueue(prev => ({
+            ...prev,
+            status: data.batchGenerationStatus as BatchImageStatus,
+            completedScenes: data.completedScenes,
+            failedScenes: data.failedScenes,
+            queuedScenes: data.queuedScenes,
+            activeScene: data.activeScene,
+            queueProgress: data.queueProgress,
+            estimatedTimeRemaining: data.estimatedTimeRemaining,
+          }));
+
+          // Update per-scene image states from results
+          for (const [sceneNumStr, result] of Object.entries(data.sceneResults)) {
+            const sceneNum = Number(sceneNumStr);
+            if (result.imageStatus === "success" && result.imageUrl) {
+              setImageStates(prev => ({
+                ...prev,
+                [sceneNum]: {
+                  status: "success",
+                  imageUrl: result.imageUrl,
+                  imageProvider: result.imageProvider,
+                  generationTime: result.generationTime,
+                },
+              }));
+              // Push to image history
+              const entry: SceneImageHistoryEntry = {
+                imageUrl: result.imageUrl!,
+                imageProvider: result.imageProvider,
+                generationTime: result.generationTime,
+                timestamp: Date.now(),
+              };
+              setImageHistory(prev => {
+                const existing = prev[sceneNum] ?? [];
+                if (existing.some(e => e.imageUrl === result.imageUrl)) return prev;
+                const updated = [entry, ...existing].slice(0, 10);
+                return { ...prev, [sceneNum]: updated };
+              });
+              setImageVersionIndex(prev => ({ ...prev, [sceneNum]: 0 }));
+            } else if (result.imageStatus === "error") {
+              setImageStates(prev => ({
+                ...prev,
+                [sceneNum]: {
+                  status: "error",
+                  imageProvider: result.imageProvider,
+                  generationTime: result.generationTime,
+                  generationError: result.generationError ?? "Generation failed",
+                },
+              }));
+            }
+          }
+
+          if (data.batchGenerationStatus === "completed" || data.batchGenerationStatus === "cancelled") {
+            clearInterval(pollInterval);
+            setTimeout(() => setBatchImageQueue(prev => ({ ...prev, status: "idle" })), 5000);
+          }
+        })
+        .catch(() => {
+          // Silently ignore poll errors
+        });
+    }, 2000);
+  };
+
+  const handleCancelBatchImages = () => {
+    fetch(`${API_BASE_URL}/storyboard/batch-generate-images/cancel`, { method: "POST" });
+    setBatchImageQueue(prev => ({ ...prev, status: "cancelled" }));
+  };
+
   const t = translations[uiLanguage];
 
   const uiLangOptions: { value: UILang; label: string }[] = [
@@ -1891,17 +2175,77 @@ function Home() {
                   <Clapperboard className="w-6 h-6 text-primary" />
                   <h3 className="text-2xl font-semibold">{t.scenesTitle}</h3>
                 </div>
-                <Button
-                  size="sm"
-                  onClick={handleGenerateAllVideos}
-                  disabled={!storyboard || storyboard.scenes.length === 0 || videoQueue.status === "running"}
-                  className="bg-gradient-to-r from-cyan-700 to-indigo-600 hover:from-cyan-600 hover:to-indigo-500 text-white border-0 text-xs font-semibold gap-1.5"
-                >
-                  <Film className="w-3.5 h-3.5" />
-                  {t.generateAllVideos}
-                </Button>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Button
+                    size="sm"
+                    onClick={handleGenerateAllImages}
+                    disabled={!storyboard || storyboard.scenes.length === 0 || batchImageQueue.status === "running"}
+                    className="bg-gradient-to-r from-fuchsia-700 to-fuchsia-500 hover:from-fuchsia-600 hover:to-fuchsia-400 text-white border-0 text-xs font-semibold gap-1.5"
+                  >
+                    <ImageIcon className="w-3.5 h-3.5" />
+                    {t.generateAllImages}
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={handleGenerateAllVideos}
+                    disabled={!storyboard || storyboard.scenes.length === 0 || videoQueue.status === "running"}
+                    className="bg-gradient-to-r from-cyan-700 to-indigo-600 hover:from-cyan-600 hover:to-indigo-500 text-white border-0 text-xs font-semibold gap-1.5"
+                  >
+                    <Film className="w-3.5 h-3.5" />
+                    {t.generateAllVideos}
+                  </Button>
+                </div>
               </div>
-              {/* Batch queue status panel */}
+
+              {/* Batch Image Queue status panel */}
+              {batchImageQueue.status !== "idle" && (
+                <div className="rounded-lg bg-fuchsia-950/20 border border-fuchsia-400/15 px-4 py-3 space-y-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-xs text-fuchsia-200/70 font-medium">
+                      {batchImageQueue.status === "cancelled" ? t.batchImageCancelled
+                        : batchImageQueue.status === "completed" ? t.batchImageCompleted
+                        : t.batchImageProgress}
+                    </span>
+                    <span className="text-[9px] text-fuchsia-400/40 tabular-nums">
+                      {batchImageQueue.completedScenes.length} / {batchImageQueue.totalScenes}
+                    </span>
+                  </div>
+                  <div className="h-1 rounded-full bg-fuchsia-950/40 overflow-hidden">
+                    <div
+                      className="h-full bg-gradient-to-r from-fuchsia-500 to-fuchsia-300 rounded-full transition-all duration-500"
+                      style={{ width: `${batchImageQueue.queueProgress}%` }}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-3 text-[9px] text-fuchsia-400/40">
+                      {batchImageQueue.activeScene != null && (
+                        <span className="flex items-center gap-1">
+                          <Loader2 className="w-2.5 h-2.5 animate-spin" />
+                          {t.batchImageActive} {batchImageQueue.activeScene}
+                        </span>
+                      )}
+                      {batchImageQueue.estimatedTimeRemaining > 0 && batchImageQueue.status === "running" && (
+                        <span>{Math.ceil(batchImageQueue.estimatedTimeRemaining)}s {t.batchRemaining}</span>
+                      )}
+                      {batchImageQueue.failedScenes.length > 0 && (
+                        <span className="text-red-400/60">{batchImageQueue.failedScenes.length} failed</span>
+                      )}
+                    </div>
+                    {batchImageQueue.status === "running" && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={handleCancelBatchImages}
+                        className="h-6 px-2 text-[9px] border-fuchsia-400/20 text-fuchsia-300/60 hover:bg-fuchsia-950/30"
+                      >
+                        {t.batchImageCancel}
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Batch Video queue status panel */}
               {videoQueue.status !== "idle" && (
                 <div className="rounded-lg bg-cyan-950/20 border border-cyan-400/15 px-4 py-3 space-y-2">
                   <div className="flex items-center justify-between gap-2">
@@ -2569,61 +2913,132 @@ function Home() {
                             )}
 
                             {/* Success state: show image */}
-                            {imgState?.status === "success" && imgState.imageUrl && (
-                              <div className="space-y-2">
-                                <div className="relative rounded-xl overflow-hidden border border-fuchsia-400/20 bg-fuchsia-950/10 group">
-                                  <img
-                                    src={imgState.imageUrl}
-                                    alt={`Scene ${sceneNum} generated image`}
-                                    className="w-full object-cover max-h-72 rounded-xl"
-                                    loading="eager"
-                                    onError={(e) => {
-                                      const el = e.currentTarget;
-                                      el.style.opacity = "0.3";
-                                      el.title = "Image failed to load — try regenerating";
-                                    }}
-                                  />
-                                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors" />
-                                </div>
-                                <div className="flex flex-wrap items-center justify-between gap-2">
-                                  <div className="flex items-center gap-2">
-                                    {imgState.imageProvider && (
-                                      <Badge className="text-[9px] bg-fuchsia-950/30 text-fuchsia-300/70 border-fuchsia-400/20 gap-1">
-                                        <span className="text-fuchsia-500/50">{t.providerLabel}</span> {imgState.imageProvider}
-                                      </Badge>
-                                    )}
-                                    {imgState.generationTime !== undefined && (
-                                      <span className="text-[9px] text-fuchsia-400/40">{t.generatedIn} {imgState.generationTime.toFixed(1)}{t.seconds}</span>
+                            {imgState?.status === "success" && imgState.imageUrl && (() => {
+                              const history = imageHistory[sceneNum] ?? [];
+                              const versionIdx = imageVersionIndex[sceneNum] ?? 0;
+                              const isFavorited = imageFavorites[sceneNum] === imgState.imageUrl;
+                              const displayUrl = history.length > 0 ? (history[versionIdx]?.imageUrl ?? imgState.imageUrl) : imgState.imageUrl;
+                              return (
+                                <div className="space-y-2">
+                                  <div className="relative rounded-xl overflow-hidden border border-fuchsia-400/20 bg-fuchsia-950/10 group">
+                                    <img
+                                      src={displayUrl}
+                                      alt={`Scene ${sceneNum} generated image`}
+                                      className="w-full object-cover max-h-72 rounded-xl"
+                                      loading="eager"
+                                      onError={(e) => {
+                                        const el = e.currentTarget;
+                                        el.style.opacity = "0.3";
+                                        el.title = "Image failed to load — try regenerating";
+                                      }}
+                                    />
+                                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors" />
+                                    {/* Favorite badge overlay */}
+                                    {isFavorited && (
+                                      <div className="absolute top-2 right-2 flex items-center gap-1 bg-yellow-500/90 text-black text-[8px] font-bold px-1.5 py-0.5 rounded-full">
+                                        <Star className="w-2.5 h-2.5" /> {t.favoriteImage}
+                                      </div>
                                     )}
                                   </div>
-                                  <div className="flex items-center gap-2">
-                                    <div className="relative">
-                                      <select
-                                        value={selectedProvider}
-                                        onChange={(e) => setSelectedProvider(e.target.value as ImageProvider)}
-                                        className="appearance-none bg-fuchsia-950/15 border border-fuchsia-400/15 rounded-md px-2 py-1 text-[10px] text-fuchsia-200/60 cursor-pointer hover:border-fuchsia-400/30 focus:outline-none pr-5"
-                                      >
-                                        {IMAGE_PROVIDERS.map((p) => (
-                                          <option key={p.value} value={p.value} className="bg-background text-foreground">
-                                            {p.label}
-                                          </option>
-                                        ))}
-                                      </select>
-                                      <ChevronDown className="absolute right-1.5 top-1/2 -translate-y-1/2 w-2.5 h-2.5 text-fuchsia-400/40 pointer-events-none" />
+                                  <div className="flex flex-wrap items-center justify-between gap-2">
+                                    <div className="flex items-center gap-2">
+                                      {imgState.imageProvider && (
+                                        <Badge className="text-[9px] bg-fuchsia-950/30 text-fuchsia-300/70 border-fuchsia-400/20 gap-1">
+                                          <span className="text-fuchsia-500/50">{t.providerLabel}</span> {imgState.imageProvider}
+                                        </Badge>
+                                      )}
+                                      {imgState.generationTime !== undefined && (
+                                        <span className="text-[9px] text-fuchsia-400/40">{t.generatedIn} {imgState.generationTime.toFixed(1)}{t.seconds}</span>
+                                      )}
                                     </div>
-                                    <Button
-                                      size="sm"
-                                      variant="outline"
-                                      onClick={() => handleGenerateImage(scene)}
-                                      className="h-7 px-2 text-[10px] border-fuchsia-400/20 text-fuchsia-300/60 hover:bg-fuchsia-950/30 hover:text-fuchsia-200 gap-1"
-                                    >
-                                      <RefreshCw className="w-3 h-3" />
-                                      {t.regenerateImage}
-                                    </Button>
+                                    <div className="flex items-center gap-2">
+                                      {/* Favorite toggle */}
+                                      <button
+                                        onClick={() => setImageFavorites(prev => ({
+                                          ...prev,
+                                          [sceneNum]: isFavorited ? "" : (displayUrl ?? ""),
+                                        }))}
+                                        className={`h-7 w-7 flex items-center justify-center rounded-md border transition-colors ${isFavorited ? "border-yellow-400/40 bg-yellow-500/20 text-yellow-300" : "border-fuchsia-400/20 text-fuchsia-400/40 hover:text-yellow-300 hover:border-yellow-400/30"}`}
+                                        title={isFavorited ? t.unfavoriteImage : t.favoriteImage}
+                                      >
+                                        <Star className="w-3.5 h-3.5" />
+                                      </button>
+                                      <div className="relative">
+                                        <select
+                                          value={selectedProvider}
+                                          onChange={(e) => setSelectedProvider(e.target.value as ImageProvider)}
+                                          className="appearance-none bg-fuchsia-950/15 border border-fuchsia-400/15 rounded-md px-2 py-1 text-[10px] text-fuchsia-200/60 cursor-pointer hover:border-fuchsia-400/30 focus:outline-none pr-5"
+                                        >
+                                          {IMAGE_PROVIDERS.map((p) => (
+                                            <option key={p.value} value={p.value} className="bg-background text-foreground">
+                                              {p.label}
+                                            </option>
+                                          ))}
+                                        </select>
+                                        <ChevronDown className="absolute right-1.5 top-1/2 -translate-y-1/2 w-2.5 h-2.5 text-fuchsia-400/40 pointer-events-none" />
+                                      </div>
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={() => handleGenerateImage(scene)}
+                                        className="h-7 px-2 text-[10px] border-fuchsia-400/20 text-fuchsia-300/60 hover:bg-fuchsia-950/30 hover:text-fuchsia-200 gap-1"
+                                      >
+                                        <RefreshCw className="w-3 h-3" />
+                                        {t.regenerateImage}
+                                      </Button>
+                                    </div>
                                   </div>
+                                  {/* ─── Image History Strip ──────────────────────────── */}
+                                  {history.length > 1 && (
+                                    <div className="space-y-1.5">
+                                      <div className="flex items-center justify-between gap-2">
+                                        <div className="flex items-center gap-1.5">
+                                          <BarChart3 className="w-3 h-3 text-fuchsia-400/50" />
+                                          <span className="text-[9px] font-bold uppercase tracking-widest text-fuchsia-400/50">{t.imageHistory}</span>
+                                          <span className="text-[8px] text-fuchsia-400/30 tabular-nums">{history.length} versions</span>
+                                        </div>
+                                        <div className="flex items-center gap-1">
+                                          <button
+                                            onClick={() => setImageVersionIndex(prev => ({ ...prev, [sceneNum]: Math.max(0, (prev[sceneNum] ?? 0) - 1) }))}
+                                            disabled={versionIdx === 0}
+                                            className="w-5 h-5 flex items-center justify-center rounded text-fuchsia-400/50 hover:text-fuchsia-300 disabled:opacity-20 text-xs"
+                                          >‹</button>
+                                          <span className="text-[8px] text-fuchsia-400/40 tabular-nums px-1">{t.imageVersion}{versionIdx + 1}/{history.length}</span>
+                                          <button
+                                            onClick={() => setImageVersionIndex(prev => ({ ...prev, [sceneNum]: Math.min(history.length - 1, (prev[sceneNum] ?? 0) + 1) }))}
+                                            disabled={versionIdx >= history.length - 1}
+                                            className="w-5 h-5 flex items-center justify-center rounded text-fuchsia-400/50 hover:text-fuchsia-300 disabled:opacity-20 text-xs"
+                                          >›</button>
+                                        </div>
+                                      </div>
+                                      <div className="flex gap-1.5 overflow-x-auto pb-1">
+                                        {history.map((entry, hidx) => (
+                                          <button
+                                            key={hidx}
+                                            onClick={() => {
+                                              setImageVersionIndex(prev => ({ ...prev, [sceneNum]: hidx }));
+                                              setImageStates(prev => ({
+                                                ...prev,
+                                                [sceneNum]: { ...prev[sceneNum], imageUrl: entry.imageUrl, imageProvider: entry.imageProvider, generationTime: entry.generationTime, status: "success" },
+                                              }));
+                                            }}
+                                            className={`relative shrink-0 w-14 h-10 rounded-md overflow-hidden border-2 transition-all ${hidx === versionIdx ? "border-fuchsia-400/60 ring-1 ring-fuchsia-400/30" : "border-transparent hover:border-fuchsia-400/30"}`}
+                                            title={`Version ${hidx + 1}${imageFavorites[sceneNum] === entry.imageUrl ? " ★" : ""}`}
+                                          >
+                                            <img src={entry.imageUrl} alt={`v${hidx + 1}`} className="w-full h-full object-cover" />
+                                            {imageFavorites[sceneNum] === entry.imageUrl && (
+                                              <div className="absolute top-0.5 right-0.5 w-2.5 h-2.5 bg-yellow-400 rounded-full flex items-center justify-center">
+                                                <Star className="w-1.5 h-1.5 text-black" />
+                                              </div>
+                                            )}
+                                          </button>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
                                 </div>
-                              </div>
-                            )}
+                              );
+                            })()}
 
                             {/* Error state */}
                             {imgState?.status === "error" && (

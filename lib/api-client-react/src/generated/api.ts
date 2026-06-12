@@ -22,6 +22,8 @@ import type {
 import type {
   ApiError,
   BatchControlResponse,
+  BatchImageGenerationRequest,
+  BatchImageGenerationStatus,
   BatchQueueState,
   BatchVideoGenerationRequest,
   BatchVideoGenerationStatus,
@@ -1016,6 +1018,224 @@ export const useCancelBatchVideoGeneration = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getCancelBatchVideoGenerationMutationOptions(options));
+    }
+
+export const getBatchGenerateImagesUrl = () => {
+
+
+
+
+  return `/api/storyboard/batch-generate-images`
+}
+
+/**
+ * @summary Batch generate images for all storyboard scenes sequentially with continuity engine
+ */
+export const batchGenerateImages = async (batchImageGenerationRequest: BatchImageGenerationRequest, options?: RequestInit): Promise<BatchImageGenerationStatus> => {
+
+  return customFetch<BatchImageGenerationStatus>(getBatchGenerateImagesUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      batchImageGenerationRequest,)
+  }
+);}
+
+
+
+
+export const getBatchGenerateImagesMutationOptions = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof batchGenerateImages>>, TError,{data: BodyType<BatchImageGenerationRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof batchGenerateImages>>, TError,{data: BodyType<BatchImageGenerationRequest>}, TContext> => {
+
+const mutationKey = ['batchGenerateImages'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof batchGenerateImages>>, {data: BodyType<BatchImageGenerationRequest>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  batchGenerateImages(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type BatchGenerateImagesMutationResult = NonNullable<Awaited<ReturnType<typeof batchGenerateImages>>>
+    export type BatchGenerateImagesMutationBody = BodyType<BatchImageGenerationRequest>
+    export type BatchGenerateImagesMutationError = ErrorType<ApiError>
+
+    /**
+ * @summary Batch generate images for all storyboard scenes sequentially with continuity engine
+ */
+export const useBatchGenerateImages = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof batchGenerateImages>>, TError,{data: BodyType<BatchImageGenerationRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof batchGenerateImages>>,
+        TError,
+        {data: BodyType<BatchImageGenerationRequest>},
+        TContext
+      > => {
+      return useMutation(getBatchGenerateImagesMutationOptions(options));
+    }
+
+export const getGetBatchImageStatusUrl = () => {
+
+
+
+
+  return `/api/storyboard/batch-generate-images/status`
+}
+
+/**
+ * @summary Get real-time in-memory batch image generation status
+ */
+export const getBatchImageStatus = async ( options?: RequestInit): Promise<BatchImageGenerationStatus> => {
+
+  return customFetch<BatchImageGenerationStatus>(getGetBatchImageStatusUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetBatchImageStatusQueryKey = () => {
+    return [
+    `/api/storyboard/batch-generate-images/status`
+    ] as const;
+    }
+
+
+export const getGetBatchImageStatusQueryOptions = <TData = Awaited<ReturnType<typeof getBatchImageStatus>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getBatchImageStatus>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetBatchImageStatusQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getBatchImageStatus>>> = ({ signal }) => getBatchImageStatus({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getBatchImageStatus>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetBatchImageStatusQueryResult = NonNullable<Awaited<ReturnType<typeof getBatchImageStatus>>>
+export type GetBatchImageStatusQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Get real-time in-memory batch image generation status
+ */
+
+export function useGetBatchImageStatus<TData = Awaited<ReturnType<typeof getBatchImageStatus>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getBatchImageStatus>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetBatchImageStatusQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getCancelBatchImageGenerationUrl = () => {
+
+
+
+
+  return `/api/storyboard/batch-generate-images/cancel`
+}
+
+/**
+ * @summary Cancel the active batch image generation queue
+ */
+export const cancelBatchImageGeneration = async ( options?: RequestInit): Promise<BatchControlResponse> => {
+
+  return customFetch<BatchControlResponse>(getCancelBatchImageGenerationUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getCancelBatchImageGenerationMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof cancelBatchImageGeneration>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof cancelBatchImageGeneration>>, TError,void, TContext> => {
+
+const mutationKey = ['cancelBatchImageGeneration'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof cancelBatchImageGeneration>>, void> = () => {
+
+
+          return  cancelBatchImageGeneration(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CancelBatchImageGenerationMutationResult = NonNullable<Awaited<ReturnType<typeof cancelBatchImageGeneration>>>
+
+    export type CancelBatchImageGenerationMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Cancel the active batch image generation queue
+ */
+export const useCancelBatchImageGeneration = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof cancelBatchImageGeneration>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof cancelBatchImageGeneration>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getCancelBatchImageGenerationMutationOptions(options));
     }
 
 export const getGetProductionAnalyticsUrl = (params: GetProductionAnalyticsParams,) => {

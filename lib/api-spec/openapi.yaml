@@ -315,6 +315,63 @@ paths:
               schema:
                 $ref: "#/components/schemas/BatchControlResponse"
 
+  /storyboard/batch-generate-images:
+    post:
+      operationId: batchGenerateImages
+      tags: [storyboard]
+      summary: Batch generate images for all storyboard scenes sequentially with continuity engine
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BatchImageGenerationRequest"
+      responses:
+        "200":
+          description: Batch image generation status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BatchImageGenerationStatus"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
+  /storyboard/batch-generate-images/status:
+    get:
+      operationId: getBatchImageStatus
+      tags: [storyboard]
+      summary: Get real-time in-memory batch image generation status
+      responses:
+        "200":
+          description: Live batch image status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BatchImageGenerationStatus"
+
+  /storyboard/batch-generate-images/cancel:
+    post:
+      operationId: cancelBatchImageGeneration
+      tags: [storyboard]
+      summary: Cancel the active batch image generation queue
+      responses:
+        "200":
+          description: Cancel acknowledged
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BatchControlResponse"
+
   /storyboard/analytics:
     get:
       operationId: getProductionAnalytics
@@ -1644,6 +1701,127 @@ components:
         - storyboardId
         - format
         - status
+
+    # ─── Batch Image Generation Schemas ────────────────────────────────────────
+    BatchImageSceneInput:
+      type: object
+      description: Per-scene input for batch image generation with continuity context
+      properties:
+        sceneNumber:
+          type: integer
+        sceneImagePrompt:
+          type: string
+        colorPalette:
+          type: string
+        cinematicMood:
+          type: string
+        renderStyle:
+          type: string
+        visualEngine:
+          type: string
+        characterVisualContinuity:
+          type: string
+        previousClothingState:
+          type: array
+          items:
+            type: string
+          description: Clothing state carried from previous scene for continuity
+        previousLightingState:
+          type: string
+          description: Lighting state carried from previous scene
+        previousWeatherState:
+          type: string
+          description: Weather state carried from previous scene
+        previousEnvironmentState:
+          type: string
+          description: Environment state carried from previous scene
+        previousEmotionalCarryOver:
+          type: array
+          items:
+            type: string
+          description: Emotional states carried from previous scene
+        previousPoseContext:
+          type: string
+          description: Character pose context from previous scene for pose continuity
+      required:
+        - sceneNumber
+        - sceneImagePrompt
+
+    BatchImageGenerationRequest:
+      type: object
+      description: Request to batch generate images for all storyboard scenes sequentially
+      properties:
+        storyboardId:
+          type: string
+        scenes:
+          type: array
+          items:
+            $ref: "#/components/schemas/BatchImageSceneInput"
+        provider:
+          $ref: "#/components/schemas/ImageProvider"
+        characterProfiles:
+          type: array
+          items:
+            $ref: "#/components/schemas/CharacterProfile"
+      required:
+        - scenes
+
+    BatchImageGenerationStatus:
+      type: object
+      description: Real-time status of batch image generation
+      properties:
+        batchGenerationStatus:
+          type: string
+          enum: [idle, running, completed, cancelled, failed]
+          description: Current queue status
+        completedScenes:
+          type: array
+          items:
+            type: integer
+          description: Scene numbers that successfully generated
+        failedScenes:
+          type: array
+          items:
+            type: integer
+          description: Scene numbers that failed
+        queuedScenes:
+          type: array
+          items:
+            type: integer
+          description: Scene numbers waiting in queue
+        activeScene:
+          type: integer
+          description: Scene currently being generated
+        queueProgress:
+          type: number
+          minimum: 0
+          maximum: 100
+          description: Overall queue progress percentage
+        estimatedTimeRemaining:
+          type: number
+          description: Estimated remaining time in seconds
+        sceneResults:
+          type: object
+          description: Per-scene results keyed by sceneNumber
+          additionalProperties:
+            type: object
+            properties:
+              imageStatus:
+                type: string
+              imageUrl:
+                type: string
+              imageProvider:
+                type: string
+              generationTime:
+                type: number
+              generationError:
+                type: string
+      required:
+        - batchGenerationStatus
+        - completedScenes
+        - failedScenes
+        - queuedScenes
+        - queueProgress
 
     ApiError:
       type: object
