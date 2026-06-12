@@ -38,7 +38,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { motion, AnimatePresence } from "framer-motion";
-import { Film, Sparkles, User, Clapperboard, RotateCcw, Video, Brain, Settings2, ChevronDown, Eye, Zap, Fingerprint, Clock, Moon, Lightbulb, ArrowLeftRight, BookOpen, MessageSquare, Swords, Heart, Music, Volume2, Waves, Mic2, Palette, CheckCircle2, AlertTriangle, XCircle, Trophy, ScrollText, Radio, Camera, Layers, BarChart3, Star, TrendingDown, Loader2, RefreshCw, ImageIcon, Wand2, Download } from "lucide-react";
+import { Film, Sparkles, User, Clapperboard, RotateCcw, Video, Brain, Settings2, ChevronDown, Eye, Zap, Fingerprint, Clock, Moon, Lightbulb, ArrowLeftRight, BookOpen, MessageSquare, Swords, Heart, Music, Volume2, Waves, Mic2, Palette, CheckCircle2, AlertTriangle, XCircle, Trophy, ScrollText, Radio, Camera, Layers, BarChart3, Star, TrendingDown, Loader2, RefreshCw, ImageIcon, Wand2, Download, FileText, Package, Activity, List, Link2 } from "lucide-react";
 
 const queryClient = new QueryClient();
 
@@ -223,6 +223,25 @@ const translations: Record<UILang, Record<string, string>> = {
     movieExportMusic: "Background Music",
     movieExportVoice: "Voiceover",
     movieExportEffects: "Sound Effects",
+    continuityPanel: "Character Continuity",
+    continuityMatrix: "Continuity Matrix",
+    clothingState: "Clothing",
+    injuryState: "Injuries",
+    timeOfDayState: "Time of Day",
+    weatherState: "Weather",
+    environmentContinuity: "Environment",
+    productionInsights: "Production Insights",
+    fullShotList: "Full Shot List",
+    scenePacingLabel: "Scene Pacing",
+    transitionPlanLabel: "Transition Plan",
+    actingNotesLabel: "Character Acting Notes",
+    avgTension: "Avg. Tension",
+    peakTension: "Peak Scene",
+    clientExportsLabel: "Download Data",
+    exportJSON: "Export JSON",
+    exportPromptPack: "Export Prompt Pack",
+    exportCSV: "Export CSV",
+    exportProductionPkg: "Export Production Package",
   },
   si: {
     subtitle: "අධ්‍යක්ෂකගේ පුටුවට ඇතුළු වන්න. ඔබේ කතාව ඇතුළු කර ක්ෂණිකව ස්ටෝරිබෝර්ඩ් එකක් ලබා ගන්න.",
@@ -391,6 +410,25 @@ const translations: Record<UILang, Record<string, string>> = {
     movieExportMusic: "ප‍සුබ‍ර‍බ‍ම සංගීතය",
     movieExportVoice: "අවඥාන හඬ",
     movieExportEffects: "ධ‍වනි ප‍ර‍බ‍වයන්",
+    continuityPanel: "චරිත අඛණ්ඩතාව",
+    continuityMatrix: "අඛණ්ඩතා න්‍යාසය",
+    clothingState: "ඇඳුම",
+    injuryState: "තුවාල",
+    timeOfDayState: "දිනය",
+    weatherState: "කාලගුණය",
+    environmentContinuity: "පරිසරය",
+    productionInsights: "නිෂ්පාදන තොරතුරු",
+    fullShotList: "සම්පූර්ණ රූ ලැයිස්තුව",
+    scenePacingLabel: "දර්ශන ගමන",
+    transitionPlanLabel: "සංක්‍රමණ සැලැස්ම",
+    actingNotesLabel: "නළු සටහන්",
+    avgTension: "මාධ්‍ය ආතතිය",
+    peakTension: "ශිඛර දර්ශනය",
+    clientExportsLabel: "දත්ත බාගත කරන්න",
+    exportJSON: "JSON අපනයනය",
+    exportPromptPack: "Prompt Pack අපනයනය",
+    exportCSV: "CSV අපනයනය",
+    exportProductionPkg: "නිෂ්පාදන පැකේජය",
   },
   ta: {
     subtitle: "இயக்குனரின் இருக்கையில் அமருங்கள். உங்கள் கதையை ஒட்டவும், நொடியில் திரைக்கதை உருவாகும்.",
@@ -559,6 +597,25 @@ const translations: Record<UILang, Record<string, string>> = {
     movieExportMusic: "பின்னணி இசை",
     movieExportVoice: "குரல்",
     movieExportEffects: "ஒலி பழங்கள்",
+    continuityPanel: "கதாபாத்திர தொடர்ச்சி",
+    continuityMatrix: "தொடர்ச்சி அட்டவணை",
+    clothingState: "உடை",
+    injuryState: "காயங்கள்",
+    timeOfDayState: "நாள் நேரம்",
+    weatherState: "வானிலை",
+    environmentContinuity: "சூழல்",
+    productionInsights: "தயாரிப்பு நுண்ணறிவு",
+    fullShotList: "முழு ஷாட் பட்டியல்",
+    scenePacingLabel: "காட்சி வேகம்",
+    transitionPlanLabel: "மாற்ற திட்டம்",
+    actingNotesLabel: "நடிப்பு குறிப்புகள்",
+    avgTension: "சராசரி பதற்றம்",
+    peakTension: "உச்ச காட்சி",
+    clientExportsLabel: "தரவு பதிவிறக்க",
+    exportJSON: "JSON ஏற்றுமதி",
+    exportPromptPack: "Prompt Pack ஏற்றுமதி",
+    exportCSV: "CSV ஏற்றுமதி",
+    exportProductionPkg: "தயாரிப்பு தொகுப்பு",
   },
 };
 
@@ -748,6 +805,84 @@ function Home() {
   const [movieExportVoice, setMovieExportVoice] = useState<boolean>(false);
   const [movieExportEffects, setMovieExportEffects] = useState<boolean>(true);
   const [movieExportState, setMovieExportState] = useState<{ status: string; progress: number; exportUrl?: string; exportError?: string } | null>(null);
+  const [continuityPanelOpen, setContinuityPanelOpen] = useState(false);
+  const [insightsPanelOpen, setInsightsPanelOpen] = useState(false);
+
+  const downloadBlob = (content: string, filename: string, mimeType: string) => {
+    const blob = new Blob([content], { type: mimeType });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const downloadJSON = (sb: Storyboard) => {
+    downloadBlob(JSON.stringify(sb, null, 2), `${sb.title ?? "storyboard"}.json`, "application/json");
+  };
+
+  const downloadPromptPack = (sb: Storyboard) => {
+    const lines: string[] = [`# ${sb.title ?? "Storyboard"} — Cinematic Prompt Pack\n\n`];
+    for (const scene of sb.scenes) {
+      lines.push(`## Scene ${scene.sceneNumber}: ${scene.title ?? ""}\n`);
+      lines.push(`**Type:** ${scene.sceneType}  |  **Setting:** ${scene.setting ?? ""}\n\n`);
+      if (scene.sceneImagePrompt?.sceneImagePrompt) {
+        lines.push(`### Image Prompt\n${scene.sceneImagePrompt.sceneImagePrompt}\n\n`);
+      }
+      if (scene.directorNote) {
+        lines.push(`### Director's Note\n${scene.directorNote}\n\n`);
+      }
+      if (scene.cinematicCamera) {
+        const cc = scene.cinematicCamera;
+        lines.push(`### Camera Direction\n`);
+        if (cc.shotType) lines.push(`- Shot Type: ${cc.shotType}\n`);
+        if (cc.cameraAngle) lines.push(`- Angle: ${cc.cameraAngle}\n`);
+        if (cc.cameraMovement) lines.push(`- Movement: ${cc.cameraMovement}\n`);
+        if (cc.lightingStyle) lines.push(`- Lighting: ${cc.lightingStyle}\n`);
+        lines.push("\n");
+      }
+      lines.push("---\n\n");
+    }
+    downloadBlob(lines.join(""), `${sb.title ?? "storyboard"}-prompts.md`, "text/markdown");
+  };
+
+  const downloadCSV = (sb: Storyboard) => {
+    const headers = ["Scene", "Type", "Title", "Setting", "Shot Type", "Camera Movement", "Lighting Style", "Tension", "Image Prompt"];
+    const rows = sb.scenes.map(s => [
+      s.sceneNumber,
+      s.sceneType,
+      `"${(s.title ?? "").replace(/"/g, '""')}"`,
+      `"${(s.setting ?? "").replace(/"/g, '""')}"`,
+      s.cinematicCamera?.shotType ?? "",
+      s.cinematicCamera?.cameraMovement ?? "",
+      s.cinematicCamera?.lightingStyle ?? "",
+      s.tensionAnalysis?.emotionalIntensity ?? "",
+      `"${(s.sceneImagePrompt?.sceneImagePrompt ?? "").replace(/"/g, '""').slice(0, 200)}"`,
+    ]);
+    const csv = [headers, ...rows].map(r => r.join(",")).join("\n");
+    downloadBlob(csv, `${sb.title ?? "storyboard"}-scenes.csv`, "text/csv");
+  };
+
+  const downloadProductionPkg = (sb: Storyboard) => {
+    const pkg = {
+      meta: { title: sb.title, genre: sb.genre, logline: sb.logline, storyboardId: sb.storyboardId, exportedAt: new Date().toISOString() },
+      characters: sb.characters,
+      scenes: sb.scenes.map(s => ({
+        sceneNumber: s.sceneNumber, sceneType: s.sceneType, title: s.title, setting: s.setting,
+        imagePrompt: s.sceneImagePrompt?.sceneImagePrompt,
+        directorNote: s.directorNote,
+        camera: s.cinematicCamera,
+        continuityMemory: s.continuityMemory,
+        shotList: s.shotList,
+        tensionAnalysis: s.tensionAnalysis,
+      })),
+      shotList: sb.scenes.flatMap(s => (s.shotList ?? []).map(sh => ({ ...sh, sceneNumber: s.sceneNumber }))),
+      productionScore: sb.productionScore,
+      movieReadinessReport: sb.movieReadinessReport,
+    };
+    downloadBlob(JSON.stringify(pkg, null, 2), `${sb.title ?? "storyboard"}-production-package.json`, "application/json");
+  };
 
   useEffect(() => {
     try {
@@ -1653,6 +1788,101 @@ function Home() {
                 ))}
               </div>
             </motion.div>
+
+            {/* Character Continuity Panel */}
+            {storyboard.scenes.some(s => s.continuityMemory || s.continuityCheck) && (
+              <motion.div variants={itemVariants} className="space-y-4">
+                <button
+                  onClick={() => setContinuityPanelOpen(p => !p)}
+                  className="w-full flex items-center justify-between gap-3 text-left"
+                >
+                  <div className="flex items-center gap-3">
+                    <Link2 className="w-6 h-6 text-teal-400" />
+                    <h3 className="text-2xl font-semibold">{t.continuityPanel}</h3>
+                    <Badge className="bg-teal-400/15 text-teal-300 border-teal-400/20 text-xs">
+                      {storyboard.scenes.filter(s => s.continuityMemory).length} scenes tracked
+                    </Badge>
+                  </div>
+                  <ChevronDown className={`w-5 h-5 text-teal-400/50 transition-transform duration-200 ${continuityPanelOpen ? "rotate-180" : ""}`} />
+                </button>
+                {continuityPanelOpen && (
+                  <div className="space-y-5">
+                    {/* Continuity Matrix */}
+                    {storyboard.scenes.some(s => s.continuityMemory) && (
+                      <div className="overflow-x-auto rounded-xl border border-teal-400/10 bg-card/40 backdrop-blur-md">
+                        <table className="w-full text-xs min-w-[600px]">
+                          <thead>
+                            <tr className="border-b border-teal-400/10">
+                              <th className="px-4 py-3 text-left text-teal-400/50 font-bold uppercase tracking-wider whitespace-nowrap">Scene</th>
+                              {storyboard.characters.slice(0, 4).map((c, ci) => (
+                                <th key={ci} className="px-4 py-3 text-left text-teal-400/50 font-bold uppercase tracking-wider whitespace-nowrap">{c.name.split(" ")[0]}</th>
+                              ))}
+                              <th className="px-4 py-3 text-left text-teal-400/50 font-bold uppercase tracking-wider">{t.weatherState}</th>
+                              <th className="px-4 py-3 text-left text-teal-400/50 font-bold uppercase tracking-wider">{t.timeOfDayState}</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {storyboard.scenes.filter(s => s.continuityMemory).map((scene, si) => {
+                              const cm = scene.continuityMemory!;
+                              return (
+                                <tr key={si} className={`border-b border-teal-400/5 ${si % 2 === 0 ? "bg-teal-950/5" : ""}`}>
+                                  <td className="px-4 py-3 text-teal-300/70 font-mono font-semibold whitespace-nowrap">
+                                    S{scene.sceneNumber.toString().padStart(2, "0")}
+                                    <span className="text-teal-400/30 ml-1.5 text-[9px] font-normal">{scene.sceneType}</span>
+                                  </td>
+                                  {storyboard.characters.slice(0, 4).map((char, ci) => {
+                                    const firstName = char.name.split(" ")[0].toLowerCase();
+                                    const clothingArr = cm.clothingState ?? [];
+                                    const entry = clothingArr.find((c: string) => c.toLowerCase().includes(firstName));
+                                    return (
+                                      <td key={ci} className="px-4 py-3 text-white/45 max-w-[160px] leading-tight text-[10px]">
+                                        {entry ?? <span className="text-white/15">—</span>}
+                                      </td>
+                                    );
+                                  })}
+                                  <td className="px-4 py-3 text-white/45 text-[10px]">{cm.weatherState ?? <span className="text-white/15">—</span>}</td>
+                                  <td className="px-4 py-3 text-white/45 text-[10px]">{cm.timeOfDay ?? <span className="text-white/15">—</span>}</td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+
+                    {/* Continuity check badges */}
+                    {storyboard.scenes.some(s => s.continuityCheck) && (
+                      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                        {storyboard.scenes.filter(s => s.continuityCheck).map((scene, i) => {
+                          const cc = scene.continuityCheck!;
+                          const status = cc.status;
+                          const issues = cc.issues ?? [];
+                          const colorMap: Record<string, string> = {
+                            Pass: "border-emerald-400/15 bg-emerald-950/10 text-emerald-300",
+                            Warning: "border-yellow-400/15 bg-yellow-950/10 text-yellow-300",
+                            Fail: "border-red-400/15 bg-red-950/10 text-red-300",
+                          };
+                          const color = colorMap[status] ?? colorMap["Warning"];
+                          return (
+                            <div key={i} className={`rounded-lg border px-3 py-2.5 space-y-1 ${color}`}>
+                              <div className="flex items-center justify-between gap-2">
+                                <span className="text-[9px] font-mono opacity-60">Scene {scene.sceneNumber}</span>
+                                <span className="text-[8px] font-bold uppercase tracking-wider opacity-70">
+                                  {status === "Pass" ? t.continuityPass : status === "Warning" ? t.continuityWarning : t.continuityFail}
+                                </span>
+                              </div>
+                              {issues.slice(0, 2).map((issue: string, ii: number) => (
+                                <p key={ii} className="text-[9px] opacity-60 leading-snug">• {issue}</p>
+                              ))}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </motion.div>
+            )}
 
             {/* Scenes */}
             <motion.div variants={itemVariants} className="space-y-6">
@@ -2811,6 +3041,153 @@ function Home() {
               </div>
             </motion.div>
 
+            {/* Production Insights Panel */}
+            {storyboard.scenes.length > 0 && (
+              <motion.div variants={itemVariants} className="space-y-4">
+                <button
+                  onClick={() => setInsightsPanelOpen(p => !p)}
+                  className="w-full flex items-center justify-between gap-3 text-left"
+                >
+                  <div className="flex items-center gap-3">
+                    <Activity className="w-6 h-6 text-orange-400" />
+                    <h3 className="text-2xl font-semibold">{t.productionInsights}</h3>
+                  </div>
+                  <ChevronDown className={`w-5 h-5 text-orange-400/50 transition-transform duration-200 ${insightsPanelOpen ? "rotate-180" : ""}`} />
+                </button>
+                {insightsPanelOpen && (
+                  <div className="space-y-5">
+
+                    {/* Scene Pacing / Tension Bar Chart */}
+                    {storyboard.scenes.some(s => s.tensionAnalysis?.emotionalIntensity !== undefined) && (
+                      <Card className="bg-card/60 backdrop-blur-md border-orange-400/10 overflow-hidden">
+                        <CardContent className="p-5 space-y-3">
+                          <div className="flex items-center gap-2 mb-3">
+                            <Activity className="w-3.5 h-3.5 text-orange-400" />
+                            <span className="text-[10px] font-bold uppercase tracking-widest text-orange-400">{t.scenePacingLabel}</span>
+                          </div>
+                          <div className="flex items-end gap-1 h-20">
+                            {storyboard.scenes.map((scene, i) => {
+                              const intensity = scene.tensionAnalysis?.emotionalIntensity ?? 5;
+                              const pct = Math.max(6, Math.min(100, (intensity / 10) * 100));
+                              const sceneType = scene.sceneType;
+                              const barColor = sceneType === "Flashback" ? "from-amber-600/60 to-amber-400/40" :
+                                sceneType === "Dream" ? "from-violet-600/60 to-violet-400/40" :
+                                sceneType === "Imagination" ? "from-sky-600/60 to-sky-400/40" :
+                                "from-orange-600/60 to-orange-400/40";
+                              return (
+                                <div key={i} className="flex-1 flex flex-col items-center gap-1 group cursor-default" title={`Scene ${scene.sceneNumber}: intensity ${intensity}/10${scene.tensionAnalysis?.tensionCurve ? ` — ${scene.tensionAnalysis.tensionCurve}` : ""}`}>
+                                  <div className={`w-full rounded-sm bg-gradient-to-t ${barColor} transition-all group-hover:brightness-125`} style={{ height: `${pct}%` }} />
+                                  <span className="text-[7px] text-white/25 tabular-nums">{scene.sceneNumber}</span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                          {(() => {
+                            const scores = storyboard.scenes.map(s => s.tensionAnalysis?.emotionalIntensity ?? 0).filter(n => n > 0);
+                            if (scores.length === 0) return null;
+                            const avg = (scores.reduce((a, b) => a + b, 0) / scores.length).toFixed(1);
+                            const peak = storyboard.scenes.reduce((best, s) =>
+                              (s.tensionAnalysis?.emotionalIntensity ?? 0) > (best.tensionAnalysis?.emotionalIntensity ?? 0) ? s : best,
+                              storyboard.scenes[0]
+                            );
+                            return (
+                              <div className="flex items-center gap-5 text-[9px] text-orange-400/40 pt-1">
+                                <span>{t.avgTension}: <span className="text-orange-300/50">{avg}/10</span></span>
+                                <span>{t.peakTension}: <span className="text-orange-300/50">Scene {peak.sceneNumber}</span></span>
+                              </div>
+                            );
+                          })()}
+                        </CardContent>
+                      </Card>
+                    )}
+
+                    {/* Full Shot List */}
+                    {storyboard.scenes.some(s => s.shotList && s.shotList.length > 0) && (
+                      <Card className="bg-card/60 backdrop-blur-md border-white/5 overflow-hidden">
+                        <CardContent className="p-5 space-y-3">
+                          <div className="flex items-center gap-2">
+                            <List className="w-3.5 h-3.5 text-sky-400" />
+                            <span className="text-[10px] font-bold uppercase tracking-widest text-sky-400">{t.fullShotList}</span>
+                            <span className="text-[9px] text-sky-400/30 tabular-nums">
+                              {storyboard.scenes.reduce((n, s) => n + (s.shotList?.length ?? 0), 0)} shots
+                            </span>
+                          </div>
+                          <div className="divide-y divide-white/[0.03]">
+                            {storyboard.scenes.flatMap((scene, si) =>
+                              (scene.shotList ?? []).map((shot: ShotListItem, shi: number) => (
+                                <div key={`${si}-${shi}`} className="flex items-start gap-3 py-2">
+                                  <span className="text-[9px] font-mono text-sky-400/35 shrink-0 pt-0.5 w-14">
+                                    S{scene.sceneNumber.toString().padStart(2, "0")}.{(shi + 1).toString().padStart(2, "0")}
+                                  </span>
+                                  <div className="flex-1 min-w-0 space-y-0.5">
+                                    <div className="flex flex-wrap gap-1">
+                                      {shot.shotNumber && <span className="text-[8px] font-bold text-sky-300/50 font-mono">#{shot.shotNumber}</span>}
+                                      {shot.transitionType && <span className="text-[8px] text-sky-300/40 bg-sky-950/15 border border-sky-400/8 px-1.5 py-0.5 rounded">{shot.transitionType}</span>}
+                                      {shot.estimatedDuration && <span className="text-[8px] text-sky-300/30 font-mono">{shot.estimatedDuration}</span>}
+                                    </div>
+                                    {shot.shotDescription && <p className="text-[10px] text-white/35 leading-snug">{shot.shotDescription}</p>}
+                                    {shot.shotPurpose && <p className="text-[9px] text-white/20 leading-snug italic">{shot.shotPurpose}</p>}
+                                  </div>
+                                </div>
+                              ))
+                            )}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )}
+
+                    {/* Transition Plan */}
+                    {storyboard.scenes.some(s => s.transitionIn || s.returnToPresent) && (
+                      <Card className="bg-card/60 backdrop-blur-md border-white/5 overflow-hidden">
+                        <CardContent className="p-5 space-y-3">
+                          <div className="flex items-center gap-2">
+                            <ArrowLeftRight className="w-3.5 h-3.5 text-violet-400" />
+                            <span className="text-[10px] font-bold uppercase tracking-widest text-violet-400">{t.transitionPlanLabel}</span>
+                          </div>
+                          <div className="divide-y divide-white/[0.03]">
+                            {storyboard.scenes.filter(s => s.transitionIn || s.returnToPresent).map((scene, i) => (
+                              <div key={i} className="flex items-start gap-3 py-2">
+                                <span className="text-[9px] font-mono text-violet-400/35 shrink-0 pt-0.5 w-10">S{scene.sceneNumber.toString().padStart(2, "0")}</span>
+                                <div className="flex-1 space-y-1">
+                                  {scene.transitionIn && <p className="text-[10px] text-violet-200/50 leading-snug"><span className="text-violet-400/40 mr-1">↳</span>{scene.transitionIn}</p>}
+                                  {scene.returnToPresent && <p className="text-[10px] text-violet-200/35 leading-snug"><span className="text-violet-400/30 mr-1">↵</span>{scene.returnToPresent}</p>}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )}
+
+                    {/* Character Acting Notes */}
+                    {storyboard.scenes.some(s => (s.characterActions ?? []).length > 0) && (
+                      <Card className="bg-card/60 backdrop-blur-md border-white/5 overflow-hidden">
+                        <CardContent className="p-5 space-y-3">
+                          <div className="flex items-center gap-2">
+                            <User className="w-3.5 h-3.5 text-emerald-400" />
+                            <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-400">{t.actingNotesLabel}</span>
+                          </div>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            {storyboard.scenes.filter(s => (s.characterActions ?? []).length > 0).map((scene, i) => (
+                              <div key={i} className="rounded-lg border border-emerald-400/8 bg-emerald-950/8 px-3 py-2.5 space-y-1.5">
+                                <span className="text-[9px] font-mono text-emerald-400/40">Scene {scene.sceneNumber}</span>
+                                {(scene.characterActions ?? []).map((a: CharacterAction, ai: number) => (
+                                  <div key={ai} className="text-[10px] text-white/45 leading-snug">
+                                    <span className="text-emerald-300/55 font-semibold">{a.character}:</span> {a.action}
+                                  </div>
+                                ))}
+                              </div>
+                            ))}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )}
+
+                  </div>
+                )}
+              </motion.div>
+            )}
+
             {/* Production Readiness Score + Movie Readiness Report */}
             {(storyboard.productionScore !== undefined || storyboard.movieReadinessReport) && (
               <motion.div variants={itemVariants} className="space-y-6">
@@ -3058,6 +3435,43 @@ function Home() {
                         </button>
                       )}
                     </div>
+
+                    {/* Client-side Data Exports */}
+                    {storyboard && (
+                      <div className="space-y-2 pt-3 border-t border-white/5">
+                        <label className="text-[10px] font-bold uppercase tracking-widest text-white/30">{t.clientExportsLabel}</label>
+                        <div className="flex flex-wrap gap-2">
+                          <button
+                            onClick={() => downloadJSON(storyboard)}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-sky-400/10 text-sky-300/80 border border-sky-400/15 hover:bg-sky-400/20 transition-colors"
+                          >
+                            <FileText className="w-3.5 h-3.5" />
+                            {t.exportJSON}
+                          </button>
+                          <button
+                            onClick={() => downloadPromptPack(storyboard)}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-violet-400/10 text-violet-300/80 border border-violet-400/15 hover:bg-violet-400/20 transition-colors"
+                          >
+                            <FileText className="w-3.5 h-3.5" />
+                            {t.exportPromptPack}
+                          </button>
+                          <button
+                            onClick={() => downloadCSV(storyboard)}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-400/10 text-emerald-300/80 border border-emerald-400/15 hover:bg-emerald-400/20 transition-colors"
+                          >
+                            <FileText className="w-3.5 h-3.5" />
+                            {t.exportCSV}
+                          </button>
+                          <button
+                            onClick={() => downloadProductionPkg(storyboard)}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-amber-400/10 text-amber-300/80 border border-amber-400/15 hover:bg-amber-400/20 transition-colors"
+                          >
+                            <Package className="w-3.5 h-3.5" />
+                            {t.exportProductionPkg}
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               </motion.div>

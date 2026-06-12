@@ -1,0 +1,210 @@
+Analyze the entire Story-Weaver-AI / DreamFrame AI codebase before making changes.
+
+Then implement the complete Cinematic AI Platform Upgrade.
+
+DO NOT break existing features.
+DO NOT remove existing story pipeline functionality.
+Maintain full TypeScript safety.
+
+IMPLEMENTATION GOALS
+
+Upgrade the project into a complete cinematic AI storytelling platform with:
+
+- AI Story Generation
+- AI Scene Generation
+- AI Image Generation
+- AI Video Generation
+- Character Consistency
+- Scene Continuity Memory
+- Export System
+- Production Pipeline
+- Movie Readiness Intelligence
+
+---
+
+KEEP EXISTING SYSTEMS
+
+Preserve and maintain:
+
+- Story analysis pipeline
+- Character extraction
+- Scene breakdown generation
+- Flashback detection
+- Dream detection
+- Imagination detection
+- Internal monologue detection
+- Audio intelligence
+- Director notes
+- Production readiness score
+- Movie readiness report
+- Multi-language support
+- Existing UI styling
+- Existing API routes
+- Existing animation system
+
+---
+
+ADD VIDEO GENERATION SYSTEM
+
+Implement:
+
+Scene Video Generation
+
+For every scene add:
+
+- Generate Scene Video button
+- Video loading state
+- Video retry state
+- Video success state
+- Video failed state
+
+Generate:
+
+1. videoStatus
+2. videoUrl
+3. videoProvider
+4. videoGenerationTime
+5. videoError
+
+Support modular providers:
+
+- Runway
+- Luma
+- Kling
+- Pika
+- Haiper
+- Replicate
+- Stability AI Video
+
+Keep provider architecture modular.
+
+---
+
+CINEMATIC VIDEO PROMPT ENGINE
+
+Create enhanced cinematic prompts using:
+
+- Director notes
+- Scene emotions
+- Camera language
+- Lighting
+- Environment mood
+- Character continuity
+- Previous scene memory
+- Scene transitions
+
+Add:
+
+- cameraMovement
+- cinematicLighting
+- lensType
+- depthStyle
+- atmosphere
+- motionStyle
+
+Generate platform-neutral prompts in English only.
+
+---
+
+CHARACTER CONTINUITY ENGINE
+
+Maintain consistency across scenes using:
+
+- character appearance memory
+- clothing memory
+- facial consistency
+- color palette memory
+- previous scene references
+- emotional progression memory
+
+Add continuity memory system.
+
+---
+
+IMAGE + VIDEO QUEUE SYSTEM
+
+Implement queue management:
+
+- prevent duplicate requests
+- concurrent-safe generation
+- preserve outputs after refresh
+- retry failed jobs
+- queue status tracking
+- loading state per scene
+
+---
+
+EXPORT SYSTEM
+
+Add:
+
+Export Options
+
+- Export Story PDF
+- Export Storyboard PDF
+- Export Images ZIP
+- Export Production Package
+- Export Scene JSON
+- Export Cinematic Prompt Pack
+
+---
+
+MOVIE PIPELINE
+
+Generate:
+
+- Shot list
+- Camera plan
+- Audio direction
+- Character acting notes
+- Scene pacing
+- Transition plan
+
+---
+
+UI ADDITIONS
+
+Add cinematic production panels:
+
+- Image Generation Panel
+- Video Generation Panel
+- Export Panel
+- Continuity Panel
+- Production Insights Panel
+
+Maintain current design language.
+
+---
+
+BACKEND REQUIREMENTS
+
+Maintain:
+
+- OpenAPI sync
+- Zod validation
+- runtime validation
+- schema-first architecture
+
+Add:
+
+- video generation routes
+- export routes
+- queue routes
+- continuity routes
+
+---
+
+VALIDATION
+
+After implementation:
+
+1. Run OpenAPI codegen
+2. Run full TypeScript typecheck
+3. Fix ALL schema mismatches
+4. Fix ALL TypeScript errors
+5. Restart all workflows
+6. Verify frontend loads successfully
+7. Verify API server runs successfully
+
+Do not stop with partial implementation.
+Complete the full integration safely.
