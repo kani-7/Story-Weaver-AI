@@ -11,7 +11,6 @@ const OUTPUT_LANG_NAMES: Record<string, string> = {
   ta: "Tamil (தமிழ்)",
 };
 
-// ─── Validation Metrics ────────────────────────────────────────────────────────
 export const validationMetrics = {
   validationPassed: 0,
   validationFailed: 0,
@@ -19,7 +18,149 @@ export const validationMetrics = {
   retryFailed: 0,
 };
 
-// ─── Gemini Call Helper ────────────────────────────────────────────────────────
+function sanitizeGeminiResponse(raw: unknown): Record<string, unknown> {
+  if (typeof raw !== "object" || raw === null) {
+    throw new Error("Response must be an object");
+  }
+
+  const obj = raw as Record<string, unknown>;
+
+  if (obj.productionReadinessScore !== undefined && obj.productionScore === undefined) {
+    obj.productionScore = obj.productionReadinessScore;
+  }
+
+  if (obj.genre === undefined) {
+    obj.genre = "Drama";
+  }
+  if (obj.logline === undefined) {
+    const title = (obj.title as string) ?? "";
+    obj.logline = `A story about ${title.toLowerCase()}`;
+  }
+
+  const scenes = obj.scenes;
+  if (Array.isArray(scenes)) {
+    obj.scenes = scenes.map((scene: Record<string, unknown>) => {
+      if (scene.description !== undefined && scene.setting === undefined) {
+        scene.setting = scene.description;
+      }
+
+      if (Array.isArray(scene.narration)) {
+        scene.narration = scene.narration.join(" ");
+      }
+
+      if (Array.isArray(scene.thoughts) && !Array.isArray(scene.internalThoughts)) {
+        scene.internalThoughts = scene.thoughts;
+      }
+
+      if (Array.isArray(scene.actions) && !Array.isArray(scene.characterActions)) {
+        scene.characterActions = scene.actions;
+      }
+
+      if (Array.isArray(scene.emotions) && !Array.isArray(scene.characterEmotions)) {
+        scene.characterEmotions = scene.emotions;
+      }
+
+      if (scene.visualPrompt !== undefined && scene.directorNote === undefined) {
+        scene.directorNote = scene.visualPrompt;
+      }
+
+      if (typeof scene.imagePrompt === "object" && scene.imagePrompt !== null) {
+        const imagePrompt = scene.imagePrompt as Record<string, unknown>;
+        if (Array.isArray(imagePrompt.visualEffects)) {
+          imagePrompt.visualEffects = (imagePrompt.visualEffects as unknown[]).join(", ");
+        }
+        if (imagePrompt.imageGenerationScore === undefined) {
+          imagePrompt.imageGenerationScore = 75;
+        }
+      }
+
+      if (typeof scene.storyboardFrameMetadata === "object" && scene.storyboardFrameMetadata !== null) {
+        const frame = scene.storyboardFrameMetadata as Record<string, unknown>;
+        if (frame.lensStyle !== undefined && frame.lensStyleFrame === undefined) {
+          frame.lensStyleFrame = frame.lensStyle;
+        }
+        if (frame.cinematicCompositionNotes !== undefined && frame.compositionNotes === undefined) {
+          frame.compositionNotes = frame.cinematicCompositionNotes;
+        }
+      }
+
+      return scene;
+    });
+  }
+
+  if (typeof obj.visualProductionReport === "object" && obj.visualProductionReport !== null) {
+    const report = obj.visualProductionReport as Record<string, unknown>;
+
+    if (Array.isArray(report.strongestVisualScenes)) {
+      report.strongestVisualScenes = report.strongestVisualScenes.map((s: unknown) =>
+        typeof s === "string" ? parseInt(s, 10) || 0 : s
+      ).filter((n: unknown) => typeof n === "number");
+    }
+    if (Array.isArray(report.weakestVisualScenes)) {
+      report.weakestVisualScenes = report.weakestVisualScenes.map((s: unknown) =>
+        typeof s === "string" ? parseInt(s, 10) || 0 : s
+      ).filter((n: unknown) => typeof n === "number");
+    }
+
+    if (report.animationComplexityNotes && !report.animationComplexity) {
+      report.animationComplexity = Array.isArray(report.animationComplexityNotes)
+        ? (report.animationComplexityNotes as unknown[]).join("; ")
+        : report.animationComplexityNotes;
+    }
+    if (report.renderingDifficultyNotes && !report.renderingDifficulty) {
+      report.renderingDifficulty = Array.isArray(report.renderingDifficultyNotes)
+        ? (report.renderingDifficultyNotes as unknown[]).join("; ")
+        : report.renderingDifficultyNotes;
+    }
+  }
+
+  if (typeof obj.productionScore !== "number") {
+    obj.productionScore = 75;
+  }
+
+  return obj;
+}
+
+function parseJSONWithFallback(text: string): unknown {
+  try {
+    return JSON.parse(text);
+  } catch {
+    const codeBlockMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
+    if (codeBlockMatch) {
+      try {
+        return JSON.parse(codeBlockMatch[1].trim());
+      } catch {
+        // Continue
+      }
+    }
+
+    const firstBrace = text.indexOf("{");
+    const lastBrace = text.lastIndexOf("}");
+    if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+      try {
+        return JSON.parse(text.slice(firstBrace, lastBrace + 1));
+      } catch {
+        // Continue
+      }
+    }
+
+    const cleaned = text
+      .replace(/[\n\r]+/g, " ")
+      .replace(/\s+/g, " ")
+      .replace(/,(\s*[}\]])/g, "$1")
+      .replace(/([{,]\s*)([a-zA-Z_][a-zA-Z0-9_]*)\s*:/g, '$1"$2":')
+      .replace(/:\s*'([^']*)'/g, ': "$1"')
+      .replace(/:\s*"([^"]*)"/g, (match, val) =>
+        match.replace(val, val.replace(/"/g, '\\"')));
+
+    try {
+      return JSON.parse(cleaned);
+    } catch (err) {
+      throw new Error(`Failed to parse JSON after all fallbacks: ${err}`);
+    }
+  }
+}
+
 async function callGemini(prompt: string): Promise<unknown> {
   const response = await ai.models.generateContent({
     model: "gemini-2.5-flash",
@@ -30,7 +171,7 @@ async function callGemini(prompt: string): Promise<unknown> {
   const text = response.text;
   if (!text) throw new Error("No response from Gemini");
 
-  return JSON.parse(text);
+  return parseJSONWithFallback(text);
 }
 
 router.post("/storyboard/analyze", async (req, res): Promise<void> => {
@@ -41,181 +182,41 @@ router.post("/storyboard/analyze", async (req, res): Promise<void> => {
   }
 
   const { story, outputLanguage = "en" } = parsed.data;
+
   const outputLanguageName = OUTPUT_LANG_NAMES[outputLanguage] ?? "English";
 
-  const prompt = `You are a professional storyboard director. Analyze the story below and output ONLY valid JSON using EXACTLY these field names. Story output language: ${outputLanguageName}. All camera, audio, and technical fields must be in English only.
+  const prompt = `You are a professional storyboard director. Analyze this story and output ONLY valid JSON with these EXACT field names:
+- title, genre, logline, characters, scenes, productionScore, movieReadinessReport, visualProductionReport
+- scenes: sceneNumber, sceneType (Present|Flashback|Dream|Imagination), title, setting, directorNote, narration (STRING not array), dialogue, internalThoughts, internalMonologue, characterActions, characterEmotions, audio, continuityCheck, cinematicCamera, shotList, tensionAnalysis, continuityMemory, exportReadiness, imagePrompt, storyboardFrameMetadata
+- imagePrompt: visualEffects MUST be STRING, imageGenerationScore MUST be number
+- storyboardFrameMetadata: lensStyleFrame and compositionNotes
+- visualProductionReport: strongestVisualScenes and weakestVisualScenes MUST be NUMBER arrays
+- Return ONLY JSON - no markdown, no code blocks
 
-Story:
-"""
-${story}
-"""
-
-Return ONLY this JSON structure (no markdown, no code blocks, no explanation):
-
+Output JSON structure:
 {
-  "title": "Story title in ${outputLanguageName}",
-  "genre": "Genre in ${outputLanguageName}",
-  "logline": "One-sentence summary in ${outputLanguageName}",
-  "characters": [
-    {
-      "characterId": "english-lowercase-slug",
-      "name": "Character name in ${outputLanguageName}",
-      "species": "Species or archetype in ${outputLanguageName}",
-      "appearance": "3-4 sentences in ${outputLanguageName}",
-      "clothing": "Clothing in ${outputLanguageName}, or omit field if none",
-      "personality": "2-3 sentences in ${outputLanguageName}",
-      "distinctiveFeatures": "2-4 visual markers in ${outputLanguageName}",
-      "voiceStyle": "ENGLISH ONLY: pitch, tempo, texture, accent, delivery style"
-    }
-  ],
-  "scenes": [
-    {
-      "sceneNumber": 1,
-      "sceneType": "Present",
-      "title": "Scene title in ${outputLanguageName}",
-      "setting": "Where and when in ${outputLanguageName}",
-      "directorNote": "ENGLISH ONLY: 40-80 words. Visual prompt including character distinctiveFeatures verbatim, lighting, camera angle, environment, mood. Pixar-style 3D render.",
-      "narration": "Narrator text as a single string in ${outputLanguageName}, or empty string if none",
-      "dialogue": [
-        {
-          "character": "Exact name from profile",
-          "line": "Spoken words in ${outputLanguageName}, no quotation marks",
-          "vocalEmotion": "ENGLISH ONLY: emotional quality e.g. grief-stricken, defiant, tender",
-          "vocalIntensity": 0.75,
-          "speechSpeed": "normal",
-          "pauseTiming": "ENGLISH ONLY: e.g. dramatic pause before line",
-          "whisperDetection": false,
-          "shoutDetection": false
-        }
-      ],
-      "internalThoughts": [
-        { "character": "Exact name from profile", "thought": "Brief reflection in ${outputLanguageName}" }
-      ],
-      "internalMonologue": [
-        { "character": "Exact name from profile", "monologue": "Extended inner voice in ${outputLanguageName}" }
-      ],
-      "characterActions": [
-        { "character": "Named character ONLY", "action": "Present-tense physical action in ${outputLanguageName}" }
-      ],
-      "characterEmotions": [
-        { "character": "Exact name from profile", "emotion": "Emotional state in ${outputLanguageName}", "confidence": 0.85 }
-      ],
-      "audio": {
-        "backgroundAmbience": ["ENGLISH: ambient sound 1", "ENGLISH: ambient sound 2"],
-        "backgroundMusic": "ENGLISH ONLY: tempo, instrumentation, emotional tone",
-        "soundEffects": ["ENGLISH: specific sound effect"]
-      },
-      "continuityCheck": {
-        "status": "Pass",
-        "issues": []
-      },
-      "cinematicCamera": {
-        "shotType": "Medium Shot",
-        "cameraAngle": "Eye Level",
-        "cameraMovement": "Static",
-        "lensStyle": "35mm cinematic",
-        "framingStyle": "ENGLISH ONLY: composition note",
-        "lightingStyle": "ENGLISH ONLY: lighting mood",
-        "pacingStyle": "ENGLISH ONLY: editorial pacing feel"
-      },
-      "shotList": [
-        {
-          "shotNumber": 1,
-          "shotDescription": "ENGLISH ONLY: what the camera captures",
-          "shotPurpose": "ENGLISH ONLY: narrative or emotional purpose",
-          "estimatedDuration": "3 seconds",
-          "transitionType": "Hard Cut"
-        }
-      ],
-      "tensionAnalysis": {
-        "tensionCurve": "ENGLISH ONLY: description of tension arc in this scene",
-        "emotionalIntensity": 0.65,
-        "pacingBalance": "ENGLISH ONLY: editorial pacing assessment"
-      },
-      "continuityMemory": {
-        "clothingState": ["ENGLISH: Character A: current clothing state"],
-        "weatherState": "ENGLISH ONLY: current weather conditions",
-        "environmentState": "ENGLISH ONLY: current location and environment state",
-        "objectsPresent": ["ENGLISH: key prop and state"],
-        "injuryState": ["ENGLISH: Character A: uninjured"],
-        "emotionalCarryOver": [],
-        "lightingState": "ENGLISH ONLY: current ambient lighting",
-        "timeOfDay": "ENGLISH ONLY: current time of day",
-        "continuityWarnings": [],
-        "continuityResolutionSuggestions": []
-      },
-      "exportReadiness": {
-        "screenplayReady": true,
-        "storyboardReady": true,
-        "animationPipelineReady": true,
-        "voicePipelineReady": true,
-        "editingPipelineReady": true
-      },
-      "sceneImagePrompt": {
-        "sceneImagePrompt": "ENGLISH ONLY: 80-150 words, paste-ready image prompt. Include character distinctiveFeatures verbatim, environment, lighting, color palette, camera angle, emotional mood, render style.",
-        "colorPalette": "ENGLISH ONLY: specific named color palette",
-        "environmentDetail": "ENGLISH ONLY: architecture/terrain, weather, key props, foreground/midground/background layers",
-        "characterPositioning": "ENGLISH ONLY: exact positions, poses, facing directions, spatial relationships",
-        "facialExpressionDetail": "ENGLISH ONLY: per-character brow position, eye openness, mouth state, jaw tension",
-        "cinematicMood": "ENGLISH ONLY: compound mood phrase e.g. tense and claustrophobic with underlying dread",
-        "visualEffects": "ENGLISH ONLY: specific visual effects as a single string, or empty string if none",
-        "renderStyle": "ENGLISH ONLY: render style e.g. vibrant 3D Pixar-style cartoon render, PBR materials",
-        "animationStyle": "ENGLISH ONLY: animation style e.g. fluid Disney 12-principles, secondary motion on hair",
-        "visualEngine": "PresentEngine",
-        "characterVisualContinuity": "ENGLISH ONLY: CharacterName: clothing/injury/wetness/emotional state",
-        "imageGenerationScore": 85
-      },
-      "storyboardFrameMetadata": {
-        "aspectRatio": "ENGLISH ONLY: e.g. 16:9 Widescreen",
-        "focalLength": "ENGLISH ONLY: e.g. 85mm portrait",
-        "depthOfField": "ENGLISH ONLY: e.g. shallow — subject sharp, background soft bokeh at f/1.8",
-        "lensStyleFrame": "ENGLISH ONLY: e.g. anamorphic — oval bokeh and horizontal lens flares",
-        "compositionNotes": "ENGLISH ONLY: subject placement, rule of thirds, negative space, foreground framing"
-      }
-    }
-  ],
+  "title": "Story title",
+  "genre": "Genre",
+  "logline": "One-sentence summary",
+  "characters": [{"characterId": "slug", "name": "Name", "species": "Species", "appearance": "3-4 sentences", "clothing": "Clothing", "personality": "2-3 sentences", "distinctiveFeatures": "2-4 markers", "voiceStyle": "ENGLISH ONLY voice description"}],
+  "scenes": [{"sceneNumber": 1, "sceneType": "Present", "title": "Scene title", "setting": "Where and when", "directorNote": "ENGLISH ONLY 40-80 word visual prompt", "narration": "Single string narration or empty", "dialogue": [{"character": "Name", "line": "Dialogue", "vocalEmotion": "ENGLISH", "vocalIntensity": 0.75, "speechSpeed": "normal", "pauseTiming": "ENGLISH", "whisperDetection": false, "shoutDetection": false}], "internalThoughts": [{"character": "Name", "thought": "Brief thought"}], "internalMonologue": [{"character": "Name", "monologue": "Extended inner voice"}], "characterActions": [{"character": "Name", "action": "Action"}], "characterEmotions": [{"character": "Name", "emotion": "Emotion", "confidence": 0.85}], "audio": {"backgroundAmbience": ["sound"], "backgroundMusic": "ENGLISH", "soundEffects": ["sfx"]}, "continuityCheck": {"status": "Pass", "issues": []}, "cinematicCamera": {"shotType": "Medium Shot", "cameraAngle": "Eye Level", "cameraMovement": "Static", "lensStyle": "35mm cinematic", "framingStyle": "ENGLISH", "lightingStyle": "ENGLISH", "pacingStyle": "ENGLISH"}, "shotList": [{"shotNumber": 1, "shotDescription": "ENGLISH", "shotPurpose": "ENGLISH", "estimatedDuration": "3 seconds", "transitionType": "Hard Cut"}], "tensionAnalysis": {"tensionCurve": "ENGLISH", "emotionalIntensity": 0.65, "pacingBalance": "ENGLISH"}, "continuityMemory": {"clothingState": ["Char: state"], "weatherState": "ENGLISH", "environmentState": "ENGLISH", "objectsPresent": ["obj"], "injuryState": ["Char: uninjured"], "emotionalCarryOver": [], "lightingState": "ENGLISH", "timeOfDay": "ENGLISH", "continuityWarnings": [], "continuityResolutionSuggestions": []}, "exportReadiness": {"screenplayReady": true, "storyboardReady": true, "animationPipelineReady": true, "voicePipelineReady": true, "editingPipelineReady": true}, "imagePrompt": {"sceneImagePrompt": "ENGLISH 80-150 words", "colorPalette": "ENGLISH", "environmentDetail": "ENGLISH", "characterPositioning": "ENGLISH", "facialExpressionDetail": "ENGLISH", "cinematicMood": "ENGLISH", "visualEffects": "ENGLISH string", "renderStyle": "ENGLISH", "animationStyle": "ENGLISH", "visualEngine": "PresentEngine", "characterVisualContinuity": "ENGLISH", "imageGenerationScore": 85}, "storyboardFrameMetadata": {"aspectRatio": "ENGLISH", "focalLength": "ENGLISH", "depthOfField": "ENGLISH", "lensStyleFrame": "ENGLISH", "compositionNotes": "ENGLISH"}, "flashbackIndicator": "optional", "transitionIn": "optional", "returnToPresent": "optional"}],
   "productionScore": 85,
-  "movieReadinessReport": {
-    "strengths": ["Specific strength 1", "Specific strength 2"],
-    "weaknesses": ["Specific weakness 1"],
-    "missingElements": [],
-    "productionNotes": "ENGLISH ONLY: 2-4 sentence paragraph of practical production advice."
-  },
-  "visualProductionReport": {
-    "strongestVisualScenes": [1, 2],
-    "weakestVisualScenes": [3],
-    "consistencyRisks": ["ENGLISH: specific consistency risk"],
-    "animationComplexity": "ENGLISH ONLY: overall animation complexity assessment as a single string",
-    "renderingDifficulty": "ENGLISH ONLY: estimated rendering difficulty as a single string",
-    "cinematicStrengths": ["ENGLISH: cinematic strength 1"]
-  }
+  "movieReadinessReport": {"strengths": ["strength"], "weaknesses": ["weakness"], "missingElements": [], "productionNotes": "ENGLISH"},
+  "visualProductionReport": {"strongestVisualScenes": [1, 2], "weakestVisualScenes": [3], "consistencyRisks": ["risk"], "animationComplexity": "ENGLISH", "renderingDifficulty": "ENGLISH", "cinematicStrengths": ["strength"]}
 }
 
+Story:
+${story}
+
 STRICT RULES:
-- Output language for all human-readable story content: ${outputLanguageName}
-- English ONLY for: directorNote, all audio fields, all camera fields, all shotList fields, all tensionAnalysis fields, all continuityMemory fields, all sceneImagePrompt fields, all storyboardFrameMetadata fields, all visualProductionReport fields, movieReadinessReport.productionNotes
-- sceneType: exactly one of "Present" | "Flashback" | "Dream" | "Imagination"
-- For non-Present scenes (Flashback/Dream/Imagination): add "flashbackIndicator" (ENGLISH, under 6 words), "transitionIn" (ENGLISH, cinematic entry technique), "returnToPresent" (ENGLISH, cinematic exit technique). Omit these three fields for Present scenes.
-- vocalIntensity: number 0.00–1.00, never a string
-- confidence: number 0.00–1.00, never a string
-- emotionalIntensity: number 0.00–1.00, never a string
-- imageGenerationScore: integer 0–100, never a string
-- productionScore: integer 0–100, never a string
-- visualEffects: MUST be a STRING, not an array
-- strongestVisualScenes: MUST be an array of scene NUMBERS e.g. [1, 2], not strings
-- weakestVisualScenes: MUST be an array of scene NUMBERS e.g. [3], not strings
-- animationComplexity: MUST be a single string, not an array
-- renderingDifficulty: MUST be a single string, not an array
-- visualEngine MUST match sceneType: Present→"PresentEngine", Flashback→"FlashbackEngine", Dream→"DreamEngine", Imagination→"ImaginationEngine"
-- sceneImagePrompt.sceneImagePrompt MUST include each present character's distinctiveFeatures verbatim
-- Use [] for empty arrays. Use "" for empty narration.
-- Divide the story into 3–8 meaningful scenes. Extract all named characters.
-- Return ONLY the JSON object, nothing else.`;
+1. narration MUST be STRING not array
+2. visualEffects MUST be STRING not array
+3. strongestVisualScenes and weakestVisualScenes MUST be NUMBER arrays
+4. imageGenerationScore MUST be number 0-100
+5. vocalIntensity, confidence, emotionalIntensity MUST be numbers 0-1
+6. Return ONLY JSON - no markdown, no code blocks, no explanation
+`;
 
-  // ─── Generate storyboardId before validation ──────────────────────────────────
-  const storyboardId = randomUUID();
-
-  // ─── Attempt 1: Call Gemini ─────────────────────────────────────────────────
   let raw: unknown;
   try {
     raw = await callGemini(prompt);
@@ -225,20 +226,24 @@ STRICT RULES:
     return;
   }
 
-  // ─── Inject storyboardId before validation (it is required by the schema) ────
-  (raw as Record<string, unknown>).storyboardId = storyboardId;
+  let sanitized: Record<string, unknown>;
+  try {
+    sanitized = sanitizeGeminiResponse(raw);
+  } catch (err) {
+    req.log.error({ err, raw }, "JSON sanitization failed");
+    res.status(500).json({ error: "Failed to parse AI response. Please try again." });
+    return;
+  }
 
-  // ─── Attempt 1: Validate ────────────────────────────────────────────────────
-  let validated = AnalyzeStoryResponse.safeParse(raw);
+  let validated = AnalyzeStoryResponse.safeParse(sanitized);
 
   if (!validated.success) {
     validationMetrics.validationFailed++;
     req.log.warn(
       { zodErrors: validated.error.issues, attempt: 1 },
-      "Storyboard validation failed — retrying"
+      "Storyboard validation failed after sanitization - retrying"
     );
 
-    // ─── Attempt 2: Retry Gemini ───────────────────────────────────────────────
     let raw2: unknown;
     try {
       raw2 = await callGemini(prompt);
@@ -249,32 +254,36 @@ STRICT RULES:
       return;
     }
 
-    // ─── Inject storyboardId into retry response too ──────────────────────────
-    (raw2 as Record<string, unknown>).storyboardId = storyboardId;
+    let sanitized2: Record<string, unknown>;
+    try {
+      sanitized2 = sanitizeGeminiResponse(raw2);
+    } catch (err) {
+      req.log.error({ err, raw: raw2 }, "JSON sanitization failed on retry");
+      res.status(500).json({ error: "Failed to parse AI response on retry. Please try again." });
+      return;
+    }
 
-    // ─── Attempt 2: Validate ──────────────────────────────────────────────────
-    validated = AnalyzeStoryResponse.safeParse(raw2);
+    validated = AnalyzeStoryResponse.safeParse(sanitized2);
 
     if (!validated.success) {
       validationMetrics.retryFailed++;
       req.log.error(
         { zodErrors: validated.error.issues, attempt: 2 },
-        "Storyboard validation failed after retry — returning error"
+        "Storyboard validation failed after retry - returning error"
       );
       res.status(500).json({
         error: "AI response did not meet the required structure after two attempts. Please try again.",
+        details: validated.error.issues.slice(0, 3).map(i => i.message),
       });
       return;
     }
 
-    // ─── Retry succeeded ───────────────────────────────────────────────────────
     validationMetrics.retrySuccess++;
     req.log.info(
       { attempt: 2, metrics: { ...validationMetrics } },
       "Storyboard validation passed after retry"
     );
   } else {
-    // ─── First attempt succeeded ───────────────────────────────────────────────
     validationMetrics.validationPassed++;
     req.log.info(
       { attempt: 1, metrics: { ...validationMetrics } },
@@ -282,7 +291,11 @@ STRICT RULES:
     );
   }
 
-  res.json(validated.data);
+  const storyboardId = randomUUID();
+  const response = validated.data as Record<string, unknown>;
+  response.storyboardId = storyboardId;
+
+  res.json(response);
 });
 
 export default router;
